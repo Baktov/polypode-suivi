@@ -78,12 +78,13 @@ Dans **Options → AddOns → Polypode → Suivi** (réglage propre à chaque pe
 | Option | Défaut | Effet |
 |---|---|---|
 | Tous les personnages | Non | La fenêtre liste tous les personnages dont des informations ont été enregistrées au lieu de l'équipe sélectionnée (même case que dans la barre de titre de la fenêtre) |
-| Afficher les renommées | Oui | Détaille les renommées de l'extension dans l'infobulle de chaque membre. Inutile avec un seul compte Battle.net : les renommées y sont communes à tous les personnages |
+| Afficher les renommées | Non | Détaille les renommées de l'extension dans l'infobulle de chaque membre. Inutile avec un seul compte Battle.net : les renommées y sont communes à tous les personnages |
 
 ---
 
 ## Version
 
+`1.2.1` : « Afficher les renommées » décochée par défaut (remise à décochée une fois sur les personnages déjà réglés).
 `1.2.0` : case « Tous les personnages », informations sauvegardées et datées, grande chambre forte remise à zéro à la réinitialisation hebdomadaire.
 `1.1.0` : option « Afficher les renommées ».
 `1.0.0` : première version (grande chambre forte, écus, ressources, renommées, runes de pouvoir).

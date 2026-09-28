@@ -50,7 +50,7 @@ local SECTIONS = { "V", "C", "R", "F", "P" }
 -- Options par personnage (PolypodeSuiviDB, Options → AddOns → Polypode → Suivi).
 local DEFAULTS = {
 	showAll = false, -- tous les personnages sauvegardés au lieu de l'équipe sélectionnée
-	showFactions = true, -- renommées dans l'infobulle (inutile avec un seul compte Battle.net :
+	showFactions = false, -- renommées dans l'infobulle (inutile avec un seul compte Battle.net :
 	-- elles y sont communes à tous les personnages)
 }
 
@@ -693,6 +693,12 @@ setup:SetScript("OnEvent", function(_, event, addonName)
 		PolypodeSuiviData = PolypodeSuiviData or {}
 		received = PolypodeSuiviData
 		PolypodeSuiviDB = PolypodeSuiviDB or {}
+		-- 1.2.1 : renommées décochées par défaut ; la 1.1.0 avait enregistré « cochée » partout,
+		-- remise une seule fois à la nouvelle valeur par défaut.
+		if not PolypodeSuiviDB.factionsDefaultOff then
+			PolypodeSuiviDB.showFactions = nil
+			PolypodeSuiviDB.factionsDefaultOff = true
+		end
 		for key, value in pairs(DEFAULTS) do
 			if PolypodeSuiviDB[key] == nil then
 				PolypodeSuiviDB[key] = value
