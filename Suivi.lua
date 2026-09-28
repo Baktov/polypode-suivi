@@ -103,6 +103,18 @@ local function CrestIDs()
 	return (select(4, GetBuildInfo()) or 0) >= 120100 and CRESTS_12_1 or CRESTS_12_0
 end
 
+-- Charges du catalyseur par saison de Midnight (Plumber, SharedData.lua : CatalystCurrencyID ;
+-- saison 2 = flux de mana de Chancrevenin). Relevées avec les ressources (section R).
+local CATALYST_BY_SEASON = { [1] = 3378, [2] = 3465 }
+
+local function CatalystID()
+	local expansion, number = CurrentSeason()
+	if IsMidnight(expansion) and number and CATALYST_BY_SEASON[number] then
+		return CATALYST_BY_SEASON[number]
+	end
+	return (select(4, GetBuildInfo()) or 0) >= 120100 and CATALYST_BY_SEASON[2] or CATALYST_BY_SEASON[1]
+end
+
 -- « Midnight, saison 2 » (nom de l'extension traduit par le jeu), ou nil si inconnue.
 local function SeasonText()
 	local expansion, number = CurrentSeason()
@@ -1038,6 +1050,17 @@ local function MemberColumns()
 				return tostring(sections.C and sections.C[tostring(id)] or "")
 			end }
 		end
+	end
+	-- Charges du catalyseur (en-tête : l'icône de la monnaie ; 0 en gris).
+	local catalyst = CatalystID()
+	local catalystInfo = CurrencyInfo(catalyst)
+	if catalystInfo then
+		columns[#columns + 1] = { Icon(catalystInfo.iconFileID), function(sections)
+			if not sections.R then
+				return ""
+			end
+			return tostring(sections.R["c" .. catalyst] or "|cff9999990|r")
+		end }
 	end
 	-- Semaine : nombres (détail en infobulle).
 	for _, week in ipairs({ { "Traques", "prey" }, { "Gouffres", "delves" }, { "Donjons", "dungeons" },

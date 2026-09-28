@@ -24,7 +24,7 @@ Nécessite **Polypode 0.51.0** ou plus récent.
 
 Le bouton **Suivi** (barre de titre de la fenêtre Polypode) ou `/poly suivi` ouvre une fenêtre
 présentée comme un **tableau sans trait** : une ligne d'en-tête (Coffre, Runes, icônes des écus,
-Traques, Gouffres, Donjons, Raids), puis une ligne par membre de l'équipe sélectionnée (leader en
+icône du catalyseur, Traques, Gouffres, Donjons, Raids), puis une ligne par membre de l'équipe sélectionnée (leader en
 tête), aux colonnes alignées verticalement (à droite, à la largeur de leur plus long contenu ; le
 nom prend la place restante et se tronque si la fenêtre est étroite ; une colonne vide chez tous
 est masquée) :
@@ -35,6 +35,8 @@ est masquée) :
 - **Coffre** n/9 : cases débloquées de la grande chambre forte ;
 - **Runes** n (en vert) : points de runes de pouvoir à dépenser, s'il y en a ;
 - les **écus** d'amélioration d'objet (icône et quantité), de l'aventurier à gauche au mythique à droite ;
+- les **charges du catalyseur** disponibles (monnaie de la saison : flux de mana de Chancrevenin
+  en saison 2 de Midnight, 0 en gris) ;
 - ce qui a été fait **cette semaine** : nombre de traques, gouffres, donjons et raids (en gris
   si zéro ; raids = boss tués).
 
@@ -145,6 +147,7 @@ travail de recensement.
 
 ## Version
 
+`1.13.0` : colonne des charges du catalyseur.
 `1.12.2` : plus d'infobulle sur la ligne d'en-tête (Polypode 0.51.1 requis).
 `1.12.1` : infobulle de la ligne d'en-tête condensée.
 `1.12.0` : résumé en tableau sans trait, colonnes alignées avec une ligne d'en-tête.
