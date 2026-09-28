@@ -30,7 +30,7 @@ avec une ligne par membre de l'équipe sélectionnée (leader en tête) :
 - nom en couleur de classe ;
 - **Coffre n/9** : cases débloquées de la grande chambre forte ;
 - **Runes n** (en vert) : points de runes de pouvoir à dépenser, s'il y en a ;
-- les **écus** d'amélioration d'objet (icône et quantité).
+- les **écus** d'amélioration d'objet (icône et quantité), de l'aventurier à gauche au mythique à droite.
 
 Au survol d'un personnage, l'infobulle détaille :
 
@@ -126,6 +126,7 @@ travail de recensement.
 
 ## Version
 
+`1.7.1` : écus de la liste rangés de l'aventurier (gauche) au mythique (droite).
 `1.7.0` : saison en cours dans l'en-tête, écus choisis selon la saison, avertissement si les listes sont dépassées.
 `1.6.0` : courrier non lu (enveloppe), nombre et expiration relevés à la boîte aux lettres.
 `1.5.0` : icônes des activités, catégorie dynamique « Lune-d'Argent », activités actives affichées.

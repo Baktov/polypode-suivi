@@ -861,7 +861,11 @@ local function FormatMember(item)
 	if runes and runes > 0 then
 		text = text .. "  |cff40ff40Runes " .. runes .. "|r"
 	end
-	for _, id in ipairs(CrestIDs()) do
+	-- Écus de gauche à droite du plus bas (aventurier) au plus haut (mythique) : la liste est
+	-- rangée du plus haut au plus bas, parcourue à l'envers.
+	local crests = CrestIDs()
+	for i = #crests, 1, -1 do
+		local id = crests[i]
 		local quantity = sections.C and sections.C[tostring(id)]
 		local info = CurrencyInfo(id)
 		if quantity and info then
