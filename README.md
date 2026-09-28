@@ -99,6 +99,17 @@ Dans **Options → AddOns → Polypode → Suivi** (réglage propre à chaque pe
 
 ---
 
+## Crédits
+
+Polypode Suivi est **librement inspiré** du « Résumé de l'extension » de l'addon **Plumber**, de
+**Peterodox**. Le code est écrit pour Polypode (aucun fichier de Plumber n'est inclus), mais les
+**données** en sont reprises : identifiants des écus et des ressources de Midnight, liste et
+classement des activités (identifiants de quêtes). Le calcul « une rune achetable » reprend
+celui de l'interface Blizzard (`Blizzard_MidnightLandingPage`). Merci à Peterodox pour ce
+travail de recensement.
+
+---
+
 ## Version
 
 `1.4.0` : panneau « Activités » (bouton en haut à droite).
