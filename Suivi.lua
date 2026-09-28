@@ -1511,9 +1511,7 @@ local function Build()
 	end, nil, {
 		tooltip = function(data)
 			if data.columnHeader then
-				return { "Résumé de la semaine", "Coffre : cases débloquées de la grande chambre forte ; "
-					.. "Runes : points de runes de pouvoir à dépenser ; icônes : écus ; puis traques, "
-					.. "gouffres, donjons et raids (boss) de la semaine. Détail au survol d'un personnage." }
+				return { "Résumé de la semaine", "Raids = boss tués. Détail au survol d'un personnage." }
 			elseif data.activityHeader then
 				return { CategoryTitle(data.category) }
 			elseif data.activity then

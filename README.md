@@ -145,6 +145,7 @@ travail de recensement.
 
 ## Version
 
+`1.12.1` : infobulle de la ligne d'en-tête condensée.
 `1.12.0` : résumé en tableau sans trait, colonnes alignées avec une ligne d'en-tête.
 `1.11.0` : catégorie « Exploration » (gouffres, donjons et raids de la semaine, notés à l'entrée).
 `1.10.0` : fenêtre redimensionnable (poignée bas-droite).
