@@ -402,7 +402,50 @@ local MAIL_WARNING = 3 * 24 * 3600 -- expiration à moins de 3 jours : signalée
 --   k — niveaux des clés mythiques+ terminées, « 12.10.8 » (C_MythicPlus.GetRunHistory) ;
 --   r<difficulté> — boss de raid tués par difficulté (DifficultyID : 17 LFR, 14 normal, 15
 --                   héroïque, 16 mythique ; GetSortedProgressForActivity, rangée Raids).
--- Les donjons normaux ne sont suivis par aucune API (ils ne comptent pas pour la chambre forte).
+--   n / f — donjons normaux / avec suivants, comptés par Polypode Suivi à l'ENTRÉE (aucune API ne
+--           les suit : ils ne comptent pas pour la chambre forte), PolypodeSuiviDB.dungeonEntries.
+
+-- Difficultés de donjon comptées à l'entrée : 1 normal, 205 avec suivants.
+local COUNTED_DUNGEON_DIFFICULTIES = { [1] = "n", [205] = "f" }
+local REENTRY_DELAY = 2 * 3600 -- même donjon dans les 2 h (reload, déconnexion) : pas recompté
+
+-- Compteurs de la semaine du personnage joué, remis à zéro après la réinitialisation hebdomadaire.
+local function DungeonEntries()
+	local settings = PolypodeSuiviDB
+	if not settings then
+		return nil
+	end
+	local entries = settings.dungeonEntries
+	local reset = WeeklyResetTime()
+	if not entries or (reset and (entries.since or 0) < reset) then
+		entries = { n = 0, f = 0, since = GetServerTime() }
+		settings.dungeonEntries = entries
+	end
+	return entries
+end
+
+-- Entrée dans une instance (PLAYER_ENTERING_WORLD) : +1 si c'est un donjon normal ou avec
+-- suivants, sauf retour dans le même donjon dans les 2 h.
+local function CountDungeonEntry()
+	if not GetInstanceInfo then
+		return
+	end
+	local _, instanceType, difficultyID, _, _, _, _, instanceID = GetInstanceInfo()
+	local key = instanceType == "party" and COUNTED_DUNGEON_DIFFICULTIES[difficultyID]
+	local entries = key and DungeonEntries()
+	if not entries then
+		return
+	end
+	local now = GetServerTime()
+	local last = entries.last
+	if last and last.id == instanceID and last.difficulty == difficultyID and now - last.at < REENTRY_DELAY then
+		last.at = now
+		return
+	end
+	entries[key] = (entries[key] or 0) + 1
+	entries.last = { id = instanceID, difficulty = difficultyID, at = now }
+end
+
 local function ReadWeekly()
 	local data = {}
 	if ns.PREY_QUESTS and C_QuestLog and C_QuestLog.IsQuestFlaggedCompleted then
@@ -434,6 +477,11 @@ local function ReadWeekly()
 		data.h = (heroic or 0) > 0 and heroic or nil
 		data.m = (mythic or 0) > 0 and mythic or nil
 		data.p = (mythicPlus or 0) > 0 and mythicPlus or nil
+	end
+	local entries = DungeonEntries()
+	if entries then
+		data.n = (entries.n or 0) > 0 and entries.n or nil
+		data.f = (entries.f or 0) > 0 and entries.f or nil
 	end
 	if C_MythicPlus and C_MythicPlus.GetRunHistory then
 		local levels = {}
@@ -910,7 +958,7 @@ local function WeeklyTotals(sections)
 			totals.delves = totals.delves + count
 		elseif prefix == "r" then
 			totals.raid = totals.raid + count
-		elseif key == "h" or key == "m" or key == "p" then
+		elseif key == "h" or key == "m" or key == "p" or key == "n" or key == "f" then
 			totals.dungeons = totals.dungeons + count
 		end
 	end
@@ -1037,7 +1085,8 @@ local function MemberTooltip(item)
 	end
 	lines[#lines + 1] = "  Gouffres : " .. (#delveParts > 0 and table.concat(delveParts, ", ") or "aucun")
 	local dungeons = {}
-	for key, label in pairs({ h = "héroïque", m = "mythique", p = "mythique+" }) do
+	for key, label in pairs({ n = "normal*", f = "avec suivants*", h = "héroïque", m = "mythique",
+		p = "mythique+" }) do
 		if week[key] then
 			dungeons[#dungeons + 1] = label .. " ×" .. week[key]
 		end
@@ -1046,6 +1095,9 @@ local function MemberTooltip(item)
 	local keys = week.k and tostring(week.k):gsub("%.", ", ")
 	lines[#lines + 1] = "  Donjons : " .. (#dungeons > 0 and table.concat(dungeons, ", ") or "aucun")
 		.. (keys and (" (clés " .. keys .. ")") or "")
+	if week.n or week.f then
+		lines[#lines + 1] = "  |cff999999* compté à l'entrée dans le donjon (non suivi par WoW)|r"
+	end
 	local raids = {}
 	for _, difficultyID in ipairs({ 17, 14, 15, 16 }) do
 		local count = week["r" .. difficultyID]
@@ -1508,6 +1560,9 @@ for _, event in ipairs({
 	end
 end
 events:SetScript("OnEvent", function(_, event)
+	if event == "PLAYER_ENTERING_WORLD" then
+		CountDungeonEntry() -- donjon normal / avec suivants : compté à l'entrée
+	end
 	if event == "MAIL_INBOX_UPDATE" then
 		ScanMailbox() -- boîte ouverte : relevé immédiat, envoyé avec le reste
 	end

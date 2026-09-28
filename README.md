@@ -47,8 +47,10 @@ Au survol d'un personnage, l'infobulle détaille :
 - **Cette semaine** : traques faites par difficulté (Normal, Difficile, Cauchemar, sur 4), gouffres
   par palier, donjons héroïques / mythiques / mythiques+ avec le niveau des clés, boss de raid par
   difficulté (LFR, normal, héroïque, mythique). Remis à zéro à la réinitialisation hebdomadaire. Les
-  donjons **normaux** ne sont suivis par aucune API de WoW (ils ne comptent pas pour la chambre
-  forte) ;
+  donjons **normaux** et **avec suivants** ne sont suivis par aucune API de WoW (ils ne comptent
+  pas pour la chambre forte) : Polypode Suivi les compte **à l'entrée** dans le donjon (marqués *),
+  sans recompter un retour dans le même donjon dans les 2 heures (reload, déconnexion) ; un donjon
+  abandonné compte donc aussi ;
 - **Courrier** : « Courrier non lu », puis, d'après la dernière visite du personnage à la boîte aux
   lettres, le nombre de courriers non lus / total et l'**expiration la plus proche** (en rouge à
   moins de 3 jours). WoW ne donne ces détails que boîte aux lettres ouverte : ils sont relevés à
@@ -133,6 +135,7 @@ travail de recensement.
 
 ## Version
 
+`1.9.0` : donjons normaux et avec suivants, comptés à l'entrée.
 `1.8.0` : traques, gouffres, donjons et raids de la semaine, avec détail par difficulté.
 `1.7.1` : écus de la liste rangés de l'aventurier (gauche) au mythique (droite).
 `1.7.0` : saison en cours dans l'en-tête, écus choisis selon la saison, avertissement si les listes sont dépassées.
