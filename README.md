@@ -23,15 +23,19 @@ Nécessite **Polypode 0.51.0** ou plus récent.
 ## Utilisation
 
 Le bouton **Suivi** (barre de titre de la fenêtre Polypode) ou `/poly suivi` ouvre une fenêtre
-avec une ligne par membre de l'équipe sélectionnée (leader en tête) :
+présentée comme un **tableau sans trait** : une ligne d'en-tête (Coffre, Runes, icônes des écus,
+Traques, Gouffres, Donjons, Raids), puis une ligne par membre de l'équipe sélectionnée (leader en
+tête), aux colonnes alignées verticalement (à droite, à la largeur de leur plus long contenu ; le
+nom prend la place restante et se tronque si la fenêtre est étroite ; une colonne vide chez tous
+est masquée) :
 
 - une **enveloppe** à gauche du nom si le personnage a du **courrier non lu**, ou un courrier qui
   expire dans moins de 3 jours ;
 - nom en couleur de classe ;
-- **Coffre n/9** : cases débloquées de la grande chambre forte ;
-- **Runes n** (en vert) : points de runes de pouvoir à dépenser, s'il y en a ;
+- **Coffre** n/9 : cases débloquées de la grande chambre forte ;
+- **Runes** n (en vert) : points de runes de pouvoir à dépenser, s'il y en a ;
 - les **écus** d'amélioration d'objet (icône et quantité), de l'aventurier à gauche au mythique à droite ;
-- ce qui a été fait **cette semaine** : « 3 traques · 5 gouffres · 4 donjons · 2 raids » (en gris
+- ce qui a été fait **cette semaine** : nombre de traques, gouffres, donjons et raids (en gris
   si zéro ; raids = boss tués).
 
 Au survol d'un personnage, l'infobulle détaille :
@@ -141,6 +145,7 @@ travail de recensement.
 
 ## Version
 
+`1.12.0` : résumé en tableau sans trait, colonnes alignées avec une ligne d'en-tête.
 `1.11.0` : catégorie « Exploration » (gouffres, donjons et raids de la semaine, notés à l'entrée).
 `1.10.0` : fenêtre redimensionnable (poignée bas-droite).
 `1.9.0` : donjons normaux et avec suivants, comptés à l'entrée.

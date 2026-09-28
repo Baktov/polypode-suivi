@@ -991,10 +991,9 @@ local function WeeklyTotals(sections)
 	return totals
 end
 
--- « 3 traques » (gris si zéro).
-local function WeeklyCount(count, singular, plural)
-	local text = count .. " " .. (count > 1 and plural or singular)
-	return count > 0 and text or ("|cff999999" .. text .. "|r")
+-- Nombre de la semaine (gris si zéro).
+local function WeeklyCount(count)
+	return count > 0 and tostring(count) or ("|cff999999" .. count .. "|r")
 end
 
 -- Courrier d'un personnage : non lu (bool) et expiration la plus proche (heure serveur ou nil).
@@ -1008,43 +1007,135 @@ end
 
 local MAIL_ICON = "|TInterface\\Icons\\INV_Letter_15:14:14|t"
 
+-- TABLEAU DU RÉSUMÉ : une ligne d'en-tête puis une ligne par personnage, en colonnes alignées
+-- (sans trait) : coffre, runes, écus (du plus bas au plus haut), traques, gouffres, donjons,
+-- raids. Les colonnes sont ancrées au bord droit, à la largeur de leur plus long contenu
+-- (mesurée à chaque rafraîchissement) ; le nom prend la place restante et se tronque.
+local COLUMN_GAP = 12
+local memberColumns = {} -- largeurs des colonnes affichées, dans l'ordre (0 = colonne masquée)
+local measure -- texte caché servant à mesurer les cellules
+
+-- Colonnes : { en-tête, cellule(sections) } ; une colonne d'écu par écu de la saison.
+local function MemberColumns()
+	local columns = {
+		{ "Coffre", function(sections)
+			local unlocked, total = VaultSummary(sections.V)
+			return total > 0 and ("|cffffd200" .. unlocked .. "/" .. total .. "|r") or ""
+		end },
+		{ "Runes", function(sections)
+			local runes = tonumber(sections.P and sections.P.u)
+			return (runes and runes > 0) and ("|cff40ff40" .. runes .. "|r") or ""
+		end },
+	}
+	-- Écus de gauche à droite du plus bas (aventurier) au plus haut (mythique) : la liste est
+	-- rangée du plus haut au plus bas, parcourue à l'envers. En-tête : l'icône de l'écu.
+	local crests = CrestIDs()
+	for i = #crests, 1, -1 do
+		local id = crests[i]
+		local info = CurrencyInfo(id)
+		if info then
+			columns[#columns + 1] = { Icon(info.iconFileID), function(sections)
+				return tostring(sections.C and sections.C[tostring(id)] or "")
+			end }
+		end
+	end
+	-- Semaine : nombres (détail en infobulle).
+	for _, week in ipairs({ { "Traques", "prey" }, { "Gouffres", "delves" }, { "Donjons", "dungeons" },
+		{ "Raids", "raid" } }) do
+		columns[#columns + 1] = { week[1], function(sections)
+			return WeeklyCount(WeeklyTotals(sections)[week[2]])
+		end, always = true }
+	end
+	return columns
+end
+
+-- Nom d'un personnage (enveloppe à gauche : courrier non lu, ou courrier qui expire bientôt).
 local function FormatMember(item)
+	if item.columnHeader then
+		return ""
+	end
 	local text = CharacterName(item.key)
 	local sections = DataFor(item.key)
 	if not sections then
 		return text .. "  |cff999999pas d'infos (Polypode Suivi absent ou pas encore reçu)|r"
 	end
-	-- Enveloppe à gauche du nom : courrier non lu, ou courrier qui expire bientôt.
 	local unread, expires = MailState(sections)
 	if unread or (expires and expires - GetServerTime() < MAIL_WARNING) then
 		text = MAIL_ICON .. " " .. text
 	end
-	local unlocked, total = VaultSummary(sections.V)
-	if total > 0 then
-		text = text .. "  |cffffd200Coffre " .. unlocked .. "/" .. total .. "|r"
-	end
-	local runes = tonumber(sections.P and sections.P.u)
-	if runes and runes > 0 then
-		text = text .. "  |cff40ff40Runes " .. runes .. "|r"
-	end
-	-- Écus de gauche à droite du plus bas (aventurier) au plus haut (mythique) : la liste est
-	-- rangée du plus haut au plus bas, parcourue à l'envers.
-	local crests = CrestIDs()
-	for i = #crests, 1, -1 do
-		local id = crests[i]
-		local quantity = sections.C and sections.C[tostring(id)]
-		local info = CurrencyInfo(id)
-		if quantity and info then
-			text = text .. "  " .. Icon(info.iconFileID) .. quantity
+	return text
+end
+
+-- Remplit item.cells de chaque personnage, ajoute la ligne d'en-tête en tête de liste et mesure
+-- les colonnes (une colonne vide chez tous est masquée, sauf celles de la semaine).
+local function BuildMemberTable(items)
+	local columns = MemberColumns()
+	local header = { columnHeader = true, cells = {} }
+	local used = {}
+	for _, item in ipairs(items) do
+		local sections = DataFor(item.key)
+		item.cells = {}
+		for i, column in ipairs(columns) do
+			local cell = sections and column[2](sections) or ""
+			item.cells[i] = cell
+			used[i] = used[i] or cell ~= "" or (column.always and sections ~= nil)
 		end
 	end
-	-- Semaine : traques, gouffres, donjons, raids (nombres ; détail en infobulle).
-	local week = WeeklyTotals(sections)
-	text = text .. "  " .. WeeklyCount(week.prey, "traque", "traques") .. " · "
-		.. WeeklyCount(week.delves, "gouffre", "gouffres") .. " · "
-		.. WeeklyCount(week.dungeons, "donjon", "donjons") .. " · "
-		.. WeeklyCount(week.raid, "raid", "raids")
-	return text
+	if not measure then
+		measure = frame:CreateFontString(nil, "OVERLAY", "GameFontHighlight")
+		measure:Hide()
+	end
+	local function Width(text)
+		measure:SetText(text)
+		return math.ceil(measure:GetStringWidth())
+	end
+	wipe(memberColumns)
+	for i, column in ipairs(columns) do
+		header.cells[i] = "|cffffd200" .. column[1] .. "|r"
+		local width = 0
+		if used[i] then
+			width = Width(header.cells[i])
+			for _, item in ipairs(items) do
+				width = math.max(width, Width(item.cells[i]))
+			end
+		end
+		memberColumns[i] = width
+	end
+	table.insert(items, 1, header)
+	return items
+end
+
+-- Place les cellules d'une ligne du tableau (lignes recyclées : tout est recalculé ici).
+local function LayoutCells(row, data)
+	row.cells = row.cells or {}
+	local cells = data.cells or {}
+	local offset = -4
+	local firstCell
+	for i = #memberColumns, 1, -1 do
+		local cell = row.cells[i]
+		if not cell then
+			cell = row:CreateFontString(nil, "OVERLAY", "GameFontHighlight")
+			cell:SetJustifyH("RIGHT")
+			cell:SetWordWrap(false)
+			row.cells[i] = cell
+		end
+		local width = memberColumns[i]
+		if width > 0 and data.cells then
+			cell:ClearAllPoints()
+			cell:SetPoint("RIGHT", row, "RIGHT", offset, 0)
+			cell:SetWidth(width)
+			cell:SetText(cells[i] or "")
+			cell:Show()
+			offset = offset - width - COLUMN_GAP
+			firstCell = cell
+		else
+			cell:Hide()
+		end
+	end
+	for i = #memberColumns + 1, #row.cells do
+		row.cells[i]:Hide()
+	end
+	return firstCell
 end
 
 -- Date d'information en clair : « à l'instant », « il y a n min / h », sinon « du jj/mm à hh:mm ».
@@ -1419,15 +1510,20 @@ local function Build()
 		return FormatMember(data)
 	end, nil, {
 		tooltip = function(data)
-			if data.activityHeader then
+			if data.columnHeader then
+				return { "Résumé de la semaine", "Coffre : cases débloquées de la grande chambre forte ; "
+					.. "Runes : points de runes de pouvoir à dépenser ; icônes : écus ; puis traques, "
+					.. "gouffres, donjons et raids (boss) de la semaine. Détail au survol d'un personnage." }
+			elseif data.activityHeader then
 				return { CategoryTitle(data.category) }
 			elseif data.activity then
 				return ActivityTooltip(data)
 			end
 			return MemberTooltip(data)
 		end,
-		-- Texte de droite des activités (personnages) ; pleine largeur pour les autres lignes.
+		-- Texte de droite des activités (personnages) ; colonnes du tableau pour le résumé.
 		decorate = function(row, data)
+			local firstCell = LayoutCells(row, data)
 			if not row.rightText then
 				row.rightText = row:CreateFontString(nil, "OVERLAY", "GameFontHighlight")
 				row.rightText:SetPoint("LEFT", row, "CENTER", 0, 0)
@@ -1439,6 +1535,9 @@ local function Build()
 				row.rightText:SetText(ActivityRightText(data))
 				row.rightText:Show()
 				row.text:SetPoint("RIGHT", row.rightText, "LEFT", -6, 0)
+			elseif firstCell then
+				row.rightText:Hide()
+				row.text:SetPoint("RIGHT", firstCell, "LEFT", -COLUMN_GAP, 0)
 			else
 				row.rightText:Hide()
 				row.text:SetPoint("RIGHT", -4, 0)
@@ -1476,6 +1575,9 @@ function P.RefreshSuivi()
 		emptyText = #keys > 0 and "Aucune activité à afficher." or emptyText
 	else
 		frame.activityButton:SetText("Activités")
+		if #items > 0 then
+			items = BuildMemberTable(items)
+		end
 	end
 	-- Saison en cours, et avertissement si les listes reprises de Plumber ne la couvrent pas.
 	local season = SeasonText()
