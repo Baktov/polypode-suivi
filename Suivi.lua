@@ -60,7 +60,9 @@ local DEFAULTS = {
 	activityMode = false, -- panneau « Activités » au lieu du résumé
 	showFactions = false, -- renommées dans l'infobulle (inutile avec un seul compte Battle.net :
 	-- elles y sont communes à tous les personnages)
+	width = 620, height = 340, -- taille de la fenêtre (poignée de redimensionnement)
 }
+local MIN_WIDTH, MIN_HEIGHT = 480, 200
 
 local function SuiviSettings()
 	return PolypodeSuiviDB or DEFAULTS
@@ -1241,10 +1243,14 @@ end
 
 local function Build()
 	frame = CreateFrame("Frame", "PolypodeSuiviFrame", UIParent, "BackdropTemplate")
-	frame:SetSize(620, 340)
+	local settings = SuiviSettings()
+	frame:SetSize(math.max(settings.width or DEFAULTS.width, MIN_WIDTH),
+		math.max(settings.height or DEFAULTS.height, MIN_HEIGHT))
 	frame:SetPoint("CENTER")
 	frame:SetFrameStrata("DIALOG")
 	frame:SetMovable(true)
+	frame:SetResizable(true)
+	frame:SetResizeBounds(MIN_WIDTH, MIN_HEIGHT)
 	frame:EnableMouse(true)
 	frame:RegisterForDrag("LeftButton")
 	frame:SetScript("OnDragStart", frame.StartMoving)
@@ -1338,6 +1344,25 @@ local function Build()
 	listPanel = P.CreatePanel(frame, "")
 	listPanel:SetPoint("TOPLEFT", 12, -36)
 	listPanel:SetPoint("BOTTOMRIGHT", -12, 12)
+
+	-- Poignée de redimensionnement (coin bas-droit, comme la fenêtre de Polypode), au-dessus de
+	-- la liste ; taille gardée par personnage.
+	local grip = CreateFrame("Button", nil, frame)
+	grip:SetSize(16, 16)
+	grip:SetPoint("BOTTOMRIGHT", -2, 2)
+	grip:SetFrameLevel(frame:GetFrameLevel() + 10)
+	grip:SetNormalTexture("Interface\\ChatFrame\\UI-ChatIM-SizeGrabber-Up")
+	grip:SetHighlightTexture("Interface\\ChatFrame\\UI-ChatIM-SizeGrabber-Highlight")
+	grip:SetPushedTexture("Interface\\ChatFrame\\UI-ChatIM-SizeGrabber-Down")
+	grip:SetScript("OnMouseDown", function()
+		frame:StartSizing("BOTTOMRIGHT")
+	end)
+	grip:SetScript("OnMouseUp", function()
+		frame:StopMovingOrSizing()
+		local current = SuiviSettings()
+		current.width, current.height = frame:GetSize()
+	end)
+	frame.resizeGrip = grip
 	-- Une liste pour les deux panneaux : membres (résumé) ou en-têtes et lignes d'activités.
 	P.CreateScrollList(listPanel, function(data)
 		if data.activityHeader then

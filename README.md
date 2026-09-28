@@ -56,7 +56,8 @@ Au survol d'un personnage, l'infobulle détaille :
   moins de 3 jours). WoW ne donne ces détails que boîte aux lettres ouverte : ils sont relevés à
   chaque visite et gardés, datés (comme le fait Altoholic).
 
-La liste défile ; Échap ferme la fenêtre ; elle suit l'équipe sélectionnée. L'en-tête de la
+La liste défile ; la fenêtre se **redimensionne** par la poignée du coin bas-droit (taille
+gardée par personnage) ; Échap ferme la fenêtre ; elle suit l'équipe sélectionnée. L'en-tête de la
 liste indique la **saison en cours** (« Midnight, saison 2 », d'après le jeu), et signale en
 orange « listes à mettre à jour » si les écus ou les activités repris de Plumber ne couvrent pas
 cette saison (nouvelle saison ou nouvelle extension).
@@ -135,6 +136,7 @@ travail de recensement.
 
 ## Version
 
+`1.10.0` : fenêtre redimensionnable (poignée bas-droite).
 `1.9.0` : donjons normaux et avec suivants, comptés à l'entrée.
 `1.8.0` : traques, gouffres, donjons et raids de la semaine, avec détail par difficulté.
 `1.7.1` : écus de la liste rangés de l'aventurier (gauche) au mythique (droite).
