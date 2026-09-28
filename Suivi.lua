@@ -212,6 +212,90 @@ for _, category in ipairs(ns.ACTIVITIES or {}) do
 	end
 end
 
+-- Clés et quêtes de la liste fixe (le reste de la section A = quêtes dynamiques de la carte).
+local FIXED_KEYS, FIXED_QUESTS = {}, {}
+for _, category in ipairs(ns.ACTIVITIES or {}) do
+	for _, entry in ipairs(category.entries) do
+		FIXED_KEYS[EntryKey(entry)] = true
+		for _, questID in ipairs(entry.q and { entry.q } or entry.pool or entry.count) do
+			FIXED_QUESTS[questID] = true
+		end
+	end
+end
+
+-- Nom de repli des quêtes de carte connues (ns.MAP_QUESTS).
+local MAP_QUEST_NAMES = {}
+for _, entry in ipairs(ns.MAP_QUESTS or {}) do
+	MAP_QUEST_NAMES[entry.q] = entry.name
+end
+
+-- Types de quêtes montrés par Plumber dans une catégorie de carte (répétable, méta, mission).
+local function IsShownClassification(questID, info)
+	local classes = Enum and Enum.QuestClassification
+	if not classes then
+		return false
+	end
+	local classification = (info and info.questClassification)
+		or (C_QuestInfoSystem and C_QuestInfoSystem.GetQuestClassification
+			and C_QuestInfoSystem.GetQuestClassification(questID))
+	return classification ~= nil and (classification == classes.Recurring or classification == classes.Meta
+		or classification == classes.Calling)
+end
+
+local function WeeklyResetTime()
+	local untilNext = C_DateAndTime and C_DateAndTime.GetSecondsUntilWeeklyReset
+		and C_DateAndTime.GetSecondsUntilWeeklyReset()
+	return untilNext and GetServerTime() + untilNext - 7 * 24 * 3600
+end
+
+-- Quêtes dynamiques de la carte (ns.DYNAMIC_MAP) pour le personnage joué : proposées sur la carte,
+-- ou de ns.MAP_QUESTS en cours (ou always), ou vues cette semaine (PolypodeSuiviDB.dynamicSeen :
+-- une quête faite disparaît de la carte mais doit rester suivie jusqu'à la réinitialisation).
+-- Renvoie { [questID] = true }.
+local function DynamicQuestIDs()
+	local ids = {}
+	local map = ns.DYNAMIC_MAP
+	if map and C_QuestLine and C_QuestLine.GetAvailableQuestLines then
+		if C_QuestLine.RequestQuestLinesForMap then
+			C_QuestLine.RequestQuestLinesForMap(map)
+		end
+		local sources = { C_QuestLine.GetAvailableQuestLines(map) or {} }
+		if C_TaskQuest and C_TaskQuest.GetQuestsOnMap then
+			sources[2] = C_TaskQuest.GetQuestsOnMap(map) or {}
+		end
+		for _, source in ipairs(sources) do
+			for _, info in ipairs(source) do
+				local questID = info.questID
+				if questID and not info.isHidden and (info.startMapID or info.mapID) == map
+					and not FIXED_QUESTS[questID] and IsShownClassification(questID, info) then
+					ids[questID] = true
+				end
+			end
+		end
+	end
+	for _, entry in ipairs(ns.MAP_QUESTS or {}) do
+		if entry.always or (C_QuestLog.IsOnQuest and C_QuestLog.IsOnQuest(entry.q)) then
+			ids[entry.q] = true
+		end
+	end
+	local settings = PolypodeSuiviDB
+	if settings then
+		settings.dynamicSeen = settings.dynamicSeen or {}
+		local seen, reset = settings.dynamicSeen, WeeklyResetTime()
+		for questID, at in pairs(seen) do
+			if reset and at < reset then
+				seen[questID] = nil
+			else
+				ids[questID] = true
+			end
+		end
+		for questID in pairs(ids) do
+			seen[questID] = seen[questID] or GetServerTime()
+		end
+	end
+	return ids
+end
+
 local function QuestDone(questID, accountwide)
 	if accountwide and C_QuestLog.IsQuestFlaggedCompletedOnAccount then
 		return C_QuestLog.IsQuestFlaggedCompletedOnAccount(questID)
@@ -246,6 +330,13 @@ local function ReadActivities()
 			if state > 0 then
 				data[EntryKey(entry)] = state
 			end
+		end
+	end
+	-- Quêtes dynamiques de la carte (catégorie « Lune-d'Argent »).
+	for questID in pairs(DynamicQuestIDs()) do
+		local state = QuestDone(questID) and 2 or (C_QuestLog.IsOnQuest and C_QuestLog.IsOnQuest(questID) and 1) or 0
+		if state > 0 then
+			data["q" .. questID] = state
 		end
 	end
 	return data
@@ -438,13 +529,73 @@ local function QuestTitle(questID)
 end
 
 local function EntryTitle(entry)
-	return entry.label or (entry.q and QuestTitle(entry.q)) or entry.name or "?"
+	return entry.label or (entry.q and QuestTitle(entry.q)) or entry.name
+		or (entry.q and MAP_QUEST_NAMES[entry.q]) or (entry.q and ("Quête n° " .. entry.q)) or "?"
+end
+
+-- Atlas Blizzard par type de quête (repris de Plumber, ActivityUtil.lua : QuestIconAtlas).
+local QUEST_ATLAS = {}
+if Enum and Enum.QuestClassification then
+	local classes = Enum.QuestClassification
+	QUEST_ATLAS = {
+		[classes.Normal or -1] = "QuestNormal",
+		[classes.Questline or -2] = "QuestNormal",
+		[classes.Recurring or -3] = "quest-recurring-available",
+		[classes.Meta or -4] = "quest-wrapper-available",
+		[classes.Calling or -5] = "Quest-DailyCampaign-Available",
+		[classes.Campaign or -6] = "Quest-Campaign-Available",
+		[classes.Legendary or -7] = "UI-QuestPoiLegendary-QuestBang",
+		[classes.Important or -8] = "importantavailablequesticon",
+	}
+end
+
+-- Icône (texte) d'une activité : coche si tous les personnages connus l'ont terminée, sinon
+-- l'atlas de son type de quête (répétable par défaut, comme les séries).
+local function EntryIcon(item)
+	local entry = item.activity
+	local total = entry.count and #entry.count
+	local known, complete = 0, 0
+	for _, key in ipairs(item.keys) do
+		local state = item.states[key]
+		if state then
+			known = known + 1
+			if (total and state >= total) or (not total and state == 2) then
+				complete = complete + 1
+			end
+		end
+	end
+	local atlas
+	if known > 0 and complete == known then
+		atlas = "checkmark-minimal-disabled"
+	else
+		local questID = entry.q or (entry.pool and entry.pool[1])
+		local classification = questID and C_QuestInfoSystem and C_QuestInfoSystem.GetQuestClassification
+			and C_QuestInfoSystem.GetQuestClassification(questID)
+		atlas = classification and QUEST_ATLAS[classification] or "quest-recurring-available"
+	end
+	return CreateAtlasMarkup and CreateAtlasMarkup(atlas, 16, 16) or ""
+end
+
+-- Vrai si l'activité est active pour le personnage joué (quête du monde active ou en cours),
+-- comme les activités « shownIfActive » de Plumber.
+local function IsActiveHere(entry)
+	for _, questID in ipairs(entry.q and { entry.q } or entry.pool or {}) do
+		if (C_TaskQuest and C_TaskQuest.IsActive and C_TaskQuest.IsActive(questID))
+			or (C_QuestLog.IsOnQuest and C_QuestLog.IsOnQuest(questID)) then
+			return true
+		end
+	end
+	return false
 end
 
 -- Nom d'une catégorie : libellé fixe, sinon nom traduit de la faction, sinon nom de repli.
 local function CategoryTitle(category)
 	if category.label then
 		return category.label
+	end
+	if category.map then
+		local map = C_Map and C_Map.GetMapInfo and C_Map.GetMapInfo(category.map)
+		return map and map.name or "Lune-d'Argent"
 	end
 	if category.faction then
 		local major = C_MajorFactions and C_MajorFactions.GetMajorFactionData
@@ -465,7 +616,35 @@ end
 -- l'un des personnages suivis a faite ou commencée), avec l'état de chaque personnage.
 local function BuildActivityItems(keys)
 	local items = {}
+
+	-- Catégorie dynamique de la carte, en tête comme chez Plumber : quêtes trouvées ici, plus les
+	-- quêtes dynamiques signalées par les autres personnages (clés q<id> hors liste fixe).
+	local categories = {}
+	if ns.DYNAMIC_MAP then
+		local questIDs = DynamicQuestIDs()
+		for _, key in ipairs(keys) do
+			local sections = DataFor(key)
+			for entryKey in pairs(sections and sections.A or {}) do
+				local questID = tonumber(entryKey:match("^q(%d+)$"))
+				if questID and not FIXED_KEYS[entryKey] then
+					questIDs[questID] = true
+				end
+			end
+		end
+		local entries = {}
+		for questID in pairs(questIDs) do
+			entries[#entries + 1] = { q = questID, always = true }
+		end
+		table.sort(entries, function(a, b)
+			return EntryTitle(a) < EntryTitle(b)
+		end)
+		categories[1] = { map = ns.DYNAMIC_MAP, entries = entries }
+	end
 	for _, category in ipairs(ns.ACTIVITIES or {}) do
+		categories[#categories + 1] = category
+	end
+
+	for _, category in ipairs(categories) do
 		local rows = {}
 		for _, entry in ipairs(category.entries) do
 			local entryKey, states, any = EntryKey(entry), {}, false
@@ -475,7 +654,7 @@ local function BuildActivityItems(keys)
 				states[key] = state
 				any = any or (state and state > 0)
 			end
-			if entry.always or any then
+			if entry.always or any or IsActiveHere(entry) then
 				rows[#rows + 1] = { activity = entry, category = category, states = states, keys = keys }
 			end
 		end
@@ -837,7 +1016,7 @@ local function Build()
 		if data.activityHeader then
 			return "|cffffd200" .. CategoryTitle(data.category) .. "|r"
 		elseif data.activity then
-			return "  " .. EntryTitle(data.activity)
+			return "  " .. EntryIcon(data) .. " " .. EntryTitle(data.activity)
 				.. (data.activity.daily and " |cff999999(quotidienne)|r" or "")
 		end
 		return FormatMember(data)

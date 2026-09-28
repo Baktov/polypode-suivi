@@ -46,12 +46,16 @@ La liste défile ; Échap ferme la fenêtre ; elle suit l'équipe sélectionnée
 ### Activités
 
 Le bouton **Activités** (en haut à droite) remplace le résumé par le panneau des **activités de
-l'extension**, rangées comme dans Plumber : Gouffres, Traque, Forces de Zul'jarra, Cour de
-Lune-d'Argent, Tribu amani, Harandar, La Singularité, Duellum. À droite de chaque activité, les
+l'extension**, rangées comme dans Plumber : **Lune-d'Argent** (quêtes répétables, méta
+hebdomadaires, donjons et étincelles de guerre proposées dans la ville, trouvées sur la carte),
+Gouffres, Traque, Forces de Zul'jarra, Cour de Lune-d'Argent, Tribu amani, Harandar, La
+Singularité, Duellum. Chaque activité a l'icône de son type de quête (comme dans Plumber), ou une
+coche quand tous les personnages connus l'ont terminée. À droite de chaque activité, les
 personnages suivis qui l'ont **faite** (vert) ou **commencée** (jaune, « … ») ; pour une série de
 quêtes (bonus de renom, traque du monde), « nom n/total ». Les activités habituelles (quêtes
 hebdomadaires) sont toujours listées ; les autres (quotidiennes, boss, avis de recherche...)
-apparaissent dès qu'un personnage suivi les a faites ou commencées. L'infobulle donne l'état de
+apparaissent dès qu'elles sont actives pour le personnage joué, ou qu'un personnage suivi les a
+faites ou commencées. L'infobulle donne l'état de
 chaque personnage. Le bouton **Résumé** revient à l'affichage par personnage.
 
 Les titres sont ceux du jeu (en français). La liste des activités est reprise de Plumber, qui ne
@@ -112,6 +116,7 @@ travail de recensement.
 
 ## Version
 
+`1.5.0` : icônes des activités, catégorie dynamique « Lune-d'Argent », activités actives affichées.
 `1.4.0` : panneau « Activités » (bouton en haut à droite).
 `1.3.0` : bouton « Options » dans la barre de titre de la fenêtre.
 `1.2.1` : « Afficher les renommées » décochée par défaut (remise à décochée une fois sur les personnages déjà réglés).

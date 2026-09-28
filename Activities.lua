@@ -74,3 +74,31 @@ ns.ACTIVITIES = {
 		{ q = 89354, name = "Preparing for Battle", always = true },
 	} },
 }
+
+-- Catégorie dynamique (Plumber : DynamicQuestMaps / DynamicQuestDataProvider, ActivityUtil.lua) :
+-- quêtes répétables, méta et missions proposées sur la carte de Lune-d'Argent, trouvées par l'API
+-- (C_QuestLine.GetAvailableQuestLines, C_TaskQuest.GetQuestsOnMap), plus ces quêtes affichées si le
+-- personnage les a en cours (always = toujours affichée). Catégorie au nom de la carte.
+ns.DYNAMIC_MAP = 2393
+ns.MAP_QUESTS = {
+	-- Méta hebdomadaires
+	{ q = 98232, name = "Midnight: Vaults of Atal'Utek" }, { q = 93890, name = "Midnight: Abundance" },
+	{ q = 93767, name = "Midnight: Arcantina" }, { q = 94457, name = "Midnight: Battlegrounds" },
+	{ q = 93909, name = "Midnight: Delves" }, { q = 93911, name = "Midnight: Dungeons" },
+	{ q = 93769, name = "Midnight: Housing" }, { q = 96727, name = "Midnight: Offworld Showdowns" },
+	{ q = 93910, name = "Midnight: Prey" }, { q = 93912, name = "Midnight: Raid" },
+	{ q = 95843, name = "Midnight: Ritual Sites" }, { q = 93889, name = "Midnight: Saltheril's Soiree" },
+	{ q = 93892, name = "Midnight: Stormarion Assault" }, { q = 95842, name = "Midnight: Void Assaults" },
+	{ q = 93913, name = "Midnight: World Boss" }, { q = 93766, name = "Midnight: World Quests" },
+	-- Donjons
+	{ q = 93751, name = "Windrunner Spire" }, { q = 93752, name = "Murder Row" },
+	{ q = 93753, name = "Magister's Terrace" }, { q = 93754, name = "Maisara Caverns" },
+	{ q = 93755, name = "Den of Nalorakk" }, { q = 93756, name = "The Blinding Vale" },
+	{ q = 93757, name = "Voidscar Arena" }, { q = 93758, name = "Nexus-Point Xenas" },
+	-- JcJ
+	{ q = 93423, name = "Sparks of War: Eversong Woods" }, { q = 93424, name = "Sparks of War: Zul'Aman" },
+	{ q = 93425, name = "Sparks of War: Harandar" }, { q = 93426, name = "Sparks of War: Voidstorm" },
+}
+if (select(4, GetBuildInfo()) or 0) >= 120100 then -- 12.1 : traque de Xal'atath, toujours affichée
+	table.insert(ns.MAP_QUESTS, 1, { q = 98172, name = "Trailing Xal'atath", always = true })
+end
