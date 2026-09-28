@@ -1,0 +1,9 @@
+## Interface: 120000, 16001
+## Title: Polypode Suivi
+## Notes: Suivi de l'équipe pour Polypode : grande chambre forte, écus, ressources, renommées et runes de chaque membre.
+## Author: Baktov
+## Version: 1.0.0
+## Dependencies: Polypode
+## Category: Polypode
+
+Suivi.lua
