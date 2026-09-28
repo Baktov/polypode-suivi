@@ -37,7 +37,7 @@ Au survol d'un personnage, l'infobulle détaille :
 - **Amélioration d'objet** : chaque écu ;
 - **Ressources** possédées (marne de Lumière du Vide, bons communautaires, sous-pièce, éclats
   de Dundun, fragments de clé de coffre, honneur, conquête...) ;
-- **Renommées** débloquées de l'extension ;
+- **Renommées** débloquées de l'extension (masquables, voir Options) ;
 - **Runes de pouvoir** : points à dépenser, et si une rune est achetable ;
 - l'ancienneté des informations d'un autre personnage.
 
@@ -59,10 +59,19 @@ La liste défile ; Échap ferme la fenêtre ; elle suit l'équipe sélectionnée
   d'identifiants de quêtes propres à chaque patch.
 - Sur **WoW Forever**, ce qui n'existe pas (runes, écus de Midnight...) reste simplement vide.
 
-Cet addon n'a pas d'options.
+---
+
+## Options
+
+Dans **Options → AddOns → Polypode → Suivi** (réglage propre à chaque personnage) :
+
+| Option | Défaut | Effet |
+|---|---|---|
+| Afficher les renommées | Oui | Détaille les renommées de l'extension dans l'infobulle de chaque membre. Inutile avec un seul compte Battle.net : les renommées y sont communes à tous les personnages |
 
 ---
 
 ## Version
 
+`1.1.0` : option « Afficher les renommées ».
 `1.0.0` : première version (grande chambre forte, écus, ressources, renommées, runes de pouvoir).

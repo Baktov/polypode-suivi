@@ -43,6 +43,16 @@ local RESOURCES = {
 
 local SECTIONS = { "V", "C", "R", "F", "P" }
 
+-- Options par personnage (PolypodeSuiviDB, Options → AddOns → Polypode → Suivi).
+local DEFAULTS = {
+	showFactions = true, -- renommées dans l'infobulle (inutile avec un seul compte Battle.net :
+	-- elles y sont communes à tous les personnages)
+}
+
+local function SuiviSettings()
+	return PolypodeSuiviDB or DEFAULTS
+end
+
 local received = {} -- [nom-royaume] = { sections = { [section] = { [k] = v } }, at = GetTime() }
 local lastSent = {} -- [section] = dernière chaîne envoyée aux clients connectés
 local sendPending
@@ -397,9 +407,9 @@ local function MemberTooltip(item)
 		end
 	end
 
-	-- Renommées.
+	-- Renommées (option showFactions).
 	local factionLines = {}
-	for id, level in pairs(sections.F or {}) do
+	for id, level in pairs(SuiviSettings().showFactions and sections.F or {}) do
 		local faction = C_MajorFactions and C_MajorFactions.GetMajorFactionData
 			and C_MajorFactions.GetMajorFactionData(tonumber(id))
 		factionLines[#factionLines + 1] = "  " .. (faction and faction.name or ("Faction " .. id))
@@ -537,6 +547,50 @@ end
 -- Équipe sélectionnée changée, synchro : la fenêtre suit P.RefreshUI.
 hooksecurefunc(P, "RefreshUI", function()
 	P.RefreshSuivi()
+end)
+
+-- OPTIONS : sous-catégorie « Suivi » du panneau de Polypode (P.optionsCategory, créée à son
+-- PLAYER_LOGIN), ou catégorie « Polypode Suivi » à part si elle manque.
+local function BuildSettingsPanel()
+	if not (Settings and Settings.RegisterProxySetting) then
+		return
+	end
+	local category
+	if P.optionsCategory and Settings.RegisterVerticalLayoutSubcategory then
+		category = Settings.RegisterVerticalLayoutSubcategory(P.optionsCategory, "Suivi")
+	else
+		category = Settings.RegisterVerticalLayoutCategory("Polypode Suivi")
+	end
+	local setting = Settings.RegisterProxySetting(category, "POLYPODE_SUIVI_SHOW_FACTIONS",
+		Settings.VarType.Boolean, "Afficher les renommées", DEFAULTS.showFactions,
+		function()
+			return SuiviSettings().showFactions
+		end,
+		function(value)
+			SuiviSettings().showFactions = value
+		end)
+	Settings.CreateCheckbox(category, setting,
+		"Dans la fenêtre « Suivi de l'équipe », détaille les renommées de l'extension de chaque "
+		.. "membre dans son infobulle. Inutile avec un seul compte Battle.net : les renommées y sont "
+		.. "communes à tous les personnages. Réglage propre à ce personnage.")
+	Settings.RegisterAddOnCategory(category)
+end
+
+local setup = CreateFrame("Frame")
+setup:RegisterEvent("ADDON_LOADED")
+setup:RegisterEvent("PLAYER_LOGIN")
+setup:SetScript("OnEvent", function(_, event, addonName)
+	if event == "ADDON_LOADED" and addonName == "Polypode_Suivi" then
+		PolypodeSuiviDB = PolypodeSuiviDB or {}
+		for key, value in pairs(DEFAULTS) do
+			if PolypodeSuiviDB[key] == nil then
+				PolypodeSuiviDB[key] = value
+			end
+		end
+	elseif event == "PLAYER_LOGIN" then
+		-- Différé d'une image : Polypode crée P.optionsCategory à son propre PLAYER_LOGIN.
+		C_Timer.After(0, BuildSettingsPanel)
+	end
 end)
 
 -- Changements du personnage joué : envoi différé des sections modifiées, et fenêtre à jour.
