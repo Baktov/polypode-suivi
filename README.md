@@ -27,7 +27,8 @@ présentée comme un **tableau sans trait** : une ligne d'en-tête (Coffre, Rune
 icône du catalyseur, Traques, Gouffres, Donjons, Raids), puis une ligne par membre de l'équipe sélectionnée (leader en
 tête), aux colonnes alignées verticalement (à droite, à la largeur de leur plus long contenu ; le
 nom prend la place restante et se tronque si la fenêtre est étroite ; une colonne vide chez tous
-est masquée) :
+est masquée ; au survol, chaque en-tête indique ce que compte sa colonne — grande chambre
+forte, nom de l'écu, catalyseur...) :
 
 - une **enveloppe** à gauche du nom si le personnage a du **courrier non lu**, ou un courrier qui
   expire dans moins de 3 jours ;
@@ -147,6 +148,7 @@ travail de recensement.
 
 ## Version
 
+`1.13.1` : infobulle sur chaque colonne de la ligne d'en-tête.
 `1.13.0` : colonne des charges du catalyseur.
 `1.12.2` : plus d'infobulle sur la ligne d'en-tête (Polypode 0.51.1 requis).
 `1.12.1` : infobulle de la ligne d'en-tête condensée.

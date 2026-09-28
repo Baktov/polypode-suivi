@@ -1027,17 +1027,18 @@ local COLUMN_GAP = 12
 local memberColumns = {} -- largeurs des colonnes affichées, dans l'ordre (0 = colonne masquée)
 local measure -- texte caché servant à mesurer les cellules
 
--- Colonnes : { en-tête, cellule(sections) } ; une colonne d'écu par écu de la saison.
+-- Colonnes : { en-tête, cellule(sections), tip = { titre, texte } (infobulle de l'en-tête) } ;
+-- une colonne d'écu par écu de la saison.
 local function MemberColumns()
 	local columns = {
 		{ "Coffre", function(sections)
 			local unlocked, total = VaultSummary(sections.V)
 			return total > 0 and ("|cffffd200" .. unlocked .. "/" .. total .. "|r") or ""
-		end },
+		end, tip = { "Grande chambre forte", "Cases débloquées / cases au total." } },
 		{ "Runes", function(sections)
 			local runes = tonumber(sections.P and sections.P.u)
 			return (runes and runes > 0) and ("|cff40ff40" .. runes .. "|r") or ""
-		end },
+		end, tip = { "Runes de pouvoir", "Points à dépenser." } },
 	}
 	-- Écus de gauche à droite du plus bas (aventurier) au plus haut (mythique) : la liste est
 	-- rangée du plus haut au plus bas, parcourue à l'envers. En-tête : l'icône de l'écu.
@@ -1048,7 +1049,7 @@ local function MemberColumns()
 		if info then
 			columns[#columns + 1] = { Icon(info.iconFileID), function(sections)
 				return tostring(sections.C and sections.C[tostring(id)] or "")
-			end }
+			end, tip = { info.name, "Écus possédés." } }
 		end
 	end
 	-- Charges du catalyseur (en-tête : l'icône de la monnaie ; 0 en gris).
@@ -1060,14 +1061,19 @@ local function MemberColumns()
 				return ""
 			end
 			return tostring(sections.R["c" .. catalyst] or "|cff9999990|r")
-		end }
+		end, tip = { catalystInfo.name, "Charges du catalyseur disponibles." } }
 	end
 	-- Semaine : nombres (détail en infobulle).
-	for _, week in ipairs({ { "Traques", "prey" }, { "Gouffres", "delves" }, { "Donjons", "dungeons" },
-		{ "Raids", "raid" } }) do
+	for _, week in ipairs({
+		{ "Traques", "prey", "Traques faites cette semaine (toutes difficultés)." },
+		{ "Gouffres", "delves", "Gouffres et activités du monde de la semaine (tous paliers)." },
+		{ "Donjons", "dungeons", "Donjons de la semaine : héroïques, mythiques, mythiques+, et "
+			.. "normaux / avec suivants comptés à l'entrée." },
+		{ "Raids", "raid", "Boss de raid tués cette semaine (toutes difficultés)." },
+	}) do
 		columns[#columns + 1] = { week[1], function(sections)
 			return WeeklyCount(WeeklyTotals(sections)[week[2]])
-		end, always = true }
+		end, always = true, tip = { week[1], week[3] } }
 	end
 	return columns
 end
@@ -1093,7 +1099,7 @@ end
 -- les colonnes (une colonne vide chez tous est masquée, sauf celles de la semaine).
 local function BuildMemberTable(items)
 	local columns = MemberColumns()
-	local header = { columnHeader = true, cells = {} }
+	local header = { columnHeader = true, cells = {}, tips = {} }
 	local used = {}
 	for _, item in ipairs(items) do
 		local sections = DataFor(item.key)
@@ -1115,6 +1121,7 @@ local function BuildMemberTable(items)
 	wipe(memberColumns)
 	for i, column in ipairs(columns) do
 		header.cells[i] = "|cffffd200" .. column[1] .. "|r"
+		header.tips[i] = column.tip
 		local width = 0
 		if used[i] then
 			width = Width(header.cells[i])
@@ -1128,9 +1135,31 @@ local function BuildMemberTable(items)
 	return items
 end
 
+-- Zone survolable d'une cellule d'en-tête : infobulle de la colonne (hover.tip).
+local function CellHover(row, i)
+	row.cellHovers = row.cellHovers or {}
+	local hover = row.cellHovers[i]
+	if not hover then
+		hover = CreateFrame("Frame", nil, row)
+		hover:SetFrameLevel(row:GetFrameLevel() + 2)
+		hover:SetScript("OnEnter", function(self)
+			GameTooltip:SetOwner(self, "ANCHOR_TOP")
+			GameTooltip:AddLine(self.tip[1])
+			GameTooltip:AddLine(self.tip[2], 1, 1, 1, true)
+			GameTooltip:Show()
+		end)
+		hover:SetScript("OnLeave", GameTooltip_Hide)
+		row.cellHovers[i] = hover
+	end
+	return hover
+end
+
 -- Place les cellules d'une ligne du tableau (lignes recyclées : tout est recalculé ici).
 local function LayoutCells(row, data)
 	row.cells = row.cells or {}
+	for _, hover in pairs(row.cellHovers or {}) do
+		hover:Hide()
+	end
 	local cells = data.cells or {}
 	local offset = -4
 	local firstCell
@@ -1151,6 +1180,17 @@ local function LayoutCells(row, data)
 			cell:Show()
 			offset = offset - width - COLUMN_GAP
 			firstCell = cell
+			local tip = data.tips and data.tips[i]
+			if tip then
+				local hover = CellHover(row, i)
+				hover.tip = tip
+				hover:ClearAllPoints()
+				hover:SetPoint("TOP", row, "TOP")
+				hover:SetPoint("BOTTOM", row, "BOTTOM")
+				hover:SetPoint("LEFT", cell, "LEFT", -COLUMN_GAP / 2, 0)
+				hover:SetPoint("RIGHT", cell, "RIGHT", COLUMN_GAP / 2, 0)
+				hover:Show()
+			end
 		else
 			cell:Hide()
 		end
