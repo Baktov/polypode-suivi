@@ -54,7 +54,12 @@ Au survol d'un personnage, l'infobulle détaille :
 - **Courrier** : « Courrier non lu », puis, d'après la dernière visite du personnage à la boîte aux
   lettres, le nombre de courriers non lus / total et l'**expiration la plus proche** (en rouge à
   moins de 3 jours). WoW ne donne ces détails que boîte aux lettres ouverte : ils sont relevés à
-  chaque visite et gardés, datés (comme le fait Altoholic).
+  chaque visite et gardés, datés (comme le fait Altoholic) ;
+- **Exploration** (en bas) : nom des **gouffres**, **donjons** et **raids** où le personnage est
+  entré cette semaine, avec la difficulté (donjons, raids) et le nombre d'entrées. Noté **à
+  l'entrée** dans l'instance (un retour dans la même instance dans les 2 heures n'est pas
+  recompté ; une instance abandonnée compte aussi), remis à zéro à la réinitialisation
+  hebdomadaire.
 
 La liste défile ; la fenêtre se **redimensionne** par la poignée du coin bas-droit (taille
 gardée par personnage) ; Échap ferme la fenêtre ; elle suit l'équipe sélectionnée. L'en-tête de la
@@ -136,6 +141,7 @@ travail de recensement.
 
 ## Version
 
+`1.11.0` : catégorie « Exploration » (gouffres, donjons et raids de la semaine, notés à l'entrée).
 `1.10.0` : fenêtre redimensionnable (poignée bas-droite).
 `1.9.0` : donjons normaux et avec suivants, comptés à l'entrée.
 `1.8.0` : traques, gouffres, donjons et raids de la semaine, avec détail par difficulté.

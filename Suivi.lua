@@ -406,10 +406,14 @@ local MAIL_WARNING = 3 * 24 * 3600 -- expiration à moins de 3 jours : signalée
 --                   héroïque, 16 mythique ; GetSortedProgressForActivity, rangée Raids).
 --   n / f — donjons normaux / avec suivants, comptés par Polypode Suivi à l'ENTRÉE (aucune API ne
 --           les suit : ils ne comptent pas pour la chambre forte), PolypodeSuiviDB.dungeonEntries.
+--   x<genre><instanceID>-<difficulté> — exploration : entrées de la semaine dans chaque instance
+--           (genre g gouffre, d donjon, r raid ; nom retrouvé par GetRealZoneText(instanceID)),
+--           notées à l'ENTRÉE, PolypodeSuiviDB.dungeonEntries.visits.
 
 -- Difficultés de donjon comptées à l'entrée : 1 normal, 205 avec suivants.
 local COUNTED_DUNGEON_DIFFICULTIES = { [1] = "n", [205] = "f" }
-local REENTRY_DELAY = 2 * 3600 -- même donjon dans les 2 h (reload, déconnexion) : pas recompté
+local DELVE_DIFFICULTY = 208 -- gouffres (instance de type « scenario »)
+local REENTRY_DELAY = 2 * 3600 -- même instance dans les 2 h (reload, déconnexion) : pas recomptée
 
 -- Compteurs de la semaine du personnage joué, remis à zéro après la réinitialisation hebdomadaire.
 local function DungeonEntries()
@@ -423,29 +427,36 @@ local function DungeonEntries()
 		entries = { n = 0, f = 0, since = GetServerTime() }
 		settings.dungeonEntries = entries
 	end
+	entries.visits = entries.visits or {} -- { ["d2811-1"] = { n = entrées, at = dernière } }
 	return entries
 end
 
--- Entrée dans une instance (PLAYER_ENTERING_WORLD) : +1 si c'est un donjon normal ou avec
--- suivants, sauf retour dans le même donjon dans les 2 h.
+-- Entrée dans une instance (PLAYER_ENTERING_WORLD) : notée dans l'exploration si c'est un gouffre,
+-- un donjon ou un raid, et +1 au compteur si c'est un donjon normal ou avec suivants ; un retour
+-- dans la même instance (même difficulté) dans les 2 h n'est pas recompté.
 local function CountDungeonEntry()
 	if not GetInstanceInfo then
 		return
 	end
 	local _, instanceType, difficultyID, _, _, _, _, instanceID = GetInstanceInfo()
-	local key = instanceType == "party" and COUNTED_DUNGEON_DIFFICULTIES[difficultyID]
-	local entries = key and DungeonEntries()
+	local kind = (instanceType == "party" and "d") or (instanceType == "raid" and "r")
+		or (instanceType == "scenario" and difficultyID == DELVE_DIFFICULTY and "g")
+	local entries = kind and instanceID and DungeonEntries()
 	if not entries then
 		return
 	end
 	local now = GetServerTime()
-	local last = entries.last
-	if last and last.id == instanceID and last.difficulty == difficultyID and now - last.at < REENTRY_DELAY then
-		last.at = now
+	local visitKey = kind .. instanceID .. "-" .. (difficultyID or 0)
+	local visit = entries.visits[visitKey]
+	if visit and now - visit.at < REENTRY_DELAY then
+		visit.at = now
 		return
 	end
-	entries[key] = (entries[key] or 0) + 1
-	entries.last = { id = instanceID, difficulty = difficultyID, at = now }
+	entries.visits[visitKey] = { n = (visit and visit.n or 0) + 1, at = now }
+	local key = kind == "d" and COUNTED_DUNGEON_DIFFICULTIES[difficultyID]
+	if key then
+		entries[key] = (entries[key] or 0) + 1
+	end
 end
 
 local function ReadWeekly()
@@ -484,6 +495,9 @@ local function ReadWeekly()
 	if entries then
 		data.n = (entries.n or 0) > 0 and entries.n or nil
 		data.f = (entries.f or 0) > 0 and entries.f or nil
+		for visitKey, visit in pairs(entries.visits) do
+			data["x" .. visitKey] = visit.n
+		end
 	end
 	if C_MythicPlus and C_MythicPlus.GetRunHistory then
 		local levels = {}
@@ -1214,6 +1228,37 @@ local function MemberTooltip(item)
 		lines[#lines + 1] = "|cffffd200Runes de pouvoir|r"
 		lines[#lines + 1] = "  " .. runes .. " point(s) à dépenser"
 			.. ((sections.P.b == 1 or sections.P.b == "1") and " |cff40ff40(une rune achetable)|r" or "")
+	end
+
+	-- Exploration : gouffres, donjons et raids où le personnage est entré cette semaine.
+	local explored = { g = {}, d = {}, r = {} }
+	local anyExplored = false
+	for key, count in pairs(week) do
+		local kind, instanceID, difficultyID = key:match("^x(%a)(%d+)%-(%d+)$")
+		if kind and explored[kind] then
+			instanceID, difficultyID = tonumber(instanceID), tonumber(difficultyID)
+			local name = GetRealZoneText and GetRealZoneText(instanceID)
+			local text = (name and name ~= "") and name or ("instance " .. instanceID)
+			local difficulty = kind ~= "g" and GetDifficultyInfo and GetDifficultyInfo(difficultyID)
+			if difficulty then
+				text = text .. " (" .. difficulty .. ")"
+			end
+			count = tonumber(count) or 1
+			explored[kind][#explored[kind] + 1] = count > 1 and (text .. " ×" .. count) or text
+			anyExplored = true
+		end
+	end
+	if anyExplored then
+		lines[#lines + 1] = " "
+		lines[#lines + 1] = "|cffffd200Exploration|r"
+		for _, group in ipairs({ { "g", "Gouffres" }, { "d", "Donjons" }, { "r", "Raids" } }) do
+			local names = explored[group[1]]
+			if #names > 0 then
+				table.sort(names)
+				lines[#lines + 1] = "  " .. group[2] .. " : " .. table.concat(names, ", ")
+			end
+		end
+		lines[#lines + 1] = "  |cff999999Noté à l'entrée, cette semaine (retour dans les 2 h non recompté)|r"
 	end
 	return lines
 end
