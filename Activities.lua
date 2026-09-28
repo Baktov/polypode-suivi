@@ -17,6 +17,10 @@ local _, ns = ...
 --   always = affichée même si personne ne l'a faite ni commencée (sinon : dès que quelqu'un) ;
 --   daily = remise à zéro chaque jour (sinon chaque semaine) ;
 --   accountwide = faite pour tout le compte (IsQuestFlaggedCompletedOnAccount).
+-- Saisons de Midnight pour lesquelles cette liste est à jour (Plumber 1.9.6 : 12.0 et 12.1) ; hors
+-- de ces saisons, la fenêtre signale « listes à mettre à jour ».
+ns.ACTIVITIES_SEASONS = { [1] = true, [2] = true }
+
 ns.ACTIVITIES = {
 	{ name = "Delves", label = DELVES_LABEL, entries = {
 		{ q = 93784, name = "A Gnawing Void of Curiosity", always = true, accountwide = true },

@@ -74,8 +74,54 @@ local sendPending
 local frame, listPanel
 local settingsCategory -- catégorie « Suivi » du panneau d'options (BuildSettingsPanel)
 
+-- SAISON : extension de la saison affichée (C_SeasonInfo.GetCurrentDisplaySeasonExpansion) et
+-- numéro de saison dans l'extension (C_DelvesUI.GetCurrentDelvesSeasonNumber, 0 hors saison).
+-- Renvoie extension, numéro (nil si inconnu ou hors saison).
+local function CurrentSeason()
+	local expansion = C_SeasonInfo and C_SeasonInfo.GetCurrentDisplaySeasonExpansion
+		and C_SeasonInfo.GetCurrentDisplaySeasonExpansion()
+	local number = C_DelvesUI and C_DelvesUI.GetCurrentDelvesSeasonNumber
+		and C_DelvesUI.GetCurrentDelvesSeasonNumber()
+	return expansion, (number and number > 0) and number or nil
+end
+
+local function IsMidnight(expansion)
+	return LE_EXPANSION_MIDNIGHT ~= nil and expansion == LE_EXPANSION_MIDNIGHT
+end
+
+-- Écus par saison de Midnight (12.0 = saison 1, 12.1 = saison 2, d'après Plumber qui change de
+-- liste au patch 12.1). Saison inconnue : liste selon la version du client.
+local CRESTS_BY_SEASON = { [1] = CRESTS_12_0, [2] = CRESTS_12_1 }
+
 local function CrestIDs()
+	local expansion, number = CurrentSeason()
+	if IsMidnight(expansion) and number and CRESTS_BY_SEASON[number] then
+		return CRESTS_BY_SEASON[number]
+	end
 	return (select(4, GetBuildInfo()) or 0) >= 120100 and CRESTS_12_1 or CRESTS_12_0
+end
+
+-- « Midnight, saison 2 » (nom de l'extension traduit par le jeu), ou nil si inconnue.
+local function SeasonText()
+	local expansion, number = CurrentSeason()
+	if not expansion then
+		return nil
+	end
+	local name = _G["EXPANSION_NAME" .. expansion] or ("Extension " .. expansion)
+	return number and (name .. ", saison " .. number) or (name .. ", hors saison")
+end
+
+-- Vrai si les listes reprises de Plumber (écus, activités) ne couvrent pas la saison en cours :
+-- autre extension, ou saison de Midnight non prévue.
+local function ListsOutdated()
+	local expansion, number = CurrentSeason()
+	if not expansion or not number then
+		return false
+	end
+	if not IsMidnight(expansion) then
+		return true
+	end
+	return not (CRESTS_BY_SEASON[number] and ns.ACTIVITIES_SEASONS and ns.ACTIVITIES_SEASONS[number])
 end
 
 local function CurrencyInfo(id)
@@ -1151,6 +1197,14 @@ function P.RefreshSuivi()
 		emptyText = #keys > 0 and "Aucune activité à afficher." or emptyText
 	else
 		frame.activityButton:SetText("Activités")
+	end
+	-- Saison en cours, et avertissement si les listes reprises de Plumber ne la couvrent pas.
+	local season = SeasonText()
+	if season then
+		header = header .. "  |cff999999· " .. season .. "|r"
+	end
+	if ListsOutdated() then
+		header = header .. "  |cffff8000· listes à mettre à jour|r"
 	end
 	listPanel.header:SetText(header)
 	listPanel.emptyText:SetText(emptyText)

@@ -47,7 +47,10 @@ Au survol d'un personnage, l'infobulle détaille :
   moins de 3 jours). WoW ne donne ces détails que boîte aux lettres ouverte : ils sont relevés à
   chaque visite et gardés, datés (comme le fait Altoholic).
 
-La liste défile ; Échap ferme la fenêtre ; elle suit l'équipe sélectionnée.
+La liste défile ; Échap ferme la fenêtre ; elle suit l'équipe sélectionnée. L'en-tête de la
+liste indique la **saison en cours** (« Midnight, saison 2 », d'après le jeu), et signale en
+orange « listes à mettre à jour » si les écus ou les activités repris de Plumber ne couvrent pas
+cette saison (nouvelle saison ou nouvelle extension).
 
 ### Activités
 
@@ -92,7 +95,8 @@ ordre alphabétique, avec la date de leurs informations (« il y a 2 h », « du
   l'infobulle, jusqu'à ce que le personnage envoie ses nouvelles informations.
 - Les informations sont lues comme le fait le « Résumé de l'extension » de l'addon **Plumber**
   (API publiques de WoW) ; les identifiants des écus et des ressources de Midnight en sont repris
-  (liste des écus 12.0 ou 12.1 selon le client). Ils seront à mettre à jour à la prochaine
+  (liste des écus choisie selon la saison de Midnight : saison 1 ou 2 ; selon la version du
+  client si la saison est inconnue). Ils seront à mettre à jour à la prochaine
   extension.
 - Sur **WoW Forever**, ce qui n'existe pas (runes, écus de Midnight...) reste simplement vide.
 
@@ -122,6 +126,7 @@ travail de recensement.
 
 ## Version
 
+`1.7.0` : saison en cours dans l'en-tête, écus choisis selon la saison, avertissement si les listes sont dépassées.
 `1.6.0` : courrier non lu (enveloppe), nombre et expiration relevés à la boîte aux lettres.
 `1.5.0` : icônes des activités, catégorie dynamique « Lune-d'Argent », activités actives affichées.
 `1.4.0` : panneau « Activités » (bouton en haut à droite).
