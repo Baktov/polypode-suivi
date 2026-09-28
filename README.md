@@ -39,9 +39,13 @@ Au survol d'un personnage, l'infobulle détaille :
   de Dundun, fragments de clé de coffre, honneur, conquête...) ;
 - **Renommées** débloquées de l'extension (masquables, voir Options) ;
 - **Runes de pouvoir** : points à dépenser, et si une rune est achetable ;
-- l'ancienneté des informations d'un autre personnage.
+- la date des informations d'un autre personnage.
 
 La liste défile ; Échap ferme la fenêtre ; elle suit l'équipe sélectionnée.
+
+La case **Tous les personnages** (à gauche de la barre de titre, rappelée dans les options)
+affiche à la place **tous les personnages dont des informations ont été enregistrées**, par
+ordre alphabétique, avec la date de leurs informations (« il y a 2 h », « du 24/09 à 21:10 »).
 
 ---
 
@@ -51,6 +55,12 @@ La liste défile ; Échap ferme la fenêtre ; elle suit l'équipe sélectionnée
   (message `SUIVI`) à chaque connexion d'un de vos clients, puis 3 secondes après un changement
   (coffre, monnaies, sacs, renommée, runes), et seulement ce qui a changé. Un personnage sans
   Polypode Suivi, ou pas encore vu, apparaît « pas d'infos ».
+- Les informations sont **sauvegardées** (fichier de compte, commun à vos comptes s'ils partagent
+  leurs `SavedVariables`) avec leur date : un personnage déconnecté reste consultable avec ses
+  dernières informations connues.
+- **Réinitialisation hebdomadaire** : une grande chambre forte connue d'avant le dernier reset
+  (mercredi matin) est affichée **remise à zéro** (seuils conservés), avec une mention dans
+  l'infobulle, jusqu'à ce que le personnage envoie ses nouvelles informations.
 - Les informations sont lues comme le fait le « Résumé de l'extension » de l'addon **Plumber**
   (API publiques de WoW) ; les identifiants des écus et des ressources de Midnight en sont repris
   (liste des écus 12.0 ou 12.1 selon le client). Ils seront à mettre à jour à la prochaine
@@ -67,11 +77,13 @@ Dans **Options → AddOns → Polypode → Suivi** (réglage propre à chaque pe
 
 | Option | Défaut | Effet |
 |---|---|---|
+| Tous les personnages | Non | La fenêtre liste tous les personnages dont des informations ont été enregistrées au lieu de l'équipe sélectionnée (même case que dans la barre de titre de la fenêtre) |
 | Afficher les renommées | Oui | Détaille les renommées de l'extension dans l'infobulle de chaque membre. Inutile avec un seul compte Battle.net : les renommées y sont communes à tous les personnages |
 
 ---
 
 ## Version
 
+`1.2.0` : case « Tous les personnages », informations sauvegardées et datées, grande chambre forte remise à zéro à la réinitialisation hebdomadaire.
 `1.1.0` : option « Afficher les renommées ».
 `1.0.0` : première version (grande chambre forte, écus, ressources, renommées, runes de pouvoir).

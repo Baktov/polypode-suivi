@@ -16,8 +16,12 @@ local P = Polypode -- dépendance obligatoire (## Dependencies: Polypode), charg
 -- Le personnage joué est lu en direct ; les autres envoient leurs données par le message
 -- SUIVI:token:nom-royaume:section:flag:k=v,k=v,... (flag N = premier fragment, + = suite ;
 -- expéditeur vérifié), à chaque rencontre (P.RegisterPeerCallback) et 3 s après un changement
--- (seulement les sections modifiées). Gardées en mémoire (session). Toute API absente (ex. WoW
--- Forever) laisse la section vide, sans erreur.
+-- (seulement les sections modifiées). Toute API absente (ex. WoW Forever) laisse la section vide.
+-- SAUVEGARDE : les données de chaque personnage (reçues, et celles du personnage joué) sont
+-- gardées dans PolypodeSuiviData (fichier de compte), datées par section (heure serveur) ; la case
+-- « Tous les personnages » (barre de titre de la fenêtre, option showAll) les liste toutes. Une
+-- grande chambre forte datée d'avant la dernière réinitialisation hebdomadaire (mercredi matin,
+-- C_DateAndTime.GetSecondsUntilWeeklyReset) est affichée remise à zéro.
 
 local SEND_DELAY = 3 -- secondes : regroupe les rafales d'événements (monnaies, sacs)
 local RUNES_SYSTEM_ID, RUNES_TREE_ID = 48, 1186 -- runes de pouvoir (Blizzard_MidnightLandingPage)
@@ -45,6 +49,7 @@ local SECTIONS = { "V", "C", "R", "F", "P" }
 
 -- Options par personnage (PolypodeSuiviDB, Options → AddOns → Polypode → Suivi).
 local DEFAULTS = {
+	showAll = false, -- tous les personnages sauvegardés au lieu de l'équipe sélectionnée
 	showFactions = true, -- renommées dans l'infobulle (inutile avec un seul compte Battle.net :
 	-- elles y sont communes à tous les personnages)
 }
@@ -53,7 +58,9 @@ local function SuiviSettings()
 	return PolypodeSuiviDB or DEFAULTS
 end
 
-local received = {} -- [nom-royaume] = { sections = { [section] = { [k] = v } }, at = GetTime() }
+-- [nom-royaume] = { sections = { [section] = { [k] = v } }, at = date, times = { [section] = date } }
+-- (dates = heure serveur). Remplacé à ADDON_LOADED par la table sauvegardée PolypodeSuiviData.
+local received = {}
 local lastSent = {} -- [section] = dernière chaîne envoyée aux clients connectés
 local sendPending
 local frame, listPanel
@@ -221,13 +228,26 @@ end
 
 -- Envoie les données du personnage joué : tout à target (rencontre), sinon aux clients
 -- connectés les seules sections modifiées depuis le dernier envoi.
+-- Sauvegarde les données du personnage joué, datées (pour « Tous les personnages » sur ses
+-- autres clients et après déconnexion).
+local function StoreOwn(sections)
+	local now = GetServerTime()
+	local times = {}
+	for section in pairs(sections) do
+		times[section] = now
+	end
+	received[P.GetCharKey()] = { sections = sections, at = now, times = times }
+end
+
 local function SendAll(target)
+	local own = ReadOwn()
+	StoreOwn(own)
 	local token = P.GetTeamToken and P.GetTeamToken()
 	if not token or not P.WhisperOnline then
 		return
 	end
 	local key = P.GetCharKey()
-	for section, data in pairs(ReadOwn()) do
+	for section, data in pairs(own) do
 		local items = SectionItems(data)
 		local text = table.concat(items, ",")
 		if target or text ~= lastSent[section] then
@@ -256,7 +276,10 @@ local function OnSuiviMessage(rest, sender)
 			target[k] = v
 		end
 	end
-	entry.at = GetTime()
+	local now = GetServerTime()
+	entry.at = now
+	entry.times = entry.times or {}
+	entry.times[section] = now
 	if P.RefreshSuivi then
 		P.RefreshSuivi()
 	end
@@ -264,14 +287,42 @@ end
 
 -- Données d'un personnage : sections et âge (secondes), le personnage joué lu en direct ; nil si
 -- rien n'a été reçu de lui.
+-- Date (heure serveur) de la dernière réinitialisation hebdomadaire, ou nil si inconnue.
+local function LastWeeklyReset()
+	local untilNext = C_DateAndTime and C_DateAndTime.GetSecondsUntilWeeklyReset
+		and C_DateAndTime.GetSecondsUntilWeeklyReset()
+	if untilNext then
+		return GetServerTime() + untilNext - 7 * 24 * 3600
+	end
+end
+
+-- Données d'un personnage : sections, date (heure serveur) et vrai si sa grande chambre forte,
+-- d'avant la dernière réinitialisation hebdomadaire, est affichée remise à zéro. Le personnage
+-- joué est lu en direct ; nil si rien n'est connu de lui.
 local function DataFor(key)
 	if key == P.GetCharKey() then
-		return ReadOwn(), 0
+		return ReadOwn(), GetServerTime(), false
 	end
 	local entry = received[key]
-	if entry then
-		return entry.sections, GetTime() - entry.at
+	if not entry then
+		return nil
 	end
+	local sections = entry.sections
+	local vaultTime = entry.times and entry.times.V or entry.at
+	local reset = LastWeeklyReset()
+	if sections.V and reset and vaultTime and vaultTime < reset then
+		local copy = {}
+		for name, data in pairs(sections) do
+			copy[name] = data
+		end
+		copy.V = {}
+		for cell, value in pairs(sections.V) do
+			local threshold = tostring(value):match("/(%d+)$")
+			copy.V[cell] = "0/" .. (threshold or "0")
+		end
+		return copy, entry.at, true
+	end
+	return sections, entry.at, false
 end
 
 -- FENÊTRE ---------------------------------------------------------------------------------
@@ -326,25 +377,32 @@ local function FormatMember(item)
 	return text
 end
 
-local function FormatAgo(seconds)
-	local minutes = math.floor(seconds / 60)
+-- Date d'information en clair : « à l'instant », « il y a n min / h », sinon « du jj/mm à hh:mm ».
+local function FormatWhen(at)
+	local minutes = math.floor((GetServerTime() - at) / 60)
 	if minutes < 1 then
 		return "à l'instant"
 	elseif minutes < 60 then
 		return "il y a " .. minutes .. " min"
+	elseif minutes < 24 * 60 then
+		return "il y a " .. math.floor(minutes / 60) .. " h"
 	end
-	return "il y a " .. math.floor(minutes / 60) .. " h"
+	return "du " .. date("%d/%m à %H:%M", at)
 end
 
 local function MemberTooltip(item)
 	local lines = { P.GetDisplayName(item.key) }
-	local sections, age = DataFor(item.key)
+	local sections, at, vaultReset = DataFor(item.key)
 	if not sections then
 		lines[#lines + 1] = "|cff999999Pas d'infos : Polypode Suivi absent chez ce personnage, ou pas encore reçu.|r"
 		return lines
 	end
 	if item.key ~= P.GetCharKey() then
-		lines[#lines + 1] = "|cff999999Infos " .. FormatAgo(age) .. "|r"
+		lines[#lines + 1] = "|cff999999Infos " .. FormatWhen(at) .. "|r"
+	end
+	if vaultReset then
+		lines[#lines + 1] = "|cff999999Grande chambre forte remise à zéro (réinitialisation hebdomadaire "
+			.. "depuis ces infos)|r"
 	end
 
 	-- Grande chambre forte : une ligne par rangée, cases atteintes en vert.
@@ -435,8 +493,18 @@ local function MemberTooltip(item)
 	return lines
 end
 
--- Membres de l'équipe sélectionnée, leader en tête ; texte d'en-tête et de liste vide.
+-- Membres de l'équipe sélectionnée (leader en tête), ou tous les personnages sauvegardés encore
+-- dans le roster (option showAll) ; texte d'en-tête et de liste vide.
 local function BuildItems()
+	if SuiviSettings().showAll then
+		local set = { [P.GetCharKey()] = true }
+		for key in pairs(received) do
+			if P.GetCharacter(key) then
+				set[key] = true
+			end
+		end
+		return P.SortedKeyItems(set), "Suivi : tous les personnages", "Aucune information enregistrée."
+	end
 	local team = P.GetSelectedTeam()
 	if not team then
 		return {}, "Suivi de l'équipe", "Sélectionnez une équipe."
@@ -477,6 +545,30 @@ local function Build()
 	closeBtn:SetPoint("TOPRIGHT", -4, -4)
 	frame.CloseButton = closeBtn
 
+	-- Case « Tous les personnages », à gauche de la barre de titre (option showAll, aussi dans
+	-- le panneau d'options).
+	local allCheck = CreateFrame("CheckButton", nil, frame, "UICheckButtonTemplate")
+	allCheck:SetSize(22, 22)
+	allCheck:SetPoint("TOPLEFT", 8, -2)
+	local allText = allCheck.Text or allCheck.text
+	if allText then
+		allText:SetText("Tous les personnages")
+		allText:SetFontObject("GameFontHighlightSmall")
+	end
+	allCheck:SetScript("OnClick", function(self)
+		SuiviSettings().showAll = self:GetChecked() and true or false
+		P.RefreshSuivi()
+	end)
+	allCheck:SetScript("OnEnter", function(self)
+		GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
+		GameTooltip:AddLine("Tous les personnages")
+		GameTooltip:AddLine("Cochée : tous les personnages dont des informations ont été enregistrées "
+			.. "(avec leur date). Décochée : les membres de l'équipe sélectionnée.", 1, 1, 1, true)
+		GameTooltip:Show()
+	end)
+	allCheck:SetScript("OnLeave", GameTooltip_Hide)
+	frame.allCheck = allCheck
+
 	listPanel = P.CreatePanel(frame, "")
 	listPanel:SetPoint("TOPLEFT", 12, -36)
 	listPanel:SetPoint("BOTTOMRIGHT", -12, 12)
@@ -484,6 +576,7 @@ local function Build()
 
 	P.ui.suiviFrame = frame
 	P.ui.suiviPanel = listPanel
+	P.ui.suiviAllCheck = allCheck
 
 	P.SkinFrame(frame)
 	P.SkinPanel(listPanel)
@@ -494,6 +587,7 @@ function P.RefreshSuivi()
 	if not frame or not frame:IsShown() then
 		return
 	end
+	frame.allCheck:SetChecked(SuiviSettings().showAll) -- peut avoir changé dans les options
 	local items, header, emptyText = BuildItems()
 	listPanel.header:SetText(header)
 	listPanel.emptyText:SetText(emptyText)
@@ -561,6 +655,20 @@ local function BuildSettingsPanel()
 	else
 		category = Settings.RegisterVerticalLayoutCategory("Polypode Suivi")
 	end
+	local allSetting = Settings.RegisterProxySetting(category, "POLYPODE_SUIVI_SHOW_ALL",
+		Settings.VarType.Boolean, "Tous les personnages", DEFAULTS.showAll,
+		function()
+			return SuiviSettings().showAll
+		end,
+		function(value)
+			SuiviSettings().showAll = value
+			P.RefreshSuivi()
+		end)
+	Settings.CreateCheckbox(category, allSetting,
+		"La fenêtre « Suivi » liste tous les personnages dont des informations ont été enregistrées "
+		.. "(avec leur date) au lieu des membres de l'équipe sélectionnée. Même case que dans la barre "
+		.. "de titre de la fenêtre. Réglage propre à ce personnage.")
+
 	local setting = Settings.RegisterProxySetting(category, "POLYPODE_SUIVI_SHOW_FACTIONS",
 		Settings.VarType.Boolean, "Afficher les renommées", DEFAULTS.showFactions,
 		function()
@@ -579,8 +687,11 @@ end
 local setup = CreateFrame("Frame")
 setup:RegisterEvent("ADDON_LOADED")
 setup:RegisterEvent("PLAYER_LOGIN")
+setup:RegisterEvent("PLAYER_LOGOUT") -- dernières données du personnage joué, sauvegardées
 setup:SetScript("OnEvent", function(_, event, addonName)
 	if event == "ADDON_LOADED" and addonName == "Polypode_Suivi" then
+		PolypodeSuiviData = PolypodeSuiviData or {}
+		received = PolypodeSuiviData
 		PolypodeSuiviDB = PolypodeSuiviDB or {}
 		for key, value in pairs(DEFAULTS) do
 			if PolypodeSuiviDB[key] == nil then
@@ -590,6 +701,8 @@ setup:SetScript("OnEvent", function(_, event, addonName)
 	elseif event == "PLAYER_LOGIN" then
 		-- Différé d'une image : Polypode crée P.optionsCategory à son propre PLAYER_LOGIN.
 		C_Timer.After(0, BuildSettingsPanel)
+	elseif event == "PLAYER_LOGOUT" then
+		StoreOwn(ReadOwn())
 	end
 end)
 
