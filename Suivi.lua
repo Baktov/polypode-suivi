@@ -64,6 +64,7 @@ local received = {}
 local lastSent = {} -- [section] = dernière chaîne envoyée aux clients connectés
 local sendPending
 local frame, listPanel
+local settingsCategory -- catégorie « Suivi » du panneau d'options (BuildSettingsPanel)
 
 local function CrestIDs()
 	return (select(4, GetBuildInfo()) or 0) >= 120100 and CRESTS_12_1 or CRESTS_12_0
@@ -545,11 +546,32 @@ local function Build()
 	closeBtn:SetPoint("TOPRIGHT", -4, -4)
 	frame.CloseButton = closeBtn
 
-	-- Case « Tous les personnages », à gauche de la barre de titre (option showAll, aussi dans
-	-- le panneau d'options).
+	-- Bouton Options (barre de titre, à gauche, comme dans la fenêtre Polypode) : ouvre
+	-- Options > AddOns > Polypode > Suivi, et ferme la fenêtre pour ne pas masquer le panneau.
+	local optionsBtn = CreateFrame("Button", nil, frame, "UIPanelButtonTemplate")
+	optionsBtn:SetSize(70, 20)
+	optionsBtn:SetPoint("TOPLEFT", 6, -3)
+	optionsBtn:SetText("Options")
+	optionsBtn:SetScript("OnClick", function()
+		if settingsCategory and Settings and Settings.OpenToCategory then
+			frame:Hide()
+			Settings.OpenToCategory(settingsCategory:GetID())
+		end
+	end)
+	optionsBtn:SetScript("OnEnter", function(self)
+		GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
+		GameTooltip:AddLine("Options")
+		GameTooltip:AddLine("Ouvre les options du suivi (Options > AddOns > Polypode > Suivi).", 1, 1, 1, true)
+		GameTooltip:Show()
+	end)
+	optionsBtn:SetScript("OnLeave", GameTooltip_Hide)
+	P.ui.suiviOptionsButton = optionsBtn
+
+	-- Case « Tous les personnages », à droite du bouton Options (option showAll, aussi dans le
+	-- panneau d'options).
 	local allCheck = CreateFrame("CheckButton", nil, frame, "UICheckButtonTemplate")
 	allCheck:SetSize(22, 22)
-	allCheck:SetPoint("TOPLEFT", 8, -2)
+	allCheck:SetPoint("LEFT", optionsBtn, "RIGHT", 8, 0)
 	local allText = allCheck.Text or allCheck.text
 	if allText then
 		allText:SetText("Tous les personnages")
@@ -580,6 +602,9 @@ local function Build()
 
 	P.SkinFrame(frame)
 	P.SkinPanel(listPanel)
+	if P.SkinButton then
+		P.SkinButton(optionsBtn)
+	end
 end
 
 -- Remplit la liste, si la fenêtre est ouverte.
@@ -682,6 +707,7 @@ local function BuildSettingsPanel()
 		.. "membre dans son infobulle. Inutile avec un seul compte Battle.net : les renommées y sont "
 		.. "communes à tous les personnages. Réglage propre à ce personnage.")
 	Settings.RegisterAddOnCategory(category)
+	settingsCategory = category
 end
 
 local setup = CreateFrame("Frame")

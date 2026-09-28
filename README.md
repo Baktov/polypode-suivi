@@ -43,7 +43,9 @@ Au survol d'un personnage, l'infobulle détaille :
 
 La liste défile ; Échap ferme la fenêtre ; elle suit l'équipe sélectionnée.
 
-La case **Tous les personnages** (à gauche de la barre de titre, rappelée dans les options)
+Le bouton **Options** (à gauche de la barre de titre) ouvre directement les options du suivi
+(Options → AddOns → Polypode → Suivi). La case **Tous les personnages** (à sa droite, rappelée
+dans les options)
 affiche à la place **tous les personnages dont des informations ont été enregistrées**, par
 ordre alphabétique, avec la date de leurs informations (« il y a 2 h », « du 24/09 à 21:10 »).
 
@@ -84,6 +86,7 @@ Dans **Options → AddOns → Polypode → Suivi** (réglage propre à chaque pe
 
 ## Version
 
+`1.3.0` : bouton « Options » dans la barre de titre de la fenêtre.
 `1.2.1` : « Afficher les renommées » décochée par défaut (remise à décochée une fois sur les personnages déjà réglés).
 `1.2.0` : case « Tous les personnages », informations sauvegardées et datées, grande chambre forte remise à zéro à la réinitialisation hebdomadaire.
 `1.1.0` : option « Afficher les renommées ».
