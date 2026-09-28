@@ -1511,7 +1511,7 @@ local function Build()
 	end, nil, {
 		tooltip = function(data)
 			if data.columnHeader then
-				return { "Résumé de la semaine", "Raids = boss tués. Détail au survol d'un personnage." }
+				return nil -- pas d'infobulle sur la ligne d'en-tête
 			elseif data.activityHeader then
 				return { CategoryTitle(data.category) }
 			elseif data.activity then
