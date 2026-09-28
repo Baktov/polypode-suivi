@@ -25,6 +25,8 @@ Nécessite **Polypode 0.51.0** ou plus récent.
 Le bouton **Suivi** (barre de titre de la fenêtre Polypode) ou `/poly suivi` ouvre une fenêtre
 avec une ligne par membre de l'équipe sélectionnée (leader en tête) :
 
+- une **enveloppe** à gauche du nom si le personnage a du **courrier non lu**, ou un courrier qui
+  expire dans moins de 3 jours ;
 - nom en couleur de classe ;
 - **Coffre n/9** : cases débloquées de la grande chambre forte ;
 - **Runes n** (en vert) : points de runes de pouvoir à dépenser, s'il y en a ;
@@ -39,7 +41,11 @@ Au survol d'un personnage, l'infobulle détaille :
   de Dundun, fragments de clé de coffre, honneur, conquête...) ;
 - **Renommées** débloquées de l'extension (masquables, voir Options) ;
 - **Runes de pouvoir** : points à dépenser, et si une rune est achetable ;
-- la date des informations d'un autre personnage.
+- la date des informations d'un autre personnage ;
+- **Courrier** : « Courrier non lu », puis, d'après la dernière visite du personnage à la boîte aux
+  lettres, le nombre de courriers non lus / total et l'**expiration la plus proche** (en rouge à
+  moins de 3 jours). WoW ne donne ces détails que boîte aux lettres ouverte : ils sont relevés à
+  chaque visite et gardés, datés (comme le fait Altoholic).
 
 La liste défile ; Échap ferme la fenêtre ; elle suit l'équipe sélectionnée.
 
@@ -116,6 +122,7 @@ travail de recensement.
 
 ## Version
 
+`1.6.0` : courrier non lu (enveloppe), nombre et expiration relevés à la boîte aux lettres.
 `1.5.0` : icônes des activités, catégorie dynamique « Lune-d'Argent », activités actives affichées.
 `1.4.0` : panneau « Activités » (bouton en haut à droite).
 `1.3.0` : bouton « Options » dans la barre de titre de la fenêtre.

@@ -52,7 +52,7 @@ local RESOURCES = {
 	{ "c", 1602 }, { "c", 1792 }, { "c", 2123 }, { "c", 2797 },
 }
 
-local SECTIONS = { "V", "C", "R", "F", "P", "A" }
+local SECTIONS = { "V", "C", "R", "F", "P", "A", "M" }
 
 -- Options par personnage (PolypodeSuiviDB, Options → AddOns → Polypode → Suivi).
 local DEFAULTS = {
@@ -342,8 +342,44 @@ local function ReadActivities()
 	return data
 end
 
+-- COURRIER (section M) : n = 1 si courrier non lu (HasNewMail, lisible à tout moment) ; relevé de
+-- la boîte aux lettres, seulement quand elle est ouverte (MAIL_INBOX_UPDATE, comme Altoholic) :
+-- u non lus, t total, x expiration la plus proche (heure serveur), s date du relevé. Relevé gardé
+-- par personnage (PolypodeSuiviDB.mailScan).
+local MAIL_WARNING = 3 * 24 * 3600 -- expiration à moins de 3 jours : signalée en rouge
+
+local function ScanMailbox()
+	if not (GetInboxNumItems and GetInboxHeaderInfo and PolypodeSuiviDB) then
+		return
+	end
+	local shown, total = GetInboxNumItems()
+	local unread, expires = 0, nil
+	for i = 1, shown or 0 do
+		local _, _, _, _, _, _, daysLeft, _, wasRead = GetInboxHeaderInfo(i)
+		if not wasRead then
+			unread = unread + 1
+		end
+		if daysLeft then
+			local at = GetServerTime() + math.floor(daysLeft * 24 * 3600)
+			if not expires or at < expires then
+				expires = at
+			end
+		end
+	end
+	PolypodeSuiviDB.mailScan = { u = unread, t = total or shown or 0, x = expires, s = GetServerTime() }
+end
+
+local function ReadMail()
+	local data = { n = (HasNewMail and HasNewMail()) and 1 or 0 }
+	local scan = PolypodeSuiviDB and PolypodeSuiviDB.mailScan
+	if scan then
+		data.u, data.t, data.x, data.s = scan.u, scan.t, scan.x, scan.s
+	end
+	return data
+end
+
 local READERS = { V = ReadVault, C = ReadCrests, R = ReadResources, F = ReadFactions, P = ReadRunes,
-	A = ReadActivities }
+	A = ReadActivities, M = ReadMail }
 
 local function ReadOwn()
 	local sections = {}
@@ -749,11 +785,27 @@ local function VaultSummary(vault)
 	return unlocked, total
 end
 
+-- Courrier d'un personnage : non lu (bool) et expiration la plus proche (heure serveur ou nil).
+local function MailState(sections)
+	local mail = sections and sections.M
+	if not mail then
+		return false, nil
+	end
+	return tonumber(mail.n) == 1, tonumber(mail.x)
+end
+
+local MAIL_ICON = "|TInterface\\Icons\\INV_Letter_15:14:14|t"
+
 local function FormatMember(item)
 	local text = CharacterName(item.key)
 	local sections = DataFor(item.key)
 	if not sections then
 		return text .. "  |cff999999pas d'infos (Polypode Suivi absent ou pas encore reçu)|r"
+	end
+	-- Enveloppe à gauche du nom : courrier non lu, ou courrier qui expire bientôt.
+	local unread, expires = MailState(sections)
+	if unread or (expires and expires - GetServerTime() < MAIL_WARNING) then
+		text = MAIL_ICON .. " " .. text
 	end
 	local unlocked, total = VaultSummary(sections.V)
 	if total > 0 then
@@ -799,6 +851,26 @@ local function MemberTooltip(item)
 	if vaultReset then
 		lines[#lines + 1] = "|cff999999Grande chambre forte remise à zéro (réinitialisation hebdomadaire "
 			.. "depuis ces infos)|r"
+	end
+
+	-- Courrier : non lu, puis le dernier relevé de la boîte aux lettres (nombre, expiration).
+	local unread, expires = MailState(sections)
+	local mail = sections.M
+	if unread or (mail and mail.s) then
+		lines[#lines + 1] = " "
+		lines[#lines + 1] = MAIL_ICON .. " " .. (unread and "|cffffd200Courrier non lu|r" or "|cffffd200Courrier|r")
+		if mail and mail.s then
+			lines[#lines + 1] = "  " .. (tonumber(mail.u) or 0) .. " non lu(s) sur " .. (tonumber(mail.t) or 0)
+				.. " courrier(s)"
+			if expires then
+				local soon = expires - GetServerTime() < MAIL_WARNING
+				lines[#lines + 1] = "  " .. (soon and "|cffff4040" or "") .. "Expiration la plus proche : le "
+					.. date("%d/%m à %H:%M", expires) .. (soon and "|r" or "")
+			end
+			lines[#lines + 1] = "  |cff999999Relevé à la boîte aux lettres " .. FormatWhen(tonumber(mail.s)) .. "|r"
+		else
+			lines[#lines + 1] = "  |cff999999Nombre et expiration : ouvrez la boîte aux lettres de ce personnage|r"
+		end
 	end
 
 	-- Grande chambre forte : une ligne par rangée, cases atteintes en vert.
@@ -1213,12 +1285,16 @@ for _, event in ipairs({
 	"PLAYER_ENTERING_WORLD", "WEEKLY_REWARDS_UPDATE", "CURRENCY_DISPLAY_UPDATE",
 	"MAJOR_FACTION_RENOWN_LEVEL_CHANGED", "TRAIT_CONFIG_UPDATED", "BAG_UPDATE_DELAYED",
 	"QUEST_TURNED_IN", "QUEST_ACCEPTED", "QUEST_REMOVED", -- activités
+	"UPDATE_PENDING_MAIL", "MAIL_INBOX_UPDATE", "MAIL_CLOSED", -- courrier
 }) do
 	if not (C_EventUtils and C_EventUtils.IsEventValid) or C_EventUtils.IsEventValid(event) then
 		pcall(events.RegisterEvent, events, event)
 	end
 end
-events:SetScript("OnEvent", function()
+events:SetScript("OnEvent", function(_, event)
+	if event == "MAIL_INBOX_UPDATE" then
+		ScanMailbox() -- boîte ouverte : relevé immédiat, envoyé avec le reste
+	end
 	if sendPending then
 		return
 	end
