@@ -2,7 +2,7 @@
 ## Title: Polypode Suivi
 ## Notes: Suivi de l'équipe pour Polypode : grande chambre forte, écus, ressources, renommées et runes de chaque membre.
 ## Author: Baktov
-## Version: 1.7.1
+## Version: 1.8.0
 ## Dependencies: Polypode
 ## SavedVariables: PolypodeSuiviData
 ## SavedVariablesPerCharacter: PolypodeSuiviDB

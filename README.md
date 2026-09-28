@@ -30,7 +30,9 @@ avec une ligne par membre de l'équipe sélectionnée (leader en tête) :
 - nom en couleur de classe ;
 - **Coffre n/9** : cases débloquées de la grande chambre forte ;
 - **Runes n** (en vert) : points de runes de pouvoir à dépenser, s'il y en a ;
-- les **écus** d'amélioration d'objet (icône et quantité), de l'aventurier à gauche au mythique à droite.
+- les **écus** d'amélioration d'objet (icône et quantité), de l'aventurier à gauche au mythique à droite ;
+- ce qui a été fait **cette semaine** : « 3 traques · 5 gouffres · 4 donjons · 2 raids » (en gris
+  si zéro ; raids = boss tués).
 
 Au survol d'un personnage, l'infobulle détaille :
 
@@ -42,6 +44,11 @@ Au survol d'un personnage, l'infobulle détaille :
 - **Renommées** débloquées de l'extension (masquables, voir Options) ;
 - **Runes de pouvoir** : points à dépenser, et si une rune est achetable ;
 - la date des informations d'un autre personnage ;
+- **Cette semaine** : traques faites par difficulté (Normal, Difficile, Cauchemar, sur 4), gouffres
+  par palier, donjons héroïques / mythiques / mythiques+ avec le niveau des clés, boss de raid par
+  difficulté (LFR, normal, héroïque, mythique). Remis à zéro à la réinitialisation hebdomadaire. Les
+  donjons **normaux** ne sont suivis par aucune API de WoW (ils ne comptent pas pour la chambre
+  forte) ;
 - **Courrier** : « Courrier non lu », puis, d'après la dernière visite du personnage à la boîte aux
   lettres, le nombre de courriers non lus / total et l'**expiration la plus proche** (en rouge à
   moins de 3 jours). WoW ne donne ces détails que boîte aux lettres ouverte : ils sont relevés à
@@ -126,6 +133,7 @@ travail de recensement.
 
 ## Version
 
+`1.8.0` : traques, gouffres, donjons et raids de la semaine, avec détail par difficulté.
 `1.7.1` : écus de la liste rangés de l'aventurier (gauche) au mythique (droite).
 `1.7.0` : saison en cours dans l'en-tête, écus choisis selon la saison, avertissement si les listes sont dépassées.
 `1.6.0` : courrier non lu (enveloppe), nombre et expiration relevés à la boîte aux lettres.

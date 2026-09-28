@@ -52,7 +52,7 @@ local RESOURCES = {
 	{ "c", 1602 }, { "c", 1792 }, { "c", 2123 }, { "c", 2797 },
 }
 
-local SECTIONS = { "V", "C", "R", "F", "P", "A", "M" }
+local SECTIONS = { "V", "C", "R", "F", "P", "A", "M", "W" }
 
 -- Options par personnage (PolypodeSuiviDB, Options → AddOns → Polypode → Suivi).
 local DEFAULTS = {
@@ -394,6 +394,64 @@ end
 -- par personnage (PolypodeSuiviDB.mailScan).
 local MAIL_WARNING = 3 * 24 * 3600 -- expiration à moins de 3 jours : signalée en rouge
 
+-- SEMAINE (section W) : ce qui a été fait cette semaine, remis à zéro à la réinitialisation.
+--   t1 / t2 / t3 — traques faites en Normal / Difficile / Cauchemar (ns.PREY_QUESTS, Plumber) ;
+--   d<palier> — gouffres (et activités du monde : palier 1) par palier
+--               (C_WeeklyRewards.GetSortedProgressForActivity, rangée Monde de la chambre forte) ;
+--   h / m / p — donjons héroïques / mythiques / mythiques+ (C_WeeklyRewards.GetNumCompletedDungeonRuns),
+--   k — niveaux des clés mythiques+ terminées, « 12.10.8 » (C_MythicPlus.GetRunHistory) ;
+--   r<difficulté> — boss de raid tués par difficulté (DifficultyID : 17 LFR, 14 normal, 15
+--                   héroïque, 16 mythique ; GetSortedProgressForActivity, rangée Raids).
+-- Les donjons normaux ne sont suivis par aucune API (ils ne comptent pas pour la chambre forte).
+local function ReadWeekly()
+	local data = {}
+	if ns.PREY_QUESTS and C_QuestLog and C_QuestLog.IsQuestFlaggedCompleted then
+		local counts = { 0, 0, 0 }
+		for questID, difficulty in pairs(ns.PREY_QUESTS) do
+			if counts[difficulty] and C_QuestLog.IsQuestFlaggedCompleted(questID) then
+				counts[difficulty] = counts[difficulty] + 1
+			end
+		end
+		for difficulty = 1, 3 do
+			if counts[difficulty] > 0 then
+				data["t" .. difficulty] = counts[difficulty]
+			end
+		end
+	end
+	local types = Enum and Enum.WeeklyRewardChestThresholdType
+	local sorted = C_WeeklyRewards and C_WeeklyRewards.GetSortedProgressForActivity
+	if types and sorted then
+		for prefix, activityType in pairs({ d = types.World, r = types.Raid }) do
+			for _, progress in ipairs(sorted(activityType, prefix == "d") or {}) do
+				if progress.difficulty and progress.numPoints and progress.numPoints > 0 then
+					data[prefix .. progress.difficulty] = progress.numPoints
+				end
+			end
+		end
+	end
+	if C_WeeklyRewards and C_WeeklyRewards.GetNumCompletedDungeonRuns then
+		local heroic, mythic, mythicPlus = C_WeeklyRewards.GetNumCompletedDungeonRuns()
+		data.h = (heroic or 0) > 0 and heroic or nil
+		data.m = (mythic or 0) > 0 and mythic or nil
+		data.p = (mythicPlus or 0) > 0 and mythicPlus or nil
+	end
+	if C_MythicPlus and C_MythicPlus.GetRunHistory then
+		local levels = {}
+		for _, run in ipairs(C_MythicPlus.GetRunHistory(false, true) or {}) do
+			if run.completed and run.level then
+				levels[#levels + 1] = run.level
+			end
+		end
+		table.sort(levels, function(a, b)
+			return a > b
+		end)
+		if #levels > 0 then
+			data.k = table.concat(levels, ".")
+		end
+	end
+	return data
+end
+
 local function ScanMailbox()
 	if not (GetInboxNumItems and GetInboxHeaderInfo and PolypodeSuiviDB) then
 		return
@@ -425,7 +483,7 @@ local function ReadMail()
 end
 
 local READERS = { V = ReadVault, C = ReadCrests, R = ReadResources, F = ReadFactions, P = ReadRunes,
-	A = ReadActivities, M = ReadMail }
+	A = ReadActivities, M = ReadMail, W = ReadWeekly }
 
 local function ReadOwn()
 	local sections = {}
@@ -572,6 +630,12 @@ local function DataFor(key)
 		end
 		Copy().V = vault
 		vaultReset = true
+	end
+
+	-- Semaine (traques, gouffres, donjons, raids) : vide après la réinitialisation hebdomadaire.
+	local weekTime = entry.times and entry.times.W or entry.at
+	if sections.W and reset and weekTime and weekTime < reset then
+		Copy().W = {}
 	end
 
 	-- Activités : toutes remises à zéro après la réinitialisation hebdomadaire, les quotidiennes
@@ -831,6 +895,44 @@ local function VaultSummary(vault)
 	return unlocked, total
 end
 
+-- Totaux de la semaine d'un personnage : traques, gouffres (tous paliers et activités du monde),
+-- donjons (héroïques + mythiques + mythiques+), boss de raid (toutes difficultés). Repli sur le
+-- progrès de la grande chambre forte si le détail manque.
+local function WeeklyTotals(sections)
+	local week = sections.W or {}
+	local totals = { prey = 0, delves = 0, dungeons = 0, raid = 0 }
+	for key, value in pairs(week) do
+		local count = tonumber(value) or 0
+		local prefix = key:sub(1, 1)
+		if prefix == "t" then
+			totals.prey = totals.prey + count
+		elseif prefix == "d" then
+			totals.delves = totals.delves + count
+		elseif prefix == "r" then
+			totals.raid = totals.raid + count
+		elseif key == "h" or key == "m" or key == "p" then
+			totals.dungeons = totals.dungeons + count
+		end
+	end
+	local vault = sections.V or {}
+	local function VaultProgress(cell)
+		return tonumber(tostring(vault[cell] or ""):match("^(%d+)/")) or 0
+	end
+	if totals.raid == 0 then
+		totals.raid = VaultProgress("R1")
+	end
+	if totals.dungeons == 0 then
+		totals.dungeons = VaultProgress("M1")
+	end
+	return totals
+end
+
+-- « 3 traques » (gris si zéro).
+local function WeeklyCount(count, singular, plural)
+	local text = count .. " " .. (count > 1 and plural or singular)
+	return count > 0 and text or ("|cff999999" .. text .. "|r")
+end
+
 -- Courrier d'un personnage : non lu (bool) et expiration la plus proche (heure serveur ou nil).
 local function MailState(sections)
 	local mail = sections and sections.M
@@ -872,6 +974,12 @@ local function FormatMember(item)
 			text = text .. "  " .. Icon(info.iconFileID) .. quantity
 		end
 	end
+	-- Semaine : traques, gouffres, donjons, raids (nombres ; détail en infobulle).
+	local week = WeeklyTotals(sections)
+	text = text .. "  " .. WeeklyCount(week.prey, "traque", "traques") .. " · "
+		.. WeeklyCount(week.delves, "gouffre", "gouffres") .. " · "
+		.. WeeklyCount(week.dungeons, "donjon", "donjons") .. " · "
+		.. WeeklyCount(week.raid, "raid", "raids")
 	return text
 end
 
@@ -902,6 +1010,51 @@ local function MemberTooltip(item)
 		lines[#lines + 1] = "|cff999999Grande chambre forte remise à zéro (réinitialisation hebdomadaire "
 			.. "depuis ces infos)|r"
 	end
+
+	-- Cette semaine : détail par difficulté.
+	local week = sections.W or {}
+	lines[#lines + 1] = " "
+	lines[#lines + 1] = "|cffffd200Cette semaine|r"
+	local prey = {}
+	for difficulty, label in ipairs({ "Normal", "Difficile", "Cauchemar" }) do
+		prey[#prey + 1] = label .. " " .. (tonumber(week["t" .. difficulty]) or 0) .. "/4"
+	end
+	lines[#lines + 1] = "  Traque : " .. table.concat(prey, ", ")
+	local delves = {}
+	for key, count in pairs(week) do
+		local tier = tonumber(key:match("^d(%d+)$"))
+		if tier then
+			delves[#delves + 1] = { tier = tier, count = count }
+		end
+	end
+	table.sort(delves, function(a, b)
+		return a.tier > b.tier
+	end)
+	local delveParts = {}
+	for _, delve in ipairs(delves) do
+		delveParts[#delveParts + 1] = (delve.tier > 1 and ("palier " .. delve.tier) or "palier 1 / activités du monde")
+			.. " ×" .. delve.count
+	end
+	lines[#lines + 1] = "  Gouffres : " .. (#delveParts > 0 and table.concat(delveParts, ", ") or "aucun")
+	local dungeons = {}
+	for key, label in pairs({ h = "héroïque", m = "mythique", p = "mythique+" }) do
+		if week[key] then
+			dungeons[#dungeons + 1] = label .. " ×" .. week[key]
+		end
+	end
+	table.sort(dungeons)
+	local keys = week.k and tostring(week.k):gsub("%.", ", ")
+	lines[#lines + 1] = "  Donjons : " .. (#dungeons > 0 and table.concat(dungeons, ", ") or "aucun")
+		.. (keys and (" (clés " .. keys .. ")") or "")
+	local raids = {}
+	for _, difficultyID in ipairs({ 17, 14, 15, 16 }) do
+		local count = week["r" .. difficultyID]
+		if count then
+			local name = GetDifficultyInfo and GetDifficultyInfo(difficultyID)
+			raids[#raids + 1] = (name or ("difficulté " .. difficultyID)) .. " ×" .. count
+		end
+	end
+	lines[#lines + 1] = "  Raid (boss) : " .. (#raids > 0 and table.concat(raids, ", ") or "aucun")
 
 	-- Courrier : non lu, puis le dernier relevé de la boîte aux lettres (nombre, expiration).
 	local unread, expires = MailState(sections)
@@ -1330,6 +1483,10 @@ setup:SetScript("OnEvent", function(_, event, addonName)
 	elseif event == "PLAYER_LOGIN" then
 		-- Différé d'une image : Polypode crée P.optionsCategory à son propre PLAYER_LOGIN.
 		C_Timer.After(0, BuildSettingsPanel)
+		-- Historique des clés mythiques+ (C_MythicPlus.GetRunHistory) : chargé à la demande.
+		if C_MythicPlus and C_MythicPlus.RequestMapInfo then
+			C_MythicPlus.RequestMapInfo()
+		end
 	elseif event == "QUEST_DATA_LOAD_RESULT" then
 		P.RefreshSuivi()
 	elseif event == "PLAYER_LOGOUT" then
@@ -1344,6 +1501,7 @@ for _, event in ipairs({
 	"MAJOR_FACTION_RENOWN_LEVEL_CHANGED", "TRAIT_CONFIG_UPDATED", "BAG_UPDATE_DELAYED",
 	"QUEST_TURNED_IN", "QUEST_ACCEPTED", "QUEST_REMOVED", -- activités
 	"UPDATE_PENDING_MAIL", "MAIL_INBOX_UPDATE", "MAIL_CLOSED", -- courrier
+	"CHALLENGE_MODE_COMPLETED", "ENCOUNTER_END", -- semaine (clés, boss)
 }) do
 	if not (C_EventUtils and C_EventUtils.IsEventValid) or C_EventUtils.IsEventValid(event) then
 		pcall(events.RegisterEvent, events, event)
