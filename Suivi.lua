@@ -1,6 +1,13 @@
 -- Polypode Suivi: Suivi — suivi de l'équipe : grande chambre forte, écus, ressources, renommées, runes
 
+local _, ns = ...
 local P = Polypode -- dépendance obligatoire (## Dependencies: Polypode), chargée avant nous
+
+-- PANNEAU ACTIVITÉS (bouton « Activités » en haut à droite, option activityMode) : les activités
+-- de Midnight (ns.ACTIVITIES, Activities.lua, liste reprise de Plumber) par catégorie, avec à
+-- droite de chaque ligne les personnages qui l'ont faite (vert) ou commencée (jaune). Section A :
+-- état par activité (q<id> / p<id> : 2 faite, 1 en cours ; c<id> : nombre de quêtes faites),
+-- remise à zéro à la réinitialisation hebdomadaire (et quotidienne pour les activités daily).
 
 -- Addon compagnon de Polypode, indépendant : bouton « Suivi » dans la barre de titre de la
 -- fenêtre Polypode (P.AddTitleButton) et /poly suivi (P.RegisterSlashCommand). La fenêtre liste
@@ -45,11 +52,12 @@ local RESOURCES = {
 	{ "c", 1602 }, { "c", 1792 }, { "c", 2123 }, { "c", 2797 },
 }
 
-local SECTIONS = { "V", "C", "R", "F", "P" }
+local SECTIONS = { "V", "C", "R", "F", "P", "A" }
 
 -- Options par personnage (PolypodeSuiviDB, Options → AddOns → Polypode → Suivi).
 local DEFAULTS = {
 	showAll = false, -- tous les personnages sauvegardés au lieu de l'équipe sélectionnée
+	activityMode = false, -- panneau « Activités » au lieu du résumé
 	showFactions = false, -- renommées dans l'infobulle (inutile avec un seul compte Battle.net :
 	-- elles y sont communes à tous les personnages)
 }
@@ -184,7 +192,67 @@ local function ReadRunes()
 	return data
 end
 
-local READERS = { V = ReadVault, C = ReadCrests, R = ReadResources, F = ReadFactions, P = ReadRunes }
+-- Clé d'une activité dans la section A.
+local function EntryKey(entry)
+	if entry.q then
+		return "q" .. entry.q
+	elseif entry.pool then
+		return "p" .. entry.pool[1]
+	end
+	return "c" .. entry.count[1]
+end
+
+-- Clés des activités quotidiennes (remises à zéro chaque jour).
+local DAILY_KEYS = {}
+for _, category in ipairs(ns.ACTIVITIES or {}) do
+	for _, entry in ipairs(category.entries) do
+		if entry.daily then
+			DAILY_KEYS[EntryKey(entry)] = true
+		end
+	end
+end
+
+local function QuestDone(questID, accountwide)
+	if accountwide and C_QuestLog.IsQuestFlaggedCompletedOnAccount then
+		return C_QuestLog.IsQuestFlaggedCompletedOnAccount(questID)
+	end
+	return C_QuestLog.IsQuestFlaggedCompleted(questID)
+end
+
+local function ReadActivities()
+	local data = {}
+	if not (C_QuestLog and C_QuestLog.IsQuestFlaggedCompleted) then
+		return data
+	end
+	for _, category in ipairs(ns.ACTIVITIES or {}) do
+		for _, entry in ipairs(category.entries) do
+			local state = 0
+			if entry.count then
+				for _, questID in ipairs(entry.count) do
+					if QuestDone(questID, entry.accountwide) then
+						state = state + 1
+					end
+				end
+			else
+				for _, questID in ipairs(entry.q and { entry.q } or entry.pool) do
+					if QuestDone(questID, entry.accountwide) then
+						state = 2
+						break
+					elseif C_QuestLog.IsOnQuest and C_QuestLog.IsOnQuest(questID) then
+						state = 1
+					end
+				end
+			end
+			if state > 0 then
+				data[EntryKey(entry)] = state
+			end
+		end
+	end
+	return data
+end
+
+local READERS = { V = ReadVault, C = ReadCrests, R = ReadResources, F = ReadFactions, P = ReadRunes,
+	A = ReadActivities }
 
 local function ReadOwn()
 	local sections = {}
@@ -309,21 +377,169 @@ local function DataFor(key)
 		return nil
 	end
 	local sections = entry.sections
-	local vaultTime = entry.times and entry.times.V or entry.at
 	local reset = LastWeeklyReset()
-	if sections.V and reset and vaultTime and vaultTime < reset then
-		local copy = {}
-		for name, data in pairs(sections) do
-			copy[name] = data
+	local copy -- copie modifiée pour l'affichage ; la donnée enregistrée reste intacte
+	local function Copy()
+		if not copy then
+			copy = {}
+			for name, data in pairs(sections) do
+				copy[name] = data
+			end
 		end
-		copy.V = {}
+		return copy
+	end
+
+	local vaultReset = false
+	local vaultTime = entry.times and entry.times.V or entry.at
+	if sections.V and reset and vaultTime and vaultTime < reset then
+		local vault = {}
 		for cell, value in pairs(sections.V) do
 			local threshold = tostring(value):match("/(%d+)$")
-			copy.V[cell] = "0/" .. (threshold or "0")
+			vault[cell] = "0/" .. (threshold or "0")
 		end
-		return copy, entry.at, true
+		Copy().V = vault
+		vaultReset = true
 	end
-	return sections, entry.at, false
+
+	-- Activités : toutes remises à zéro après la réinitialisation hebdomadaire, les quotidiennes
+	-- après la réinitialisation quotidienne.
+	local activityTime = entry.times and entry.times.A or entry.at
+	if sections.A and activityTime then
+		local weekly = reset and activityTime < reset
+		local untilDaily = C_DateAndTime and C_DateAndTime.GetSecondsUntilDailyReset
+			and C_DateAndTime.GetSecondsUntilDailyReset()
+		local daily = untilDaily and activityTime < GetServerTime() + untilDaily - 24 * 3600
+		if weekly or daily then
+			local activities = {}
+			for key, state in pairs(sections.A) do
+				if not weekly and not DAILY_KEYS[key] then
+					activities[key] = state
+				end
+			end
+			Copy().A = activities
+		end
+	end
+	return copy or sections, entry.at, vaultReset
+end
+
+-- PANNEAU ACTIVITÉS -------------------------------------------------------------------------
+
+local titleRequested = {} -- [questID] = true : titre demandé au serveur (une fois par session)
+
+-- Titre traduit d'une quête (demandé au serveur s'il manque ; la fenêtre se rafraîchit à son
+-- arrivée, QUEST_DATA_LOAD_RESULT), ou nil.
+local function QuestTitle(questID)
+	local title = C_QuestLog.GetTitleForQuestID and C_QuestLog.GetTitleForQuestID(questID)
+	if not title and not titleRequested[questID] and C_QuestLog.RequestLoadQuestByID then
+		titleRequested[questID] = true
+		C_QuestLog.RequestLoadQuestByID(questID)
+	end
+	return title
+end
+
+local function EntryTitle(entry)
+	return entry.label or (entry.q and QuestTitle(entry.q)) or entry.name or "?"
+end
+
+-- Nom d'une catégorie : libellé fixe, sinon nom traduit de la faction, sinon nom de repli.
+local function CategoryTitle(category)
+	if category.label then
+		return category.label
+	end
+	if category.faction then
+		local major = C_MajorFactions and C_MajorFactions.GetMajorFactionData
+			and C_MajorFactions.GetMajorFactionData(category.faction)
+		if major and major.name then
+			return major.name
+		end
+		local faction = C_Reputation and C_Reputation.GetFactionDataByID
+			and C_Reputation.GetFactionDataByID(category.faction)
+		if faction and faction.name then
+			return faction.name
+		end
+	end
+	return category.name
+end
+
+-- Lignes du panneau : en-tête par catégorie, puis ses activités (celles marquées always, ou que
+-- l'un des personnages suivis a faite ou commencée), avec l'état de chaque personnage.
+local function BuildActivityItems(keys)
+	local items = {}
+	for _, category in ipairs(ns.ACTIVITIES or {}) do
+		local rows = {}
+		for _, entry in ipairs(category.entries) do
+			local entryKey, states, any = EntryKey(entry), {}, false
+			for _, key in ipairs(keys) do
+				local sections = DataFor(key)
+				local state = sections and (tonumber(sections.A and sections.A[entryKey]) or 0)
+				states[key] = state
+				any = any or (state and state > 0)
+			end
+			if entry.always or any then
+				rows[#rows + 1] = { activity = entry, category = category, states = states, keys = keys }
+			end
+		end
+		if #rows > 0 then
+			items[#items + 1] = { activityHeader = true, category = category }
+			for _, row in ipairs(rows) do
+				items[#items + 1] = row
+			end
+		end
+	end
+	return items
+end
+
+local function ShortName(key)
+	local entry = P.db.roster[key]
+	return entry and entry.name or key
+end
+
+-- Texte de droite d'une activité : personnages qui l'ont faite (vert) ou commencée (jaune) ;
+-- pour un compte de quêtes, « nom n/total » (vert si complet).
+local function ActivityRightText(item)
+	local parts = {}
+	local total = item.activity.count and #item.activity.count
+	for _, key in ipairs(item.keys) do
+		local state = item.states[key]
+		if state and state > 0 then
+			if total then
+				parts[#parts + 1] = (state >= total and "|cff40ff40" or "|cffffd200") .. ShortName(key) .. " "
+					.. state .. "/" .. total .. "|r"
+			elseif state == 2 then
+				parts[#parts + 1] = "|cff40ff40" .. ShortName(key) .. "|r"
+			else
+				parts[#parts + 1] = "|cffffd200" .. ShortName(key) .. "…|r"
+			end
+		end
+	end
+	return table.concat(parts, ", ")
+end
+
+local function ActivityTooltip(item)
+	local entry = item.activity
+	local lines = { EntryTitle(entry) }
+	lines[#lines + 1] = "|cff999999" .. CategoryTitle(item.category) .. " — "
+		.. (entry.daily and "quotidienne" or "hebdomadaire")
+		.. (entry.accountwide and ", pour tout le compte" or "") .. "|r"
+	lines[#lines + 1] = " "
+	local total = entry.count and #entry.count
+	for _, key in ipairs(item.keys) do
+		local state = item.states[key]
+		local status
+		if not state then
+			status = "|cff999999inconnu (pas d'infos)|r"
+		elseif total then
+			status = (state >= total and "|cff40ff40" or "|cffffffff") .. state .. "/" .. total .. "|r"
+		elseif state == 2 then
+			status = "|cff40ff40faite|r"
+		elseif state == 1 then
+			status = "|cffffd200en cours|r"
+		else
+			status = "|cff999999pas faite|r"
+		end
+		lines[#lines + 1] = P.GetDisplayName(key) .. " : " .. status
+	end
+	return lines
 end
 
 -- FENÊTRE ---------------------------------------------------------------------------------
@@ -546,6 +762,28 @@ local function Build()
 	closeBtn:SetPoint("TOPRIGHT", -4, -4)
 	frame.CloseButton = closeBtn
 
+	-- Bouton « Activités » / « Résumé » (en haut à droite) : bascule entre le résumé par
+	-- personnage et le panneau des activités (option activityMode).
+	local activityBtn = CreateFrame("Button", nil, frame, "UIPanelButtonTemplate")
+	activityBtn:SetSize(80, 20)
+	activityBtn:SetPoint("RIGHT", closeBtn, "LEFT", -4, 0)
+	activityBtn:SetScript("OnClick", function()
+		SuiviSettings().activityMode = not SuiviSettings().activityMode
+		P.RefreshSuivi()
+	end)
+	activityBtn:SetScript("OnEnter", function(self)
+		GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
+		GameTooltip:AddLine(SuiviSettings().activityMode and "Résumé" or "Activités")
+		GameTooltip:AddLine(SuiviSettings().activityMode
+			and "Revient au résumé par personnage (coffre, écus, ressources, runes)."
+			or "Affiche les activités de l'extension (gouffres, traque, factions...) avec, à droite de "
+				.. "chacune, les personnages qui l'ont faite (vert) ou commencée (jaune).", 1, 1, 1, true)
+		GameTooltip:Show()
+	end)
+	activityBtn:SetScript("OnLeave", GameTooltip_Hide)
+	frame.activityButton = activityBtn
+	P.ui.suiviActivityButton = activityBtn
+
 	-- Bouton Options (barre de titre, à gauche, comme dans la fenêtre Polypode) : ouvre
 	-- Options > AddOns > Polypode > Suivi, et ferme la fenêtre pour ne pas masquer le panneau.
 	local optionsBtn = CreateFrame("Button", nil, frame, "UIPanelButtonTemplate")
@@ -594,7 +832,43 @@ local function Build()
 	listPanel = P.CreatePanel(frame, "")
 	listPanel:SetPoint("TOPLEFT", 12, -36)
 	listPanel:SetPoint("BOTTOMRIGHT", -12, 12)
-	P.CreateScrollList(listPanel, FormatMember, nil, { tooltip = MemberTooltip })
+	-- Une liste pour les deux panneaux : membres (résumé) ou en-têtes et lignes d'activités.
+	P.CreateScrollList(listPanel, function(data)
+		if data.activityHeader then
+			return "|cffffd200" .. CategoryTitle(data.category) .. "|r"
+		elseif data.activity then
+			return "  " .. EntryTitle(data.activity)
+				.. (data.activity.daily and " |cff999999(quotidienne)|r" or "")
+		end
+		return FormatMember(data)
+	end, nil, {
+		tooltip = function(data)
+			if data.activityHeader then
+				return { CategoryTitle(data.category) }
+			elseif data.activity then
+				return ActivityTooltip(data)
+			end
+			return MemberTooltip(data)
+		end,
+		-- Texte de droite des activités (personnages) ; pleine largeur pour les autres lignes.
+		decorate = function(row, data)
+			if not row.rightText then
+				row.rightText = row:CreateFontString(nil, "OVERLAY", "GameFontHighlight")
+				row.rightText:SetPoint("LEFT", row, "CENTER", 0, 0)
+				row.rightText:SetPoint("RIGHT", -4, 0)
+				row.rightText:SetJustifyH("RIGHT")
+				row.rightText:SetWordWrap(false)
+			end
+			if data.activity then
+				row.rightText:SetText(ActivityRightText(data))
+				row.rightText:Show()
+				row.text:SetPoint("RIGHT", row.rightText, "LEFT", -6, 0)
+			else
+				row.rightText:Hide()
+				row.text:SetPoint("RIGHT", -4, 0)
+			end
+		end,
+	})
 
 	P.ui.suiviFrame = frame
 	P.ui.suiviPanel = listPanel
@@ -604,6 +878,7 @@ local function Build()
 	P.SkinPanel(listPanel)
 	if P.SkinButton then
 		P.SkinButton(optionsBtn)
+		P.SkinButton(activityBtn)
 	end
 end
 
@@ -614,6 +889,18 @@ function P.RefreshSuivi()
 	end
 	frame.allCheck:SetChecked(SuiviSettings().showAll) -- peut avoir changé dans les options
 	local items, header, emptyText = BuildItems()
+	if SuiviSettings().activityMode then
+		frame.activityButton:SetText("Résumé")
+		local keys = {}
+		for i, item in ipairs(items) do
+			keys[i] = item.key
+		end
+		items = #keys > 0 and BuildActivityItems(keys) or {}
+		header = header:gsub("^Suivi", "Activités")
+		emptyText = #keys > 0 and "Aucune activité à afficher." or emptyText
+	else
+		frame.activityButton:SetText("Activités")
+	end
 	listPanel.header:SetText(header)
 	listPanel.emptyText:SetText(emptyText)
 	P.SetListData(listPanel, items)
@@ -714,6 +1001,7 @@ local setup = CreateFrame("Frame")
 setup:RegisterEvent("ADDON_LOADED")
 setup:RegisterEvent("PLAYER_LOGIN")
 setup:RegisterEvent("PLAYER_LOGOUT") -- dernières données du personnage joué, sauvegardées
+setup:RegisterEvent("QUEST_DATA_LOAD_RESULT") -- titre d'activité reçu du serveur
 setup:SetScript("OnEvent", function(_, event, addonName)
 	if event == "ADDON_LOADED" and addonName == "Polypode_Suivi" then
 		PolypodeSuiviData = PolypodeSuiviData or {}
@@ -733,6 +1021,8 @@ setup:SetScript("OnEvent", function(_, event, addonName)
 	elseif event == "PLAYER_LOGIN" then
 		-- Différé d'une image : Polypode crée P.optionsCategory à son propre PLAYER_LOGIN.
 		C_Timer.After(0, BuildSettingsPanel)
+	elseif event == "QUEST_DATA_LOAD_RESULT" then
+		P.RefreshSuivi()
 	elseif event == "PLAYER_LOGOUT" then
 		StoreOwn(ReadOwn())
 	end
@@ -743,6 +1033,7 @@ local events = CreateFrame("Frame")
 for _, event in ipairs({
 	"PLAYER_ENTERING_WORLD", "WEEKLY_REWARDS_UPDATE", "CURRENCY_DISPLAY_UPDATE",
 	"MAJOR_FACTION_RENOWN_LEVEL_CHANGED", "TRAIT_CONFIG_UPDATED", "BAG_UPDATE_DELAYED",
+	"QUEST_TURNED_IN", "QUEST_ACCEPTED", "QUEST_REMOVED", -- activités
 }) do
 	if not (C_EventUtils and C_EventUtils.IsEventValid) or C_EventUtils.IsEventValid(event) then
 		pcall(events.RegisterEvent, events, event)

@@ -43,6 +43,23 @@ Au survol d'un personnage, l'infobulle détaille :
 
 La liste défile ; Échap ferme la fenêtre ; elle suit l'équipe sélectionnée.
 
+### Activités
+
+Le bouton **Activités** (en haut à droite) remplace le résumé par le panneau des **activités de
+l'extension**, rangées comme dans Plumber : Gouffres, Traque, Forces de Zul'jarra, Cour de
+Lune-d'Argent, Tribu amani, Harandar, La Singularité, Duellum. À droite de chaque activité, les
+personnages suivis qui l'ont **faite** (vert) ou **commencée** (jaune, « … ») ; pour une série de
+quêtes (bonus de renom, traque du monde), « nom n/total ». Les activités habituelles (quêtes
+hebdomadaires) sont toujours listées ; les autres (quotidiennes, boss, avis de recherche...)
+apparaissent dès qu'un personnage suivi les a faites ou commencées. L'infobulle donne l'état de
+chaque personnage. Le bouton **Résumé** revient à l'affichage par personnage.
+
+Les titres sont ceux du jeu (en français). La liste des activités est reprise de Plumber, qui ne
+la partage pas avec les autres addons : seules les activités reposant sur une quête sont suivies
+(pas la réserve dorée, les proies tuées, l'abondance ni le plafond des récompenses), et elle est à
+mettre à jour quand un patch change les activités. Les activités sont remises à zéro à la
+réinitialisation hebdomadaire, et les quotidiennes chaque jour.
+
 Le bouton **Options** (à gauche de la barre de titre) ouvre directement les options du suivi
 (Options → AddOns → Polypode → Suivi). La case **Tous les personnages** (à sa droite, rappelée
 dans les options)
@@ -67,8 +84,6 @@ ordre alphabétique, avec la date de leurs informations (« il y a 2 h », « du
   (API publiques de WoW) ; les identifiants des écus et des ressources de Midnight en sont repris
   (liste des écus 12.0 ou 12.1 selon le client). Ils seront à mettre à jour à la prochaine
   extension.
-- Pas encore d'**Activités** (assauts, traque, gouffres...) : elles reposent sur des tables
-  d'identifiants de quêtes propres à chaque patch.
 - Sur **WoW Forever**, ce qui n'existe pas (runes, écus de Midnight...) reste simplement vide.
 
 ---
@@ -86,6 +101,7 @@ Dans **Options → AddOns → Polypode → Suivi** (réglage propre à chaque pe
 
 ## Version
 
+`1.4.0` : panneau « Activités » (bouton en haut à droite).
 `1.3.0` : bouton « Options » dans la barre de titre de la fenêtre.
 `1.2.1` : « Afficher les renommées » décochée par défaut (remise à décochée une fois sur les personnages déjà réglés).
 `1.2.0` : case « Tous les personnages », informations sauvegardées et datées, grande chambre forte remise à zéro à la réinitialisation hebdomadaire.
