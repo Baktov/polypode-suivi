@@ -1690,6 +1690,25 @@ if P.RegisterSlashCommand then
 	P.RegisterSlashCommand("suivi", P.ToggleSuivi, "suivi de l'équipe (coffre, écus, ressources, renommées, runes)")
 end
 
+-- Personnage supprimé dans Polypode (Maj + clic dans « Personnages disponibles », ou sur un
+-- autre client) : ses données de suivi sont oubliées ici aussi (Polypode 0.53.0).
+if P.RegisterCharacterData then
+	P.RegisterCharacterData({
+		name = "Polypode Suivi",
+		describe = function(key)
+			if received[key] and key ~= P.GetCharKey() then
+				return "chambre forte, écus, ressources, renommées et activités relevés"
+			end
+		end,
+		remove = function(key)
+			if key ~= P.GetCharKey() then
+				received[key] = nil
+				P.RefreshSuivi()
+			end
+		end,
+	})
+end
+
 if P.RegisterMessageHandler then
 	P.RegisterMessageHandler("SUIVI", OnSuiviMessage)
 	P.RegisterPeerCallback(function(sender)

@@ -148,6 +148,7 @@ travail de recensement.
 
 ## Version
 
+`1.13.2` : personnage supprimé dans Polypode (Maj + clic) : ses données de suivi sont oubliées, ici et sur les autres clients connectés.
 `1.13.1` : infobulle sur chaque colonne de la ligne d'en-tête.
 `1.13.0` : colonne des charges du catalyseur.
 `1.12.2` : plus d'infobulle sur la ligne d'en-tête (Polypode 0.51.1 requis).
