@@ -1616,6 +1616,9 @@ local function Build()
 		P.SkinButton(optionsBtn)
 		P.SkinButton(activityBtn)
 	end
+	if P.SkinCheckBox then -- Polypode 0.53.3
+		P.SkinCheckBox(allCheck)
+	end
 end
 
 -- Remplit la liste, si la fenêtre est ouverte.
