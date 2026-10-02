@@ -68,6 +68,16 @@ local function SuiviSettings()
 	return PolypodeSuiviDB or DEFAULTS
 end
 
+-- Mode solo de Polypode (0.54.0) : pas d'équipe, « Tous les personnages » est imposé.
+local function IsSolo()
+	return P.IsSoloMode ~= nil and P.IsSoloMode()
+end
+
+-- « Tous les personnages » en vigueur : l'option, ou le mode solo.
+local function ShowAll()
+	return SuiviSettings().showAll or IsSolo()
+end
+
 -- [nom-royaume] = { sections = { [section] = { [k] = v } }, at = date, times = { [section] = date } }
 -- (dates = heure serveur). Remplacé à ADDON_LOADED par la table sauvegardée PolypodeSuiviData.
 local received = {}
@@ -1420,7 +1430,7 @@ end
 -- Membres de l'équipe sélectionnée (leader en tête), ou tous les personnages sauvegardés encore
 -- dans le roster (option showAll) ; texte d'en-tête et de liste vide.
 local function BuildItems()
-	if SuiviSettings().showAll then
+	if ShowAll() then
 		local set = { [P.GetCharKey()] = true }
 		for key in pairs(received) do
 			if P.GetCharacter(key) then
@@ -1535,9 +1545,13 @@ local function Build()
 		GameTooltip:AddLine("Tous les personnages")
 		GameTooltip:AddLine("Cochée : tous les personnages dont des informations ont été enregistrées "
 			.. "(avec leur date). Décochée : les membres de l'équipe sélectionnée.", 1, 1, 1, true)
+		if IsSolo() then
+			GameTooltip:AddLine("Imposée en mode solo (pas d'équipe).", 1, 0.25, 0.25, true)
+		end
 		GameTooltip:Show()
 	end)
 	allCheck:SetScript("OnLeave", GameTooltip_Hide)
+	allCheck:SetMotionScriptsWhileDisabled(true) -- infobulle aussi grisée (mode solo)
 	frame.allCheck = allCheck
 
 	listPanel = P.CreatePanel(frame, "")
@@ -1626,7 +1640,12 @@ function P.RefreshSuivi()
 	if not frame or not frame:IsShown() then
 		return
 	end
-	frame.allCheck:SetChecked(SuiviSettings().showAll) -- peut avoir changé dans les options
+	frame.allCheck:SetChecked(ShowAll()) -- peut avoir changé dans les options
+	frame.allCheck:SetEnabled(not IsSolo()) -- imposée (grisée) en mode solo
+	local allText = frame.allCheck.Text or frame.allCheck.text
+	if allText then
+		allText:SetFontObject(IsSolo() and "GameFontDisableSmall" or "GameFontHighlightSmall")
+	end
 	local items, header, emptyText = BuildItems()
 	if SuiviSettings().activityMode then
 		frame.activityButton:SetText("Résumé")
@@ -1739,16 +1758,19 @@ local function BuildSettingsPanel()
 	local allSetting = Settings.RegisterProxySetting(category, "POLYPODE_SUIVI_SHOW_ALL",
 		Settings.VarType.Boolean, "Tous les personnages", DEFAULTS.showAll,
 		function()
-			return SuiviSettings().showAll
+			return ShowAll()
 		end,
 		function(value)
+			if IsSolo() then
+				return -- imposée en mode solo : la case reste cochée
+			end
 			SuiviSettings().showAll = value
 			P.RefreshSuivi()
 		end)
 	Settings.CreateCheckbox(category, allSetting,
 		"La fenêtre « Suivi » liste tous les personnages dont des informations ont été enregistrées "
 		.. "(avec leur date) au lieu des membres de l'équipe sélectionnée. Même case que dans la barre "
-		.. "de titre de la fenêtre. Réglage propre à ce personnage.")
+		.. "de titre de la fenêtre. Toujours cochée en mode solo de Polypode. Réglage propre à ce personnage.")
 
 	local setting = Settings.RegisterProxySetting(category, "POLYPODE_SUIVI_SHOW_FACTIONS",
 		Settings.VarType.Boolean, "Afficher les renommées", DEFAULTS.showFactions,

@@ -130,7 +130,7 @@ Dans **Options → AddOns → Polypode → Suivi** (réglage propre à chaque pe
 
 | Option | Défaut | Effet |
 |---|---|---|
-| Tous les personnages | Non | La fenêtre liste tous les personnages dont des informations ont été enregistrées au lieu de l'équipe sélectionnée (même case que dans la barre de titre de la fenêtre) |
+| Tous les personnages | Non | La fenêtre liste tous les personnages dont des informations ont été enregistrées au lieu de l'équipe sélectionnée (même case que dans la barre de titre de la fenêtre). Toujours cochée (et grisée) en **mode solo** de Polypode |
 | Afficher les renommées | Non | Détaille les renommées de l'extension dans l'infobulle de chaque membre. Inutile avec un seul compte Battle.net : les renommées y sont communes à tous les personnages |
 
 ---
@@ -148,6 +148,7 @@ travail de recensement.
 
 ## Version
 
+`1.14.0` : mode solo de Polypode (0.54.0) : « Tous les personnages » imposé, case cochée et grisée.
 `1.13.3` : case « Tous les personnages » skinnée EllesmereUI / ElvUI (`P.SkinCheckBox`, Polypode 0.53.3).
 `1.13.2` : personnage supprimé dans Polypode (Maj + clic) : ses données de suivi sont oubliées, ici et sur les autres clients connectés.
 `1.13.1` : infobulle sur chaque colonne de la ligne d'en-tête.
