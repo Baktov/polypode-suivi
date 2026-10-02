@@ -63,6 +63,7 @@ local DEFAULTS = {
 	showFactions = false, -- renommées dans l'infobulle (inutile avec un seul compte Battle.net :
 	-- elles y sont communes à tous les personnages)
 	width = 620, height = 340, -- taille de la fenêtre (poignée de redimensionnement)
+	sortDesc = false, -- tri : ordre inverse (sortColumn : "name", id de colonne, ou nil = sans tri)
 }
 local MIN_WIDTH, MIN_HEIGHT = 480, 200
 
@@ -1154,17 +1155,23 @@ local COLUMN_GAP = 12
 local memberColumns = {} -- largeurs des colonnes affichées, dans l'ordre (0 = colonne masquée)
 local measure -- texte caché servant à mesurer les cellules
 
--- Colonnes : { en-tête, cellule(sections), tip = { titre, texte } (infobulle de l'en-tête) } ;
--- une colonne d'écu par écu de la saison.
+-- Colonnes : { en-tête, cellule(sections), id = identifiant stable (tri mémorisé), sort =
+-- valeur(sections) pour le tri (nil = sans valeur), tip = { titre, texte } (infobulle de
+-- l'en-tête) } ; une colonne d'écu par écu de la saison.
 local function MemberColumns()
 	local columns = {
 		{ "Coffre", function(sections)
 			local unlocked, total = VaultSummary(sections.V)
 			return total > 0 and ("|cffffd200" .. unlocked .. "/" .. total .. "|r") or ""
+		end, id = "vault", sort = function(sections)
+			local unlocked, total = VaultSummary(sections.V)
+			return total > 0 and unlocked or nil
 		end, tip = { "Grande chambre forte", "Cases débloquées / cases au total." } },
 		{ "Runes", function(sections)
 			local runes = tonumber(sections.P and sections.P.u)
 			return (runes and runes > 0) and ("|cff40ff40" .. runes .. "|r") or ""
+		end, id = "runes", sort = function(sections)
+			return tonumber(sections.P and sections.P.u)
 		end, tip = { "Runes de pouvoir", "Points à dépenser." } },
 	}
 	-- Écus de gauche à droite du plus bas (aventurier) au plus haut (mythique) : la liste est
@@ -1176,6 +1183,8 @@ local function MemberColumns()
 		if info then
 			columns[#columns + 1] = { Icon(info.iconFileID), function(sections)
 				return tostring(sections.C and sections.C[tostring(id)] or "")
+			end, id = "crest" .. id, sort = function(sections)
+				return tonumber(sections.C and sections.C[tostring(id)])
 			end, tip = { info.name, "Écus possédés." } }
 		end
 	end
@@ -1188,6 +1197,8 @@ local function MemberColumns()
 				return ""
 			end
 			return tostring(sections.R["c" .. catalyst] or "|cff9999990|r")
+		end, id = "catalyst", sort = function(sections)
+			return sections.R and (tonumber(sections.R["c" .. catalyst]) or 0)
 		end, tip = { catalystInfo.name, "Charges du catalyseur disponibles." } }
 	end
 	-- Campagne la plus récente de ns.CAMPAIGNS trouvée en jeu : chapitres faits (détail en infobulle).
@@ -1196,6 +1207,8 @@ local function MemberColumns()
 	if latest then
 		columns[#columns + 1] = { "Campagne", function(sections)
 			return CampaignProgressText(sections.S and sections.S[tostring(latest.id)]) or ""
+		end, id = "campaign", sort = function(sections)
+			return tonumber(tostring(sections.S and sections.S[tostring(latest.id)] or ""):match("^(%d+)/"))
 		end, tip = { CampaignName(latest.id, latest.entry), "Chapitres terminés de la campagne la plus récente ("
 			.. latest.entry.patch .. "). Toutes les campagnes : infobulle du personnage." } }
 	end
@@ -1209,15 +1222,103 @@ local function MemberColumns()
 	}) do
 		columns[#columns + 1] = { week[1], function(sections)
 			return WeeklyCount(WeeklyTotals(sections)[week[2]])
+		end, id = week[2], sort = function(sections)
+			return WeeklyTotals(sections)[week[2]]
 		end, always = true, tip = { week[1], week[3] } }
 	end
 	return columns
 end
 
+-- TRI PAR COLONNE (clic sur un en-tête, comme Polypode Data) : sortColumn = "name" ou id de
+-- colonne, sortDesc = ordre inverse ; gardés dans PolypodeSuiviDB. Sans tri choisi : ordre de
+-- l'équipe (leader en tête) ou alphabétique. Premier clic : noms de A à Z, nombres du plus grand
+-- au plus petit ; clic suivant sur la même colonne : ordre inverse. Sans valeur : toujours en bas.
+local SORT_UP = "|TInterface\\Buttons\\Arrow-Up-Up:12:12:0:-2|t"
+local SORT_DOWN = "|TInterface\\Buttons\\Arrow-Down-Up:12:12:0:2|t"
+
+-- Lettres accentuées (UTF-8) ramenées à leur lettre de base, pour trier les noms sans accents.
+local ACCENT_MAP = {}
+for base, letters in pairs({ a = "àáâãäåÀÁÂÃÄÅ", c = "çÇ", e = "èéêëÈÉÊË", i = "ìíîïÌÍÎÏ", n = "ñÑ",
+	o = "òóôõöøÒÓÔÕÖØ", u = "ùúûüÙÚÛÜ", y = "ýÿÝ", ae = "æÆ", oe = "œŒ", ss = "ß" }) do
+	for letter in letters:gmatch("[\195\197][\128-\191]") do
+		ACCENT_MAP[letter] = base
+	end
+end
+
+local function Normalize(text)
+	return (tostring(text or ""):gsub("[\195\197][\128-\191]", ACCENT_MAP):lower())
+end
+
+local function SetSort(column)
+	local settings = SuiviSettings()
+	if settings.sortColumn == column then
+		settings.sortDesc = not settings.sortDesc
+	else
+		settings.sortColumn = column
+		settings.sortDesc = column ~= "name" -- nombres : du plus grand au plus petit
+	end
+	P.RefreshSuivi()
+end
+
+-- Flèche du tri en cours sur l'en-tête de la colonne column, sinon "".
+local function SortMark(column)
+	local settings = SuiviSettings()
+	if column == nil or settings.sortColumn ~= column then
+		return ""
+	end
+	return " " .. (settings.sortDesc and SORT_DOWN or SORT_UP)
+end
+
+-- Trie les personnages (items { key = }) selon le tri choisi ; colonne disparue (écus d'une autre
+-- saison...) : ordre inchangé.
+local function SortItems(items, columns)
+	local settings = SuiviSettings()
+	local sortColumn = settings.sortColumn
+	local column
+	for _, candidate in ipairs(columns) do
+		if candidate.id == sortColumn and candidate.sort then
+			column = candidate
+		end
+	end
+	if sortColumn ~= "name" and not column then
+		return
+	end
+	local values, names = {}, {}
+	for _, item in ipairs(items) do
+		names[item.key] = Normalize(P.GetDisplayName(item.key))
+		if column then
+			local sections = DataFor(item.key)
+			local ok, value = pcall(column.sort, sections or {})
+			values[item.key] = sections and ok and tonumber(value) or nil
+		end
+	end
+	local desc = settings.sortDesc
+	table.sort(items, function(a, b)
+		if column then
+			local va, vb = values[a.key], values[b.key]
+			if va ~= vb then
+				if va == nil or vb == nil then
+					return vb == nil -- sans valeur : toujours en bas
+				end
+				if desc then
+					return va > vb
+				end
+				return va < vb
+			end
+		elseif names[a.key] ~= names[b.key] then
+			if desc then
+				return names[a.key] > names[b.key]
+			end
+			return names[a.key] < names[b.key]
+		end
+		return names[a.key] < names[b.key]
+	end)
+end
+
 -- Nom d'un personnage (enveloppe à gauche : courrier non lu, ou courrier qui expire bientôt).
 local function FormatMember(item)
 	if item.columnHeader then
-		return ""
+		return "|cffffd200Personnage|r" .. SortMark("name")
 	end
 	local text = CharacterName(item.key)
 	local sections = DataFor(item.key)
@@ -1235,7 +1336,8 @@ end
 -- les colonnes (une colonne vide chez tous est masquée, sauf celles de la semaine).
 local function BuildMemberTable(items)
 	local columns = MemberColumns()
-	local header = { columnHeader = true, cells = {}, tips = {} }
+	SortItems(items, columns)
+	local header = { columnHeader = true, cells = {}, tips = {}, ids = {} }
 	local used = {}
 	for _, item in ipairs(items) do
 		local sections = DataFor(item.key)
@@ -1256,8 +1358,9 @@ local function BuildMemberTable(items)
 	end
 	wipe(memberColumns)
 	for i, column in ipairs(columns) do
-		header.cells[i] = "|cffffd200" .. column[1] .. "|r"
+		header.cells[i] = "|cffffd200" .. column[1] .. "|r" .. SortMark(column.id)
 		header.tips[i] = column.tip
+		header.ids[i] = column.sort and column.id
 		local width = 0
 		if used[i] then
 			width = Width(header.cells[i])
@@ -1271,17 +1374,29 @@ local function BuildMemberTable(items)
 	return items
 end
 
--- Zone survolable d'une cellule d'en-tête : infobulle de la colonne (hover.tip).
+-- Zone survolable d'une cellule d'en-tête : infobulle de la colonne (hover.tip), et clic = trier
+-- par cette colonne (hover.sortID, SetSort).
 local function CellHover(row, i)
 	row.cellHovers = row.cellHovers or {}
 	local hover = row.cellHovers[i]
 	if not hover then
-		hover = CreateFrame("Frame", nil, row)
+		hover = CreateFrame("Button", nil, row)
 		hover:SetFrameLevel(row:GetFrameLevel() + 2)
+		local highlight = hover:CreateTexture(nil, "HIGHLIGHT")
+		highlight:SetAllPoints()
+		highlight:SetColorTexture(1, 1, 1, 0.08)
+		hover:SetScript("OnClick", function(self)
+			if self.sortID then
+				SetSort(self.sortID)
+			end
+		end)
 		hover:SetScript("OnEnter", function(self)
 			GameTooltip:SetOwner(self, "ANCHOR_TOP")
 			GameTooltip:AddLine(self.tip[1])
 			GameTooltip:AddLine(self.tip[2], 1, 1, 1, true)
+			if self.sortID then
+				GameTooltip:AddLine("Clic : trier par cette colonne (clic suivant : ordre inverse)", 0.6, 0.6, 0.6, true)
+			end
 			GameTooltip:Show()
 		end)
 		hover:SetScript("OnLeave", GameTooltip_Hide)
@@ -1320,6 +1435,7 @@ local function LayoutCells(row, data)
 			if tip then
 				local hover = CellHover(row, i)
 				hover.tip = tip
+				hover.sortID = data.ids and data.ids[i] or nil
 				hover:ClearAllPoints()
 				hover:SetPoint("TOP", row, "TOP")
 				hover:SetPoint("BOTTOM", row, "BOTTOM")
@@ -1783,6 +1899,13 @@ local function Build()
 		end
 		return FormatMember(data)
 	end, nil, {
+		-- Clic sur la ligne d'en-tête (hors colonnes : leurs en-têtes ont leur propre clic) : tri
+		-- par nom.
+		onClick = function(data)
+			if data.columnHeader then
+				SetSort("name")
+			end
+		end,
 		tooltip = function(data)
 			if data.columnHeader then
 				return nil -- pas d'infobulle sur la ligne d'en-tête
