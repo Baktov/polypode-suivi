@@ -19,7 +19,8 @@ local P = Polypode -- dépendance obligatoire (## Dependencies: Polypode), charg
 --   R — ressources de Midnight possédées (monnaies c<id> et objets i<id>, liste reprise de Plumber) ;
 --   F — renommées débloquées de l'extension (C_MajorFactions) ;
 --   P — runes de pouvoir (arbre du résumé de l'extension de Midnight, C_Traits) : u = points non
---       dépensés, b = 1 si une rune est achetable (même calcul que Blizzard).
+--       dépensés, b = 1 si une rune est achetable (même calcul que Blizzard) ;
+--   S — campagnes : chapitres faits / chapitres (C_CampaignInfo), liste ns.CAMPAIGNS (Activities.lua).
 -- Le personnage joué est lu en direct ; les autres envoient leurs données par le message
 -- SUIVI:token:nom-royaume:section:flag:k=v,k=v,... (flag N = premier fragment, + = suite ;
 -- expéditeur vérifié), à chaque rencontre (P.RegisterPeerCallback) et 3 s après un changement
@@ -52,7 +53,7 @@ local RESOURCES = {
 	{ "c", 1602 }, { "c", 1792 }, { "c", 2123 }, { "c", 2797 },
 }
 
-local SECTIONS = { "V", "C", "R", "F", "P", "A", "M", "W" }
+local SECTIONS = { "V", "C", "R", "F", "P", "A", "M", "W", "S" }
 
 -- Options par personnage (PolypodeSuiviDB, Options → AddOns → Polypode → Suivi).
 local DEFAULTS = {
@@ -568,8 +569,121 @@ local function ReadMail()
 	return data
 end
 
+-- CAMPAGNES (section S) : <campaignID> = « chapitres faits/chapitres », pour les campagnes de
+-- ns.CAMPAIGNS (identifiant lu en jeu d'après leurs quêtes repères) et celles proposées au
+-- personnage hors liste (C_CampaignInfo.GetAvailableCampaigns). Chapitre fait : sa quête de
+-- récompense est terminée, ou il précède le chapitre en cours (calcul de Blizzard, CampaignMixin).
+local campaignIDs = {} -- [entrée de ns.CAMPAIGNS] = identifiant de campagne (trouvé cette session)
+local campaignQuestsRequested = false
+
+-- Campagnes connues, dans l'ordre de ns.CAMPAIGNS sans doublon : { { id =, entry = } }, et
+-- [identifiant] = entrée.
+local function KnownCampaigns()
+	local list, byID = {}, {}
+	if not (C_CampaignInfo and C_CampaignInfo.GetCampaignID) then
+		return list, byID
+	end
+	for _, entry in ipairs(ns.CAMPAIGNS or {}) do
+		local id = campaignIDs[entry]
+		if not id then
+			for _, questID in ipairs(entry.quests) do
+				local found = C_CampaignInfo.GetCampaignID(questID)
+				if found and found > 0 then
+					id = found
+					campaignIDs[entry] = found
+					break
+				end
+			end
+		end
+		if id and not byID[id] then
+			byID[id] = entry
+			list[#list + 1] = { id = id, entry = entry }
+		end
+	end
+	-- Quêtes repères inconnues du client : demandées une fois au serveur (relu au prochain envoi).
+	if #list < #(ns.CAMPAIGNS or {}) and not campaignQuestsRequested and C_QuestLog.RequestLoadQuestByID then
+		campaignQuestsRequested = true
+		for _, entry in ipairs(ns.CAMPAIGNS or {}) do
+			if not campaignIDs[entry] then
+				for _, questID in ipairs(entry.quests) do
+					C_QuestLog.RequestLoadQuestByID(questID)
+				end
+			end
+		end
+	end
+	return list, byID
+end
+
+-- Chapitres faits et nombre de chapitres d'une campagne, ou nil si elle n'en a pas.
+local function CampaignChapters(campaignID)
+	local chapterIDs = C_CampaignInfo.GetChapterIDs and C_CampaignInfo.GetChapterIDs(campaignID)
+	if not chapterIDs or #chapterIDs == 0 then
+		return nil
+	end
+	local total = #chapterIDs
+	local states = Enum and Enum.CampaignState
+	if states and C_CampaignInfo.GetState and C_CampaignInfo.GetState(campaignID) == states.Complete then
+		return total, total
+	end
+	local current = C_CampaignInfo.GetCurrentChapterID and C_CampaignInfo.GetCurrentChapterID(campaignID)
+	local currentIndex
+	for i, chapterID in ipairs(chapterIDs) do
+		if chapterID == current then
+			currentIndex = i
+		end
+	end
+	local done = 0
+	for i, chapterID in ipairs(chapterIDs) do
+		local info = C_CampaignInfo.GetCampaignChapterInfo and C_CampaignInfo.GetCampaignChapterInfo(chapterID)
+		local rewardQuestID = info and info.rewardQuestID
+		if (rewardQuestID and rewardQuestID > 0 and C_QuestLog.IsQuestFlaggedCompleted(rewardQuestID))
+			or (currentIndex and i < currentIndex) then
+			done = done + 1
+		end
+	end
+	return done, total
+end
+
+local function ReadCampaigns()
+	local data = {}
+	if not (C_CampaignInfo and C_QuestLog and C_QuestLog.IsQuestFlaggedCompleted) then
+		return data
+	end
+	local ids = {}
+	for _, known in ipairs((KnownCampaigns())) do
+		ids[#ids + 1] = known.id
+	end
+	for _, id in ipairs(C_CampaignInfo.GetAvailableCampaigns and C_CampaignInfo.GetAvailableCampaigns() or {}) do
+		ids[#ids + 1] = id
+	end
+	for _, id in ipairs(ids) do
+		local done, total = CampaignChapters(id)
+		if total then
+			data[tostring(id)] = done .. "/" .. total
+		end
+	end
+	return data
+end
+
+-- Nom traduit d'une campagne (repli : nom de la liste, puis numéro).
+local function CampaignName(id, entry)
+	local info = C_CampaignInfo and C_CampaignInfo.GetCampaignInfo and C_CampaignInfo.GetCampaignInfo(id)
+	return (info and info.name ~= "" and info.name) or (entry and entry.name) or ("Campagne n° " .. id)
+end
+
+-- « faits/total » coloré : vert si terminée, gris si pas commencée.
+local function CampaignProgressText(value)
+	local done, total = tostring(value or ""):match("^(%d+)/(%d+)$")
+	if not done then
+		return nil
+	end
+	done, total = tonumber(done), tonumber(total)
+	local color = (done >= total and "|cff40ff40") or (done == 0 and "|cff999999") or "|cffffffff"
+	return color .. done .. "/" .. total .. "|r"
+end
+
 local READERS = { V = ReadVault, C = ReadCrests, R = ReadResources, F = ReadFactions, P = ReadRunes,
-	A = ReadActivities, M = ReadMail, W = ReadWeekly }
+	A = ReadActivities, M = ReadMail, W = ReadWeekly, S = ReadCampaigns }
 
 local function ReadOwn()
 	local sections = {}
@@ -1073,6 +1187,15 @@ local function MemberColumns()
 			return tostring(sections.R["c" .. catalyst] or "|cff9999990|r")
 		end, tip = { catalystInfo.name, "Charges du catalyseur disponibles." } }
 	end
+	-- Campagne la plus récente de ns.CAMPAIGNS trouvée en jeu : chapitres faits (détail en infobulle).
+	local known = KnownCampaigns()
+	local latest = known[#known]
+	if latest then
+		columns[#columns + 1] = { "Campagne", function(sections)
+			return CampaignProgressText(sections.S and sections.S[tostring(latest.id)]) or ""
+		end, tip = { CampaignName(latest.id, latest.entry), "Chapitres terminés de la campagne la plus récente ("
+			.. latest.entry.patch .. "). Toutes les campagnes : infobulle du personnage." } }
+	end
 	-- Semaine : nombres (détail en infobulle).
 	for _, week in ipairs({
 		{ "Traques", "prey", "Traques faites cette semaine (toutes difficultés)." },
@@ -1392,6 +1515,40 @@ local function MemberTooltip(item)
 		lines[#lines + 1] = "|cffffd200Runes de pouvoir|r"
 		lines[#lines + 1] = "  " .. runes .. " point(s) à dépenser"
 			.. ((sections.P.b == 1 or sections.P.b == "1") and " |cff40ff40(une rune achetable)|r" or "")
+	end
+
+	-- Campagnes : par extension, « patch – nom  faits/total », puis celles hors liste.
+	local campaigns = sections.S
+	if campaigns and next(campaigns) then
+		lines[#lines + 1] = " "
+		lines[#lines + 1] = "|cffffd200Campagnes (chapitres)|r"
+		local known, byID = KnownCampaigns()
+		local lastExpansion
+		for _, campaign in ipairs(known) do
+			local progress = CampaignProgressText(campaigns[tostring(campaign.id)])
+			if progress then
+				local entry = campaign.entry
+				if entry.expansion ~= lastExpansion then
+					lastExpansion = entry.expansion
+					lines[#lines + 1] = "  " .. (_G["EXPANSION_NAME" .. entry.expansion] or ("Extension " .. entry.expansion))
+				end
+				lines[#lines + 1] = "    " .. entry.patch .. " – " .. CampaignName(campaign.id, entry) .. " : " .. progress
+			end
+		end
+		local others = {}
+		for id, value in pairs(campaigns) do
+			local progress = tonumber(id) and not byID[tonumber(id)] and CampaignProgressText(value)
+			if progress then
+				others[#others + 1] = "    " .. CampaignName(tonumber(id)) .. " : " .. progress
+			end
+		end
+		if #others > 0 then
+			table.sort(others)
+			lines[#lines + 1] = "  Autres campagnes"
+			for _, line in ipairs(others) do
+				lines[#lines + 1] = line
+			end
+		end
 	end
 
 	-- Exploration : gouffres, donjons et raids où le personnage est entré cette semaine.
@@ -1724,7 +1881,7 @@ if P.RegisterCharacterData then
 		name = "Polypode Suivi",
 		describe = function(key)
 			if received[key] and key ~= P.GetCharKey() then
-				return "chambre forte, écus, ressources, renommées et activités relevés"
+				return "chambre forte, écus, ressources, renommées, activités et campagnes relevés"
 			end
 		end,
 		remove = function(key)

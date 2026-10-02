@@ -107,6 +107,25 @@ if (select(4, GetBuildInfo()) or 0) >= 120100 then -- 12.1 : traque de Xal'atath
 	table.insert(ns.MAP_QUESTS, 1, { q = 98172, name = "Trailing Xal'atath", always = true })
 end
 
+-- CAMPAGNES (section S) : avancement en chapitres, groupé par extension puis par patch. L'API ne
+-- dit pas à quelle extension appartient une campagne et son identifiant n'est publié nulle part :
+-- chaque campagne est repérée par quelques quêtes (identifiants repris de BtWQuestsMidnight,
+-- vérifiés sur Wowhead), et son identifiant est lu en jeu (C_CampaignInfo.GetCampaignID). Deux
+-- entrées qui donnent la même campagne n'en font qu'une (la première). Nom affiché : celui du jeu
+-- (traduit), name = repli. Les campagnes en cours hors liste sont affichées dans « Autres
+-- campagnes ». À COMPLÉTER à chaque patch qui ajoute une campagne.
+local MIDNIGHT = LE_EXPANSION_MIDNIGHT or 11
+ns.CAMPAIGNS = {
+	{ expansion = MIDNIGHT, patch = "12.0", name = "The Light's Summons", quests = { 86769, 86770, 86805 } },
+	{ expansion = MIDNIGHT, patch = "12.0", name = "Eversong Woods", quests = { 86733, 86734, 86637 } },
+	{ expansion = MIDNIGHT, patch = "12.0", name = "Zul'Aman", quests = { 86708, 86710, 86683 } },
+	{ expansion = MIDNIGHT, patch = "12.0", name = "Harandar", quests = { 86899, 86900, 86883 } },
+	{ expansion = MIDNIGHT, patch = "12.0", name = "Arator's Journey", quests = { 86837, 86838, 86822 } },
+	{ expansion = MIDNIGHT, patch = "12.0", name = "Voidstorm", quests = { 86543, 86549, 86509 } },
+	{ expansion = MIDNIGHT, patch = "12.0", name = "The War of Light and Shadow", quests = { 88696, 88697, 90876 } },
+	{ expansion = MIDNIGHT, patch = "12.1", name = "The Curse of Ula'tek", quests = { 92895, 92899, 92900 } },
+}
+
 -- Quêtes de proie de la Traque et leur difficulté (1 Normal, 2 Difficile, 3 Cauchemar), reprises
 -- de Plumber (Modules/Shared/SharedData.lua : PreyQuestData) : nombre de traques faites cette
 -- semaine par difficulté (4 par difficulté et par semaine). À METTRE À JOUR avec Plumber.
