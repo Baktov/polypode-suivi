@@ -107,86 +107,100 @@ if (select(4, GetBuildInfo()) or 0) >= 120100 then -- 12.1 : traque de Xal'atath
 	table.insert(ns.MAP_QUESTS, 1, { q = 98172, name = "Trailing Xal'atath", always = true })
 end
 
--- CAMPAGNES (section S) : avancement en chapitres, groupé par extension puis par patch. L'API ne
--- dit pas à quelle extension appartient une campagne et son identifiant n'est publié nulle part :
--- chaque campagne est repérée par quelques quêtes (identifiants repris de BtWQuests, un addon par
--- extension, vérifiés sur Wowhead ; patch = nom du fichier BtWQuests, lancement de l'extension pour
--- les zones), et son identifiant est lu en jeu (C_CampaignInfo.GetCampaignID) ; id = identifiant
--- déjà connu (repris de DataStore / Altoholic), sans recherche. Deux entrées qui donnent la même
--- campagne n'en font qu'une (la première) ; une entrée dont aucune quête n'est une quête de
--- campagne est ignorée. Nom affiché : celui du jeu (traduit), name = repli. Les campagnes en cours
--- hors liste sont affichées dans « Autres campagnes ». Ordre : de la plus ancienne à la plus
--- récente (la dernière trouvée en jeu fait la colonne « Campagne »). Campagnes au sens du jeu
--- (chapitres) : depuis Battle for Azeroth seulement. À COMPLÉTER à chaque patch qui en ajoute une.
+-- CAMPAGNES (section S) : avancement en chapitres, groupé par extension puis par patch. Liste tirée
+-- du relevé des campagnes du jeu (/poly suivi scan, PolypodeSuiviScan : identifiants, noms,
+-- chapitres), classée hors ligne par extension et patch (texture de la campagne, noms des chapitres,
+-- BtWQuests) ; les campagnes techniques (rattrapage, tests, « passer l'introduction », didacticiels,
+-- conteneurs) en sont écartées. ids = variantes d'une même campagne (Alliance / Horde,
+-- congrégations, domaines de classe...) : le personnage suit celle qui lui est ouverte (voir
+-- Suivi.lua : CampaignVariant). Nom affiché : celui du jeu (traduit), name = repli. Ordre : de la
+-- plus ancienne à la plus récente (la dernière fait la colonne « Campagne »). Les campagnes en
+-- cours hors liste sont affichées dans « Autres campagnes ». À METTRE À JOUR à chaque patch qui
+-- ajoute une campagne : nouveau relevé, puis consolidation.
+local MOP = LE_EXPANSION_MISTS_OF_PANDARIA or 4
+local LEGION = LE_EXPANSION_LEGION or 6
 local BFA = LE_EXPANSION_BATTLE_FOR_AZEROTH or 7
 local SHADOWLANDS = LE_EXPANSION_SHADOWLANDS or 8
 local DRAGONFLIGHT = LE_EXPANSION_DRAGONFLIGHT or 9
 local TWW = LE_EXPANSION_WAR_WITHIN or 10
 local MIDNIGHT = LE_EXPANSION_MIDNIGHT or 11
 ns.CAMPAIGNS = {
-	-- Battle for Azeroth (campagne de guerre par faction)
-	{ expansion = BFA, patch = "8.0", name = "War Campaign (Alliance)", quests = { 52544, 53332, 51201 } },
-	{ expansion = BFA, patch = "8.0", name = "War Campaign (Horde)", quests = { 52746, 53333, 51435 } },
-	{ expansion = BFA, patch = "8.1", name = "Tides of Vengeance (Alliance)", quests = { 53888, 54183 } },
-	{ expansion = BFA, patch = "8.1", name = "Tides of Vengeance (Horde)", quests = { 53856, 54165 } },
-	{ expansion = BFA, patch = "8.1.5", name = "My Brother's Keeper", quests = { 55033, 55087 } },
-	{ expansion = BFA, patch = "8.1.5", name = "Righting Wrongs", quests = { 54754, 55124, 54097 } },
-	{ expansion = BFA, patch = "8.2", name = "Welcome to Nazjatar (Alliance)", quests = { 56043, 55095 } },
-	{ expansion = BFA, patch = "8.2", name = "Welcome to Nazjatar (Horde)", quests = { 56044, 55054 } },
-	{ expansion = BFA, patch = "8.2", name = "The Legend of Mechagon", quests = { 54088, 55040, 55646 } },
-	{ expansion = BFA, patch = "8.2", name = "Harnessing the Power", quests = { 55053, 55533 } },
-	{ expansion = BFA, patch = "8.2.5", name = "The Price of Victory (Alliance)", quests = { 56719, 56979 } },
-	{ expansion = BFA, patch = "8.2.5", name = "The Price of Victory (Horde)", quests = { 57088, 56833, 57147 } },
-	{ expansion = BFA, patch = "8.3", name = "Visions of N'Zoth", quests = { 58498, 56209, 57220 } },
+	-- Mists of Pandaria
+	{ expansion = MOP, patch = "5.0", name = "Mists of Pandaria", ids = { 248, 247 } },
+	{ expansion = MOP, patch = "5.1", name = "Accostage", ids = { 249, 246 } },
+	{ expansion = MOP, patch = "5.2", name = "Le roi-tonnerre", ids = { 250, 251 } },
+	{ expansion = MOP, patch = "5.3", name = "Embrasement", ids = { 252 } },
+	{ expansion = MOP, patch = "5.4", name = "Le siège d'Orgrimmar", ids = { 253, 254 } },
+	-- Legion
+	{ expansion = LEGION, patch = "7.0", name = "Azsuna", ids = { 275 } },
+	{ expansion = LEGION, patch = "7.0", name = "Val'sharah", ids = { 277 } },
+	{ expansion = LEGION, patch = "7.0", name = "Haut-Roc", ids = { 278 } },
+	{ expansion = LEGION, patch = "7.0", name = "Tornheim", ids = { 280 } },
+	{ expansion = LEGION, patch = "7.0", name = "Domaine de classe",
+		ids = { 286, 292, 293, 294, 295, 296, 297, 298, 299, 300, 301, 302 } },
+	{ expansion = LEGION, patch = "7.0", name = "Souffrenuit", ids = { 288 } },
+	{ expansion = LEGION, patch = "7.1", name = "Insurrection", ids = { 289 } },
+	{ expansion = LEGION, patch = "7.2", name = "Campagne du Déclin de la Légion", ids = { 290 } },
+	{ expansion = LEGION, patch = "7.3", name = "Ombres d'Argus", ids = { 291 } },
+	{ expansion = LEGION, patch = "Remix", name = "Legion Remix", ids = { 303 } },
+	-- Battle for Azeroth
+	{ expansion = BFA, patch = "8.0", name = "Battle for Azeroth", ids = { 215, 226 } },
+	{ expansion = BFA, patch = "8.0", name = "Campagne militaire", ids = { 216, 225, 1, 2 } },
+	{ expansion = BFA, patch = "8.2", name = "Nazjatar", ids = { 217, 223 } },
+	{ expansion = BFA, patch = "8.2", name = "Mécagone", ids = { 218, 222 } },
+	{ expansion = BFA, patch = "8.3", name = "Visions de N'Zoth", ids = { 219, 224 } },
 	-- Shadowlands
-	{ expansion = SHADOWLANDS, patch = "9.0", name = "Into the Maw", quests = { 61874, 59751, 60129 } },
-	{ expansion = SHADOWLANDS, patch = "9.0", name = "Bastion", quests = { 59774, 57102, 57710 } },
-	{ expansion = SHADOWLANDS, patch = "9.0", name = "Maldraxxus", quests = { 61107, 57386, 58351 } },
-	{ expansion = SHADOWLANDS, patch = "9.0", name = "Ardenweald", quests = { 60763, 60341, 60624 } },
-	{ expansion = SHADOWLANDS, patch = "9.0", name = "Revendreth", quests = { 57026, 57007, 58654 } },
-	{ expansion = SHADOWLANDS, patch = "9.0", name = "Kyrian", id = 119 },
-	{ expansion = SHADOWLANDS, patch = "9.0", name = "Necrolord", id = 115 },
-	{ expansion = SHADOWLANDS, patch = "9.0", name = "Night Fae", id = 117 },
-	{ expansion = SHADOWLANDS, patch = "9.0", name = "Venthyr", id = 113 },
-	{ expansion = SHADOWLANDS, patch = "9.1", name = "Chains of Domination", id = 138 },
-	{ expansion = SHADOWLANDS, patch = "9.2", name = "Secrets of the First Ones", id = 158 },
-	{ expansion = SHADOWLANDS, patch = "9.2.5", name = "Knights of Blood", quests = { 65652, 63480 } },
+	{ expansion = SHADOWLANDS, patch = "9.0", name = "Campagne de l'Ombreterre", ids = { 125 } },
+	{ expansion = SHADOWLANDS, patch = "9.0", name = "Le Bastion", ids = { 114 } },
+	{ expansion = SHADOWLANDS, patch = "9.0", name = "Lame du Primat", ids = { 118 } },
+	{ expansion = SHADOWLANDS, patch = "9.0", name = "Les bosquets de Sylvarden", ids = { 124 } },
+	{ expansion = SHADOWLANDS, patch = "9.0", name = "Le maître de Revendreth", ids = { 111 } },
+	{ expansion = SHADOWLANDS, patch = "9.0", name = "Les ténèbres à venir", ids = { 126 } },
+	{ expansion = SHADOWLANDS, patch = "9.0", name = "Campagne de congrégation", ids = { 119, 115, 117, 113 } },
+	{ expansion = SHADOWLANDS, patch = "9.0", name = "Le fil du destin", ids = { 131 } },
+	{ expansion = SHADOWLANDS, patch = "9.1", name = "Chaînes de domination", ids = { 138 } },
+	{ expansion = SHADOWLANDS, patch = "9.2", name = "Les secrets des Fondateurs", ids = { 158 } },
 	-- Dragonflight
-	{ expansion = DRAGONFLIGHT, patch = "10.0", name = "Dracthyr Awaken", quests = { 64865, 64863 } },
-	{ expansion = DRAGONFLIGHT, patch = "10.0", name = "The Waking Shores", quests = { 65437, 65989, 66115 } },
-	{ expansion = DRAGONFLIGHT, patch = "10.0", name = "Ohn'ahran Plains", quests = { 65779, 66017 } },
-	{ expansion = DRAGONFLIGHT, patch = "10.0", name = "The Azure Span", quests = { 65686, 65864 } },
-	{ expansion = DRAGONFLIGHT, patch = "10.0", name = "Thaldraszus", quests = { 66159, 66080 } },
-	{ expansion = DRAGONFLIGHT, patch = "10.0", name = "Friend of the Dragon Isles", id = 190 },
-	{ expansion = DRAGONFLIGHT, patch = "10.0.7", name = "Return to the Reach", quests = { 73076, 73157, 72592 } },
-	{ expansion = DRAGONFLIGHT, patch = "10.1", name = "Embers of Neltharion", id = 203 },
-	{ expansion = DRAGONFLIGHT, patch = "10.1.5", name = "Fractures in Time", quests = { 76140, 76141 } },
-	{ expansion = DRAGONFLIGHT, patch = "10.1.7", name = "Reconciliation", quests = { 75919, 77098, 77417 } },
-	{ expansion = DRAGONFLIGHT, patch = "10.2", name = "Guardians of the Dream", id = 231 },
-	{ expansion = DRAGONFLIGHT, patch = "10.2.5", name = "Seeds of Renewal", quests = { 78863, 78865 } },
-	{ expansion = DRAGONFLIGHT, patch = "10.2.7", name = "Hunt for the Harbinger", quests = { 81654, 79010 } },
+	{ expansion = DRAGONFLIGHT, patch = "10.0", name = "Dracthyr, éveillez-vous", ids = { 159, 173 } },
+	{ expansion = DRAGONFLIGHT, patch = "10.0", name = "L'expédition du Dracaret", ids = { 165 } },
+	{ expansion = DRAGONFLIGHT, patch = "10.0", name = "Rivages de l'Éveil", ids = { 169 } },
+	{ expansion = DRAGONFLIGHT, patch = "10.0", name = "Plaines d'Ohn'ahra", ids = { 166 } },
+	{ expansion = DRAGONFLIGHT, patch = "10.0", name = "Travée d'Azur", ids = { 174 } },
+	{ expansion = DRAGONFLIGHT, patch = "10.0", name = "Thaldraszus", ids = { 189 } },
+	{ expansion = DRAGONFLIGHT, patch = "10.0", name = "Dragonflight", ids = { 201 } },
+	{ expansion = DRAGONFLIGHT, patch = "10.0", name = "Roharts iskaariens", ids = { 194 } },
+	{ expansion = DRAGONFLIGHT, patch = "10.0", name = "Expédition du Dracaret", ids = { 197 } },
+	{ expansion = DRAGONFLIGHT, patch = "10.0", name = "Vol draconique vert", ids = { 258 } },
+	{ expansion = DRAGONFLIGHT, patch = "10.0", name = "Le dessein argenté", ids = { 192 } },
+	{ expansion = DRAGONFLIGHT, patch = "10.0", name = "Vol draconique", ids = { 256 } },
+	{ expansion = DRAGONFLIGHT, patch = "10.0.7", name = "Caveaux de Zskera", ids = { 210 } },
+	{ expansion = DRAGONFLIGHT, patch = "10.1", name = "Vol draconique bleu", ids = { 209 } },
+	{ expansion = DRAGONFLIGHT, patch = "10.1", name = "Pierres de Vol", ids = { 227 } },
+	{ expansion = DRAGONFLIGHT, patch = "10.1", name = "Étincelle d'ombreflamme", ids = { 228 } },
+	{ expansion = DRAGONFLIGHT, patch = "10.2", name = "Gardiens du Rêve", ids = { 231 } },
 	-- The War Within
-	{ expansion = TWW, patch = "11.0", name = "Isle of Dorn", quests = { 78531, 78530, 78468 } },
-	{ expansion = TWW, patch = "11.0", name = "The Ringing Deeps", quests = { 78555, 78557, 78685 } },
-	{ expansion = TWW, patch = "11.0", name = "Hallowfall", quests = { 78658, 78659, 78929 } },
-	{ expansion = TWW, patch = "11.0", name = "Azj-Kahet", quests = { 78350, 78384, 80399 } },
-	{ expansion = TWW, patch = "11.0", name = "Against the Current", quests = { 79333, 79328, 81914 } },
-	{ expansion = TWW, patch = "11.0", name = "To Kill a Queen", quests = { 82124, 82125 } },
-	{ expansion = TWW, patch = "11.0.7", name = "Siren Isle", quests = { 84720, 84940, 82692 } },
-	{ expansion = TWW, patch = "11.1", name = "Undermine", quests = { 83139, 83140, 83109 } },
-	{ expansion = TWW, patch = "11.1.7", name = "Rise of the Red Dawn", quests = { 84638, 84639 } },
-	{ expansion = TWW, patch = "11.1.7", name = "Arcane Desolation", quests = { 83031, 83499 } },
-	{ expansion = TWW, patch = "11.2", name = "K'aresh", quests = { 84957, 85003, 85961 } },
-	{ expansion = TWW, patch = "11.2.7", name = "Visions of a Shadowed Sun", quests = { 84996, 84997, 85804 } },
+	{ expansion = TWW, patch = "11.0", name = "The War Within", ids = { 312 } },
+	{ expansion = TWW, patch = "11.0", name = "Chasse à la messagère", ids = { 242 } },
+	{ expansion = TWW, patch = "11.0", name = "Visions d'Azeroth", ids = { 235 } },
+	{ expansion = TWW, patch = "11.0", name = "Île de Dorn", ids = { 236 } },
+	{ expansion = TWW, patch = "11.0", name = "Abîmes Retentissants", ids = { 237 } },
+	{ expansion = TWW, patch = "11.0", name = "Les Arathis de Sainte-Chute", ids = { 238 } },
+	{ expansion = TWW, patch = "11.0", name = "Azj-Kahet", ids = { 239 } },
+	{ expansion = TWW, patch = "11.0", name = "Le Cœur obscur", ids = { 240 } },
+	{ expansion = TWW, patch = "11.0.7", name = "Ombres persistantes", ids = { 260 } },
+	{ expansion = TWW, patch = "11.1", name = "Terremine", ids = { 264 } },
+	{ expansion = TWW, patch = "11.1.7", name = "Le destin du Kirin Tor", ids = { 265 } },
+	{ expansion = TWW, patch = "11.1.7", name = "L'Aube rouge se lève", ids = { 267 } },
+	{ expansion = TWW, patch = "11.2", name = "Le fil de la dague", ids = { 271 } },
+	{ expansion = TWW, patch = "11.2", name = "Succession écologique", ids = { 283 } },
+	{ expansion = TWW, patch = "11.2.7", name = "Visions d'un soleil occulté", ids = { 269 } },
 	-- Midnight
-	{ expansion = MIDNIGHT, patch = "12.0", name = "The Light's Summons", quests = { 86769, 86770, 86805 } },
-	{ expansion = MIDNIGHT, patch = "12.0", name = "Eversong Woods", quests = { 86733, 86734, 86637 } },
-	{ expansion = MIDNIGHT, patch = "12.0", name = "Zul'Aman", quests = { 86708, 86710, 86683 } },
-	{ expansion = MIDNIGHT, patch = "12.0", name = "Harandar", quests = { 86899, 86900, 86883 } },
-	{ expansion = MIDNIGHT, patch = "12.0", name = "Arator's Journey", quests = { 86837, 86838, 86822 } },
-	{ expansion = MIDNIGHT, patch = "12.0", name = "Voidstorm", quests = { 86543, 86549, 86509 } },
-	{ expansion = MIDNIGHT, patch = "12.0", name = "The War of Light and Shadow", quests = { 88696, 88697, 90876 } },
-	{ expansion = MIDNIGHT, patch = "12.1", name = "The Curse of Ula'tek", quests = { 92895, 92899, 92900 } },
+	{ expansion = MIDNIGHT, patch = "12.0", name = "Midnight", ids = { 270 } },
+	{ expansion = MIDNIGHT, patch = "12.0", name = "La guerre de l'Ombre et de la Lumière", ids = { 284 } },
+	{ expansion = MIDNIGHT, patch = "12.0.7", name = "Le feuillet renforcé", ids = { 380 } },
+	{ expansion = MIDNIGHT, patch = "12.0.7", name = "L'Omnium de Haut-Soleil", ids = { 381 } },
+	{ expansion = MIDNIGHT, patch = "12.1", name = "L'appel du Vide", ids = { 333 } },
+	{ expansion = MIDNIGHT, patch = "12.1", name = "La malédiction d'Ula'tek", ids = { 324, 332 } },
 }
 
 -- Quêtes de proie de la Traque et leur difficulté (1 Normal, 2 Difficile, 3 Cauchemar), reprises

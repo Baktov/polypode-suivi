@@ -572,49 +572,25 @@ local function ReadMail()
 end
 
 -- CAMPAGNES (section S) : <campaignID> = « chapitres faits/chapitres », pour les campagnes de
--- ns.CAMPAIGNS (identifiant lu en jeu d'après leurs quêtes repères) et celles proposées au
--- personnage hors liste (C_CampaignInfo.GetAvailableCampaigns). Chapitre fait : sa quête de
--- récompense est terminée, ou il précède le chapitre en cours (calcul de Blizzard, CampaignMixin).
+-- ns.CAMPAIGNS (une variante par entrée, CampaignVariant) et celles proposées au personnage hors
+-- liste (C_CampaignInfo.GetAvailableCampaigns). Chapitre = suite de quêtes : fait si la suite est
+-- terminée (C_QuestLine.IsComplete, comme Blizzard : CampaignChapterMixin), si sa quête de
+-- récompense l'est, ou s'il précède le chapitre en cours ; campagne terminée : tous ses chapitres.
 -- Les campagnes des extensions précédentes ne sont envoyées que commencées (message plus court).
-local campaignIDs = {} -- [entrée de ns.CAMPAIGNS] = identifiant de campagne (trouvé cette session)
-local campaignQuestsRequested = false
+local knownList, knownByID
 
--- Campagnes connues, dans l'ordre de ns.CAMPAIGNS sans doublon : { { id =, entry = } }, et
--- [identifiant] = entrée.
+-- Campagnes de ns.CAMPAIGNS, dans l'ordre : { { entry = } }, et [identifiant de variante] = entrée.
 local function KnownCampaigns()
-	local list, byID = {}, {}
-	if not (C_CampaignInfo and C_CampaignInfo.GetCampaignID) then
-		return list, byID
-	end
-	for _, entry in ipairs(ns.CAMPAIGNS or {}) do
-		local id = entry.id or campaignIDs[entry]
-		if not id then
-			for _, questID in ipairs(entry.quests or {}) do
-				local found = C_CampaignInfo.GetCampaignID(questID)
-				if found and found > 0 then
-					id = found
-					campaignIDs[entry] = found
-					break
-				end
-			end
-		end
-		if id and not byID[id] then
-			byID[id] = entry
-			list[#list + 1] = { id = id, entry = entry }
-		end
-	end
-	-- Quêtes repères inconnues du client : demandées une fois au serveur (relu au prochain envoi).
-	if #list < #(ns.CAMPAIGNS or {}) and not campaignQuestsRequested and C_QuestLog.RequestLoadQuestByID then
-		campaignQuestsRequested = true
+	if not knownList then
+		knownList, knownByID = {}, {}
 		for _, entry in ipairs(ns.CAMPAIGNS or {}) do
-			if not (entry.id or campaignIDs[entry]) then
-				for _, questID in ipairs(entry.quests or {}) do
-					C_QuestLog.RequestLoadQuestByID(questID)
-				end
+			knownList[#knownList + 1] = { entry = entry }
+			for _, id in ipairs(entry.ids) do
+				knownByID[id] = entry
 			end
 		end
 	end
-	return list, byID
+	return knownList, knownByID
 end
 
 -- Chapitres faits et nombre de chapitres d'une campagne, ou nil si elle n'en a pas.
@@ -639,12 +615,68 @@ local function CampaignChapters(campaignID)
 	for i, chapterID in ipairs(chapterIDs) do
 		local info = C_CampaignInfo.GetCampaignChapterInfo and C_CampaignInfo.GetCampaignChapterInfo(chapterID)
 		local rewardQuestID = info and info.rewardQuestID
-		if (rewardQuestID and rewardQuestID > 0 and C_QuestLog.IsQuestFlaggedCompleted(rewardQuestID))
+		if (C_QuestLine and C_QuestLine.IsComplete and C_QuestLine.IsComplete(chapterID))
+			or (rewardQuestID and rewardQuestID > 0 and C_QuestLog.IsQuestFlaggedCompleted(rewardQuestID))
 			or (currentIndex and i < currentIndex) then
 			done = done + 1
 		end
 	end
 	return done, total
+end
+
+-- Variante d'une campagne suivie par le personnage joué : la première qui lui est ouverte (état
+-- autre que « invalide » : bonne faction, bonne congrégation, bonne classe...), sinon celle où il
+-- a fait le plus de chapitres. Renvoie identifiant, faits, total (nil si aucune n'a de chapitres).
+local function CampaignVariant(entry)
+	local states = Enum and Enum.CampaignState
+	local bestID, bestDone, bestTotal
+	for _, id in ipairs(entry.ids) do
+		local done, total = CampaignChapters(id)
+		if total then
+			local open = states and C_CampaignInfo.GetState and C_CampaignInfo.GetState(id) ~= states.Invalid
+			if open then
+				return id, done, total
+			end
+			if not bestID or done > bestDone then
+				bestID, bestDone, bestTotal = id, done, total
+			end
+		end
+	end
+	return bestID, bestDone, bestTotal
+end
+
+-- Valeur « faits/total » d'une entrée de ns.CAMPAIGNS dans la section S d'un personnage (première
+-- variante présente) : identifiant, valeur ; nil si absente.
+local function CampaignValue(campaigns, entry)
+	for _, id in ipairs(entry.ids) do
+		local value = campaigns and campaigns[tostring(id)]
+		if value then
+			return id, value
+		end
+	end
+end
+
+-- Raison du blocage d'une campagne bloquée (C_CampaignInfo.GetFailureReason, texte du jeu), prête
+-- à envoyer : sans « , » ni « ~ » (séparateurs de la section) ni « | » (codes de chat), coupée à
+-- FAILURE_MAX_BYTES octets sans couper une lettre accentuée ; nil si la campagne n'est pas bloquée.
+local FAILURE_MAX_BYTES = 160
+
+local function CampaignFailureText(id)
+	local states = Enum and Enum.CampaignState
+	if not (states and C_CampaignInfo.GetState and C_CampaignInfo.GetState(id) == states.Stalled
+		and C_CampaignInfo.GetFailureReason) then
+		return nil
+	end
+	local failure = C_CampaignInfo.GetFailureReason(id)
+	local text = type(failure) == "table" and failure.text
+	if type(text) ~= "string" or text == "" then
+		return nil
+	end
+	text = text:gsub("[,~]", ";"):gsub("|", "")
+	if #text > FAILURE_MAX_BYTES then
+		text = text:sub(1, FAILURE_MAX_BYTES):gsub("[\192-\255][\128-\191]*$", "") .. "…"
+	end
+	return text
 end
 
 local function ReadCampaigns()
@@ -653,17 +685,20 @@ local function ReadCampaigns()
 		return data
 	end
 	local current = GetClientDisplayExpansionLevel and GetClientDisplayExpansionLevel()
-	local ids = {} -- { identifiant, vrai si envoyée même pas commencée }
-	for _, known in ipairs((KnownCampaigns())) do
-		ids[#ids + 1] = { known.id, known.entry.expansion == current }
+	local known, byID = KnownCampaigns()
+	for _, campaign in ipairs(known) do
+		local id, done, total = CampaignVariant(campaign.entry)
+		if total and (done > 0 or campaign.entry.expansion == current) then
+			local failure = done < total and CampaignFailureText(id)
+			data[tostring(id)] = done .. "/" .. total .. (failure and ("~" .. failure) or "")
+		end
 	end
 	for _, id in ipairs(C_CampaignInfo.GetAvailableCampaigns and C_CampaignInfo.GetAvailableCampaigns() or {}) do
-		ids[#ids + 1] = { id, true }
-	end
-	for _, campaign in ipairs(ids) do
-		local done, total = CampaignChapters(campaign[1])
-		if total and (done > 0 or campaign[2]) then
-			data[tostring(campaign[1])] = done .. "/" .. total
+		if not byID[id] then
+			local done, total = CampaignChapters(id)
+			if total then
+				data[tostring(id)] = done .. "/" .. total
+			end
 		end
 	end
 	return data
@@ -675,15 +710,85 @@ local function CampaignName(id, entry)
 	return (info and info.name ~= "" and info.name) or (entry and entry.name) or ("Campagne n° " .. id)
 end
 
+-- Raison du blocage d'une valeur de la section S (« faits/total~raison »), ou nil.
+local function CampaignFailure(value)
+	local text = tostring(value or ""):match("^%d+/%d+~(.+)$")
+	return text
+end
+
 -- « faits/total » coloré : vert si terminée, gris si pas commencée.
 local function CampaignProgressText(value)
-	local done, total = tostring(value or ""):match("^(%d+)/(%d+)$")
+	local done, total = tostring(value or ""):match("^(%d+)/(%d+)")
 	if not done then
 		return nil
 	end
 	done, total = tonumber(done), tonumber(total)
 	local color = (done >= total and "|cff40ff40") or (done == 0 and "|cff999999") or "|cffffffff"
 	return color .. done .. "/" .. total .. "|r"
+end
+
+-- RELEVÉ DES CAMPAGNES DU JEU (/poly suivi scan), réservé à l'auteur de l'addon : sert à mettre
+-- à jour ns.CAMPAIGNS hors ligne. Parcourt les identifiants de campagne 1 à SCAN_MAX_ID
+-- (C_CampaignInfo.GetCampaignInfo répond même pour une campagne jamais commencée) et écrit dans
+-- PolypodeSuiviScan (fichier de compte, écrit au /reload ou à la déconnexion) : chaque campagne
+-- (champs de CampaignInfo, état et chapitre en cours pour ce personnage) avec ses chapitres (champs
+-- de CampaignChapterInfo ; complete = suite de quêtes terminée pour ce personnage), et la raison
+-- d'un blocage (GetFailureReason). Auteur reconnu au hash de son BattleTag (P.GetTeamToken, Polypode), jamais en clair :
+-- pour les autres, la commande n'existe pas (« scan » ouvre la fenêtre comme /poly suivi).
+local OWNER_TOKEN = "00d565dd"
+local SCAN_MAX_ID = 1500
+
+local function IsOwner()
+	return P.GetTeamToken ~= nil and P.GetTeamToken() == OWNER_TOKEN
+end
+
+-- Copie des champs simples (texte, nombre, booléen) d'une table renvoyée par l'API.
+local function PlainFields(info)
+	local copy = {}
+	for k, v in pairs(info or {}) do
+		local kind = type(v)
+		if kind == "string" or kind == "number" or kind == "boolean" then
+			copy[k] = v
+		end
+	end
+	return copy
+end
+
+local function ScanCampaigns()
+	if not (C_CampaignInfo and C_CampaignInfo.GetCampaignInfo) then
+		print("|cff33ff99Polypode Suivi|r : API des campagnes absente.")
+		return
+	end
+	local version, build, _, toc = GetBuildInfo()
+	local scan = { at = GetServerTime(), version = version, build = build, toc = toc, locale = GetLocale(),
+		char = P.GetCharKey(), maxID = SCAN_MAX_ID, campaigns = {} }
+	local count, highest = 0, 0
+	for id = 1, SCAN_MAX_ID do
+		local ok, info = pcall(C_CampaignInfo.GetCampaignInfo, id)
+		if ok and info and info.name and info.name ~= "" then
+			local campaign = PlainFields(info)
+			campaign.state = C_CampaignInfo.GetState and C_CampaignInfo.GetState(id)
+			campaign.currentChapter = C_CampaignInfo.GetCurrentChapterID and C_CampaignInfo.GetCurrentChapterID(id)
+			local failure = C_CampaignInfo.GetFailureReason and C_CampaignInfo.GetFailureReason(id)
+			campaign.failure = type(failure) == "table" and PlainFields(failure) or failure
+			campaign.chapters = {}
+			for _, chapterID in ipairs(C_CampaignInfo.GetChapterIDs and C_CampaignInfo.GetChapterIDs(id) or {}) do
+				local chapter = PlainFields(C_CampaignInfo.GetCampaignChapterInfo
+					and C_CampaignInfo.GetCampaignChapterInfo(chapterID))
+				chapter.id = chapterID
+				if chapter.rewardQuestID and chapter.rewardQuestID > 0 then
+					chapter.done = C_QuestLog.IsQuestFlaggedCompleted(chapter.rewardQuestID) or nil
+				end
+				chapter.complete = C_QuestLine and C_QuestLine.IsComplete and C_QuestLine.IsComplete(chapterID) or nil
+				campaign.chapters[#campaign.chapters + 1] = chapter
+			end
+			scan.campaigns[id] = campaign
+			count, highest = count + 1, id
+		end
+	end
+	PolypodeSuiviScan = scan
+	print(string.format("|cff33ff99Polypode Suivi|r : %d campagnes relevées (identifiant le plus haut : %d sur %d "
+		.. "parcourus). Faites /reload pour écrire le fichier PolypodeSuiviScan.", count, highest, SCAN_MAX_ID))
 end
 
 local READERS = { V = ReadVault, C = ReadCrests, R = ReadResources, F = ReadFactions, P = ReadRunes,
@@ -1203,14 +1308,14 @@ local function MemberColumns()
 	end
 	-- Campagne la plus récente de ns.CAMPAIGNS trouvée en jeu : chapitres faits (détail en infobulle).
 	local known = KnownCampaigns()
-	local latest = known[#known]
+	local latest = known[#known] and known[#known].entry
 	if latest then
 		columns[#columns + 1] = { "Campagne", function(sections)
-			return CampaignProgressText(sections.S and sections.S[tostring(latest.id)]) or ""
+			return CampaignProgressText(select(2, CampaignValue(sections.S, latest))) or ""
 		end, id = "campaign", sort = function(sections)
-			return tonumber(tostring(sections.S and sections.S[tostring(latest.id)] or ""):match("^(%d+)/"))
-		end, tip = { CampaignName(latest.id, latest.entry), "Chapitres terminés de la campagne la plus récente ("
-			.. latest.entry.patch .. "). Toutes les campagnes : infobulle du personnage." } }
+			return tonumber(tostring(select(2, CampaignValue(sections.S, latest)) or ""):match("^(%d+)/"))
+		end, tip = { CampaignName(latest.ids[1], latest), "Chapitres terminés de la campagne la plus récente ("
+			.. latest.patch .. "). Toutes les campagnes : infobulle du personnage." } }
 	end
 	-- Semaine : nombres (détail en infobulle).
 	for _, week in ipairs({
@@ -1645,9 +1750,9 @@ local function MemberTooltip(item)
 		local current = GetClientDisplayExpansionLevel and GetClientDisplayExpansionLevel()
 		local groups, order = {}, {}
 		for _, campaign in ipairs(known) do
-			local value = campaigns[tostring(campaign.id)]
-			local done, total = tostring(value or ""):match("^(%d+)/(%d+)$")
 			local entry = campaign.entry
+			local id, value = CampaignValue(campaigns, entry)
+			local done, total = tostring(value or ""):match("^(%d+)/(%d+)")
 			local isCurrent = entry.expansion == current
 			if done and (isCurrent or SuiviSettings().showOldCampaigns) then
 				local group = groups[entry.expansion]
@@ -1658,8 +1763,12 @@ local function MemberTooltip(item)
 				end
 				done, total = tonumber(done), tonumber(total)
 				if isCurrent or (done > 0 and done < total) then
-					group.lines[#group.lines + 1] = "    " .. entry.patch .. " – " .. CampaignName(campaign.id, entry)
+					group.lines[#group.lines + 1] = "    " .. entry.patch .. " – " .. CampaignName(id, entry)
 						.. " : " .. CampaignProgressText(value)
+					local failure = CampaignFailure(value) -- campagne bloquée : ce qu'il faut faire
+					if failure then
+						group.lines[#group.lines + 1] = "      |cff999999" .. failure .. "|r"
+					end
 				elseif done >= total then
 					group.finished = group.finished + 1
 				end
@@ -2034,7 +2143,14 @@ if P.AddTitleButton then
 end
 
 if P.RegisterSlashCommand then
-	P.RegisterSlashCommand("suivi", P.ToggleSuivi, "suivi de l'équipe (coffre, écus, ressources, renommées, runes)")
+	-- « /poly suivi scan » : relevé des campagnes, auteur seulement (IsOwner) ; sinon la fenêtre.
+	P.RegisterSlashCommand("suivi", function(args)
+		if args and args[1] and args[1]:lower() == "scan" and IsOwner() then
+			ScanCampaigns()
+		else
+			P.ToggleSuivi()
+		end
+	end, "suivi de l'équipe (coffre, écus, ressources, renommées, runes)")
 end
 
 -- Personnage supprimé dans Polypode (Maj + clic dans « Personnages disponibles », ou sur un
