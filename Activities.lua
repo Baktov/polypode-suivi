@@ -109,13 +109,76 @@ end
 
 -- CAMPAGNES (section S) : avancement en chapitres, groupé par extension puis par patch. L'API ne
 -- dit pas à quelle extension appartient une campagne et son identifiant n'est publié nulle part :
--- chaque campagne est repérée par quelques quêtes (identifiants repris de BtWQuestsMidnight,
--- vérifiés sur Wowhead), et son identifiant est lu en jeu (C_CampaignInfo.GetCampaignID). Deux
--- entrées qui donnent la même campagne n'en font qu'une (la première). Nom affiché : celui du jeu
--- (traduit), name = repli. Les campagnes en cours hors liste sont affichées dans « Autres
--- campagnes ». À COMPLÉTER à chaque patch qui ajoute une campagne.
+-- chaque campagne est repérée par quelques quêtes (identifiants repris de BtWQuests, un addon par
+-- extension, vérifiés sur Wowhead ; patch = nom du fichier BtWQuests, lancement de l'extension pour
+-- les zones), et son identifiant est lu en jeu (C_CampaignInfo.GetCampaignID) ; id = identifiant
+-- déjà connu (repris de DataStore / Altoholic), sans recherche. Deux entrées qui donnent la même
+-- campagne n'en font qu'une (la première) ; une entrée dont aucune quête n'est une quête de
+-- campagne est ignorée. Nom affiché : celui du jeu (traduit), name = repli. Les campagnes en cours
+-- hors liste sont affichées dans « Autres campagnes ». Ordre : de la plus ancienne à la plus
+-- récente (la dernière trouvée en jeu fait la colonne « Campagne »). Campagnes au sens du jeu
+-- (chapitres) : depuis Battle for Azeroth seulement. À COMPLÉTER à chaque patch qui en ajoute une.
+local BFA = LE_EXPANSION_BATTLE_FOR_AZEROTH or 7
+local SHADOWLANDS = LE_EXPANSION_SHADOWLANDS or 8
+local DRAGONFLIGHT = LE_EXPANSION_DRAGONFLIGHT or 9
+local TWW = LE_EXPANSION_WAR_WITHIN or 10
 local MIDNIGHT = LE_EXPANSION_MIDNIGHT or 11
 ns.CAMPAIGNS = {
+	-- Battle for Azeroth (campagne de guerre par faction)
+	{ expansion = BFA, patch = "8.0", name = "War Campaign (Alliance)", quests = { 52544, 53332, 51201 } },
+	{ expansion = BFA, patch = "8.0", name = "War Campaign (Horde)", quests = { 52746, 53333, 51435 } },
+	{ expansion = BFA, patch = "8.1", name = "Tides of Vengeance (Alliance)", quests = { 53888, 54183 } },
+	{ expansion = BFA, patch = "8.1", name = "Tides of Vengeance (Horde)", quests = { 53856, 54165 } },
+	{ expansion = BFA, patch = "8.1.5", name = "My Brother's Keeper", quests = { 55033, 55087 } },
+	{ expansion = BFA, patch = "8.1.5", name = "Righting Wrongs", quests = { 54754, 55124, 54097 } },
+	{ expansion = BFA, patch = "8.2", name = "Welcome to Nazjatar (Alliance)", quests = { 56043, 55095 } },
+	{ expansion = BFA, patch = "8.2", name = "Welcome to Nazjatar (Horde)", quests = { 56044, 55054 } },
+	{ expansion = BFA, patch = "8.2", name = "The Legend of Mechagon", quests = { 54088, 55040, 55646 } },
+	{ expansion = BFA, patch = "8.2", name = "Harnessing the Power", quests = { 55053, 55533 } },
+	{ expansion = BFA, patch = "8.2.5", name = "The Price of Victory (Alliance)", quests = { 56719, 56979 } },
+	{ expansion = BFA, patch = "8.2.5", name = "The Price of Victory (Horde)", quests = { 57088, 56833, 57147 } },
+	{ expansion = BFA, patch = "8.3", name = "Visions of N'Zoth", quests = { 58498, 56209, 57220 } },
+	-- Shadowlands
+	{ expansion = SHADOWLANDS, patch = "9.0", name = "Into the Maw", quests = { 61874, 59751, 60129 } },
+	{ expansion = SHADOWLANDS, patch = "9.0", name = "Bastion", quests = { 59774, 57102, 57710 } },
+	{ expansion = SHADOWLANDS, patch = "9.0", name = "Maldraxxus", quests = { 61107, 57386, 58351 } },
+	{ expansion = SHADOWLANDS, patch = "9.0", name = "Ardenweald", quests = { 60763, 60341, 60624 } },
+	{ expansion = SHADOWLANDS, patch = "9.0", name = "Revendreth", quests = { 57026, 57007, 58654 } },
+	{ expansion = SHADOWLANDS, patch = "9.0", name = "Kyrian", id = 119 },
+	{ expansion = SHADOWLANDS, patch = "9.0", name = "Necrolord", id = 115 },
+	{ expansion = SHADOWLANDS, patch = "9.0", name = "Night Fae", id = 117 },
+	{ expansion = SHADOWLANDS, patch = "9.0", name = "Venthyr", id = 113 },
+	{ expansion = SHADOWLANDS, patch = "9.1", name = "Chains of Domination", id = 138 },
+	{ expansion = SHADOWLANDS, patch = "9.2", name = "Secrets of the First Ones", id = 158 },
+	{ expansion = SHADOWLANDS, patch = "9.2.5", name = "Knights of Blood", quests = { 65652, 63480 } },
+	-- Dragonflight
+	{ expansion = DRAGONFLIGHT, patch = "10.0", name = "Dracthyr Awaken", quests = { 64865, 64863 } },
+	{ expansion = DRAGONFLIGHT, patch = "10.0", name = "The Waking Shores", quests = { 65437, 65989, 66115 } },
+	{ expansion = DRAGONFLIGHT, patch = "10.0", name = "Ohn'ahran Plains", quests = { 65779, 66017 } },
+	{ expansion = DRAGONFLIGHT, patch = "10.0", name = "The Azure Span", quests = { 65686, 65864 } },
+	{ expansion = DRAGONFLIGHT, patch = "10.0", name = "Thaldraszus", quests = { 66159, 66080 } },
+	{ expansion = DRAGONFLIGHT, patch = "10.0", name = "Friend of the Dragon Isles", id = 190 },
+	{ expansion = DRAGONFLIGHT, patch = "10.0.7", name = "Return to the Reach", quests = { 73076, 73157, 72592 } },
+	{ expansion = DRAGONFLIGHT, patch = "10.1", name = "Embers of Neltharion", id = 203 },
+	{ expansion = DRAGONFLIGHT, patch = "10.1.5", name = "Fractures in Time", quests = { 76140, 76141 } },
+	{ expansion = DRAGONFLIGHT, patch = "10.1.7", name = "Reconciliation", quests = { 75919, 77098, 77417 } },
+	{ expansion = DRAGONFLIGHT, patch = "10.2", name = "Guardians of the Dream", id = 231 },
+	{ expansion = DRAGONFLIGHT, patch = "10.2.5", name = "Seeds of Renewal", quests = { 78863, 78865 } },
+	{ expansion = DRAGONFLIGHT, patch = "10.2.7", name = "Hunt for the Harbinger", quests = { 81654, 79010 } },
+	-- The War Within
+	{ expansion = TWW, patch = "11.0", name = "Isle of Dorn", quests = { 78531, 78530, 78468 } },
+	{ expansion = TWW, patch = "11.0", name = "The Ringing Deeps", quests = { 78555, 78557, 78685 } },
+	{ expansion = TWW, patch = "11.0", name = "Hallowfall", quests = { 78658, 78659, 78929 } },
+	{ expansion = TWW, patch = "11.0", name = "Azj-Kahet", quests = { 78350, 78384, 80399 } },
+	{ expansion = TWW, patch = "11.0", name = "Against the Current", quests = { 79333, 79328, 81914 } },
+	{ expansion = TWW, patch = "11.0", name = "To Kill a Queen", quests = { 82124, 82125 } },
+	{ expansion = TWW, patch = "11.0.7", name = "Siren Isle", quests = { 84720, 84940, 82692 } },
+	{ expansion = TWW, patch = "11.1", name = "Undermine", quests = { 83139, 83140, 83109 } },
+	{ expansion = TWW, patch = "11.1.7", name = "Rise of the Red Dawn", quests = { 84638, 84639 } },
+	{ expansion = TWW, patch = "11.1.7", name = "Arcane Desolation", quests = { 83031, 83499 } },
+	{ expansion = TWW, patch = "11.2", name = "K'aresh", quests = { 84957, 85003, 85961 } },
+	{ expansion = TWW, patch = "11.2.7", name = "Visions of a Shadowed Sun", quests = { 84996, 84997, 85804 } },
+	-- Midnight
 	{ expansion = MIDNIGHT, patch = "12.0", name = "The Light's Summons", quests = { 86769, 86770, 86805 } },
 	{ expansion = MIDNIGHT, patch = "12.0", name = "Eversong Woods", quests = { 86733, 86734, 86637 } },
 	{ expansion = MIDNIGHT, patch = "12.0", name = "Zul'Aman", quests = { 86708, 86710, 86683 } },

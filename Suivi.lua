@@ -59,6 +59,7 @@ local SECTIONS = { "V", "C", "R", "F", "P", "A", "M", "W", "S" }
 local DEFAULTS = {
 	showAll = false, -- tous les personnages sauvegardés au lieu de l'équipe sélectionnée
 	activityMode = false, -- panneau « Activités » au lieu du résumé
+	showOldCampaigns = false, -- campagnes des extensions précédentes dans l'infobulle
 	showFactions = false, -- renommées dans l'infobulle (inutile avec un seul compte Battle.net :
 	-- elles y sont communes à tous les personnages)
 	width = 620, height = 340, -- taille de la fenêtre (poignée de redimensionnement)
@@ -573,6 +574,7 @@ end
 -- ns.CAMPAIGNS (identifiant lu en jeu d'après leurs quêtes repères) et celles proposées au
 -- personnage hors liste (C_CampaignInfo.GetAvailableCampaigns). Chapitre fait : sa quête de
 -- récompense est terminée, ou il précède le chapitre en cours (calcul de Blizzard, CampaignMixin).
+-- Les campagnes des extensions précédentes ne sont envoyées que commencées (message plus court).
 local campaignIDs = {} -- [entrée de ns.CAMPAIGNS] = identifiant de campagne (trouvé cette session)
 local campaignQuestsRequested = false
 
@@ -584,9 +586,9 @@ local function KnownCampaigns()
 		return list, byID
 	end
 	for _, entry in ipairs(ns.CAMPAIGNS or {}) do
-		local id = campaignIDs[entry]
+		local id = entry.id or campaignIDs[entry]
 		if not id then
-			for _, questID in ipairs(entry.quests) do
+			for _, questID in ipairs(entry.quests or {}) do
 				local found = C_CampaignInfo.GetCampaignID(questID)
 				if found and found > 0 then
 					id = found
@@ -604,8 +606,8 @@ local function KnownCampaigns()
 	if #list < #(ns.CAMPAIGNS or {}) and not campaignQuestsRequested and C_QuestLog.RequestLoadQuestByID then
 		campaignQuestsRequested = true
 		for _, entry in ipairs(ns.CAMPAIGNS or {}) do
-			if not campaignIDs[entry] then
-				for _, questID in ipairs(entry.quests) do
+			if not (entry.id or campaignIDs[entry]) then
+				for _, questID in ipairs(entry.quests or {}) do
 					C_QuestLog.RequestLoadQuestByID(questID)
 				end
 			end
@@ -649,17 +651,18 @@ local function ReadCampaigns()
 	if not (C_CampaignInfo and C_QuestLog and C_QuestLog.IsQuestFlaggedCompleted) then
 		return data
 	end
-	local ids = {}
+	local current = GetClientDisplayExpansionLevel and GetClientDisplayExpansionLevel()
+	local ids = {} -- { identifiant, vrai si envoyée même pas commencée }
 	for _, known in ipairs((KnownCampaigns())) do
-		ids[#ids + 1] = known.id
+		ids[#ids + 1] = { known.id, known.entry.expansion == current }
 	end
 	for _, id in ipairs(C_CampaignInfo.GetAvailableCampaigns and C_CampaignInfo.GetAvailableCampaigns() or {}) do
-		ids[#ids + 1] = id
+		ids[#ids + 1] = { id, true }
 	end
-	for _, id in ipairs(ids) do
-		local done, total = CampaignChapters(id)
-		if total then
-			data[tostring(id)] = done .. "/" .. total
+	for _, campaign in ipairs(ids) do
+		local done, total = CampaignChapters(campaign[1])
+		if total and (done > 0 or campaign[2]) then
+			data[tostring(campaign[1])] = done .. "/" .. total
 		end
 	end
 	return data
@@ -1517,22 +1520,52 @@ local function MemberTooltip(item)
 			.. ((sections.P.b == 1 or sections.P.b == "1") and " |cff40ff40(une rune achetable)|r" or "")
 	end
 
-	-- Campagnes : par extension, « patch – nom  faits/total », puis celles hors liste.
+	-- Campagnes : par extension, « patch – nom : faits/total », l'extension en cours d'abord (toutes
+	-- ses campagnes), puis les précédentes de la plus récente à la plus ancienne (option
+	-- showOldCampaigns : celles en cours, et le nombre de terminées), puis celles hors liste.
 	local campaigns = sections.S
 	if campaigns and next(campaigns) then
-		lines[#lines + 1] = " "
-		lines[#lines + 1] = "|cffffd200Campagnes (chapitres)|r"
 		local known, byID = KnownCampaigns()
-		local lastExpansion
+		local current = GetClientDisplayExpansionLevel and GetClientDisplayExpansionLevel()
+		local groups, order = {}, {}
 		for _, campaign in ipairs(known) do
-			local progress = CampaignProgressText(campaigns[tostring(campaign.id)])
-			if progress then
-				local entry = campaign.entry
-				if entry.expansion ~= lastExpansion then
-					lastExpansion = entry.expansion
-					lines[#lines + 1] = "  " .. (_G["EXPANSION_NAME" .. entry.expansion] or ("Extension " .. entry.expansion))
+			local value = campaigns[tostring(campaign.id)]
+			local done, total = tostring(value or ""):match("^(%d+)/(%d+)$")
+			local entry = campaign.entry
+			local isCurrent = entry.expansion == current
+			if done and (isCurrent or SuiviSettings().showOldCampaigns) then
+				local group = groups[entry.expansion]
+				if not group then
+					group = { expansion = entry.expansion, lines = {}, finished = 0 }
+					groups[entry.expansion] = group
+					order[#order + 1] = group
 				end
-				lines[#lines + 1] = "    " .. entry.patch .. " – " .. CampaignName(campaign.id, entry) .. " : " .. progress
+				done, total = tonumber(done), tonumber(total)
+				if isCurrent or (done > 0 and done < total) then
+					group.lines[#group.lines + 1] = "    " .. entry.patch .. " – " .. CampaignName(campaign.id, entry)
+						.. " : " .. CampaignProgressText(value)
+				elseif done >= total then
+					group.finished = group.finished + 1
+				end
+			end
+		end
+		table.sort(order, function(a, b)
+			if (a.expansion == current) ~= (b.expansion == current) then
+				return a.expansion == current
+			end
+			return a.expansion > b.expansion
+		end)
+		local campaignLines = {}
+		for _, group in ipairs(order) do
+			if #group.lines > 0 or group.finished > 0 then
+				campaignLines[#campaignLines + 1] = "  " .. (_G["EXPANSION_NAME" .. group.expansion]
+					or ("Extension " .. group.expansion))
+				for _, line in ipairs(group.lines) do
+					campaignLines[#campaignLines + 1] = line
+				end
+				if group.finished > 0 then
+					campaignLines[#campaignLines + 1] = "    |cff40ff40" .. group.finished .. " campagne(s) terminée(s)|r"
+				end
 			end
 		end
 		local others = {}
@@ -1544,8 +1577,15 @@ local function MemberTooltip(item)
 		end
 		if #others > 0 then
 			table.sort(others)
-			lines[#lines + 1] = "  Autres campagnes"
+			campaignLines[#campaignLines + 1] = "  Autres campagnes"
 			for _, line in ipairs(others) do
+				campaignLines[#campaignLines + 1] = line
+			end
+		end
+		if #campaignLines > 0 then
+			lines[#lines + 1] = " "
+			lines[#lines + 1] = "|cffffd200Campagnes (chapitres)|r"
+			for _, line in ipairs(campaignLines) do
 				lines[#lines + 1] = line
 			end
 		end
@@ -1933,6 +1973,19 @@ local function BuildSettingsPanel()
 		"La fenêtre « Suivi » liste tous les personnages dont des informations ont été enregistrées "
 		.. "(avec leur date) au lieu des membres de l'équipe sélectionnée. Même case que dans la barre "
 		.. "de titre de la fenêtre. Toujours cochée en mode solo de Polypode. Réglage propre à ce personnage.")
+
+	local campaignSetting = Settings.RegisterProxySetting(category, "POLYPODE_SUIVI_SHOW_OLD_CAMPAIGNS",
+		Settings.VarType.Boolean, "Campagnes des extensions précédentes", DEFAULTS.showOldCampaigns,
+		function()
+			return SuiviSettings().showOldCampaigns
+		end,
+		function(value)
+			SuiviSettings().showOldCampaigns = value
+		end)
+	Settings.CreateCheckbox(category, campaignSetting,
+		"Dans l'infobulle de chaque personnage, ajoute aux campagnes de l'extension en cours celles des "
+		.. "extensions précédentes (depuis Battle for Azeroth) : les campagnes commencées mais pas finies, "
+		.. "et le nombre de campagnes terminées par extension. Réglage propre à ce personnage.")
 
 	local setting = Settings.RegisterProxySetting(category, "POLYPODE_SUIVI_SHOW_FACTIONS",
 		Settings.VarType.Boolean, "Afficher les renommées", DEFAULTS.showFactions,
