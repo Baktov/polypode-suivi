@@ -59,7 +59,7 @@ Retail (120000) et WoW Forever (16001) avec tests d'existence des API (lectures 
 `P.WhisperOnline`, `P.IsSender`, `P.MAX_MESSAGE_LENGTH`, `P.RefreshUI` (accroche), `P.GetTeamToken`,
 `P.GetCharKey`, `P.GetDisplayName`, `P.db.roster`, `P.GetSelectedTeam`, `P.GetTeamLeader`,
 `P.GetTeamMembers`, `P.GetCharacter`, `P.SortedKeyItems`, `P.optionsCategory`, `P.CreatePanel`, `P.CreateScrollList`, `P.SetListData`,
-`P.SkinFrame`, `P.SkinPanel`, `P.SkinButton`, `P.SkinCheckBox` (si présents). Toute évolution de ces fonctions dans Polypode doit rester
+`P.SkinFrame`, `P.SkinPanel`, `P.SkinButton`, `P.SkinCheckBox` (si présents), `P.Debug`. Toute évolution de ces fonctions dans Polypode doit rester
 compatible, ou ce fichier doit suivre.
 
 ## Pistes
@@ -70,5 +70,15 @@ compatible, ou ce fichier doit suivre.
 
 ## Après chaque modification
 
-Mettre à jour `README.md` (et ce fichier si l'architecture change), commiter puis pousser sur
-`origin` (https://github.com/Baktov/polypode-suivi).
+Suivre la procédure commune de `../Polypode/CLAUDE.md` (section « Modules Polypode et
+documentation »), sans attendre qu'on le demande :
+
+1. incrémenter `## Version` du `.toc` et la rappeler à la fin du message de commit,
+   « Description (x.y.z) » ;
+2. `README.md` : ajouter `` `x.y.z` : description. `` en tête de la section « Version » (du plus
+   récent au plus ancien) et mettre à jour les sections d'utilisation concernées ;
+3. ce fichier : architecture (fichiers, fonctions, données, SavedVariables, messages) et liste
+   « Dépendances vers Polypode » si une nouvelle fonction `P.*` est utilisée ;
+4. si le périmètre du module change : section « Addons compagnons » du `README.md` de Polypode et
+   liste des compagnons de son `CLAUDE.md` (commit dans ce dépôt-là aussi) ;
+5. commiter puis pousser sur `origin` (https://github.com/Baktov/polypode-suivi).
