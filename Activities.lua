@@ -203,6 +203,18 @@ ns.CAMPAIGNS = {
 	{ expansion = MIDNIGHT, patch = "12.1", name = "La malédiction d'Ula'tek", ids = { 324, 332 } },
 }
 
+-- Campagnes du relevé écartées à la consolidation (rattrapage, tests, « passer l'introduction »,
+-- didacticiels, conteneurs, doublons techniques). Avec ns.CAMPAIGNS, elles forment les campagnes
+-- connues : une autre campagne présente dans le jeu fait apparaître, pour l'auteur seulement, le
+-- bouton « Nouvelle campagne » de la fenêtre Suivi (relevé à refaire puis consolider).
+ns.CAMPAIGNS_IGNORED = {
+	3, 130, 133, 134, 135, 136, 137, 140, 141, 142, 143, 144, 145, 146, 147, 148, 149, 150, 151, 153,
+	154, 155, 156, 157, 160, 161, 162, 163, 164, 167, 168, 190, 191, 193, 198, 199, 200, 203, 206, 207,
+	208, 212, 213, 214, 221, 229, 230, 233, 234, 241, 257, 261, 262, 263, 266, 268, 273, 274, 276, 279,
+	281, 285, 287, 311, 313, 314, 315, 316, 318, 319, 320, 321, 322, 323, 328, 334, 335, 336, 337, 345,
+	346, 352, 357, 358, 359, 382,
+}
+
 -- Quêtes de proie de la Traque et leur difficulté (1 Normal, 2 Difficile, 3 Cauchemar), reprises
 -- de Plumber (Modules/Shared/SharedData.lua : PreyQuestData) : nombre de traques faites cette
 -- semaine par difficulté (4 par difficulté et par semaine). À METTRE À JOUR avec Plumber.

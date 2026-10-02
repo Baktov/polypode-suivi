@@ -756,7 +756,7 @@ end
 
 local function ScanCampaigns()
 	if not (C_CampaignInfo and C_CampaignInfo.GetCampaignInfo) then
-		print("|cff33ff99Polypode Suivi|r : API des campagnes absente.")
+		UIErrorsFrame:AddMessage("Polypode Suivi : API des campagnes absente.", 1, 0.5, 0)
 		return
 	end
 	local version, build, _, toc = GetBuildInfo()
@@ -787,8 +787,44 @@ local function ScanCampaigns()
 		end
 	end
 	PolypodeSuiviScan = scan
-	print(string.format("|cff33ff99Polypode Suivi|r : %d campagnes relevées (identifiant le plus haut : %d sur %d "
-		.. "parcourus). Faites /reload pour écrire le fichier PolypodeSuiviScan.", count, highest, SCAN_MAX_ID))
+	-- Pas de print() (convention Polypode) : message à l'écran, détail en mode debug.
+	UIErrorsFrame:AddMessage(string.format("Polypode Suivi : %d campagnes relevées. Faites /reload pour écrire "
+		.. "le fichier.", count), 0.2, 1, 0.6)
+	if P.Debug then
+		P.Debug(string.format("Relevé des campagnes : %d trouvées, identifiant le plus haut %d sur %d parcourus.",
+			count, highest, SCAN_MAX_ID))
+	end
+end
+
+-- CAMPAGNES INCONNUES (auteur seulement) : campagnes présentes dans le jeu mais ni dans
+-- ns.CAMPAIGNS ni dans ns.CAMPAIGNS_IGNORED (nouveau patch). Cherchées une fois par session, à la
+-- première ouverture de la fenêtre ; elles font apparaître le bouton « Nouveau » (clignotant
+-- rouge) à gauche de « Activités », dont le clic lance le relevé (ScanCampaigns).
+local unknownCampaigns -- { { id =, name = } }, nil tant que pas cherchées
+local scanDone = false -- relevé fait pendant cette session (bouton : « faites /reload »)
+
+local function UnknownCampaigns()
+	if unknownCampaigns then
+		return unknownCampaigns
+	end
+	if not (IsOwner() and C_CampaignInfo and C_CampaignInfo.GetCampaignInfo) then
+		return {} -- BattleTag pas encore connu : cherché à la prochaine ouverture
+	end
+	local _, byID = KnownCampaigns()
+	local ignored = {}
+	for _, id in ipairs(ns.CAMPAIGNS_IGNORED or {}) do
+		ignored[id] = true
+	end
+	unknownCampaigns = {}
+	for id = 1, SCAN_MAX_ID do
+		if not byID[id] and not ignored[id] then
+			local ok, info = pcall(C_CampaignInfo.GetCampaignInfo, id)
+			if ok and info and info.name and info.name ~= "" then
+				unknownCampaigns[#unknownCampaigns + 1] = { id = id, name = info.name }
+			end
+		end
+	end
+	return unknownCampaigns
 end
 
 local READERS = { V = ReadVault, C = ReadCrests, R = ReadResources, F = ReadFactions, P = ReadRunes,
@@ -1927,6 +1963,42 @@ local function Build()
 	frame.activityButton = activityBtn
 	P.ui.suiviActivityButton = activityBtn
 
+	-- Bouton « Nouveau » (auteur seulement, à gauche de « Activités ») : affiché s'il existe des
+	-- campagnes inconnues (UnknownCampaigns), clignotant rouge tant que le relevé n'est pas fait ;
+	-- clic = relevé des campagnes (ScanCampaigns), puis /reload pour écrire le fichier.
+	local scanBtn = CreateFrame("Button", nil, frame, "UIPanelButtonTemplate")
+	scanBtn:SetSize(76, 20)
+	scanBtn:SetPoint("RIGHT", activityBtn, "LEFT", -4, 0)
+	scanBtn:SetText("Nouveau")
+	local flash = scanBtn:CreateTexture(nil, "OVERLAY")
+	flash:SetAllPoints()
+	flash:SetColorTexture(1, 0, 0, 0.5)
+	local pulse = flash:CreateAnimationGroup()
+	pulse:SetLooping("BOUNCE")
+	local fade = pulse:CreateAnimation("Alpha")
+	fade:SetFromAlpha(0.15)
+	fade:SetToAlpha(1)
+	fade:SetDuration(0.6)
+	scanBtn.flash, scanBtn.pulse = flash, pulse
+	scanBtn:SetScript("OnClick", function()
+		ScanCampaigns()
+		scanDone = true
+		P.RefreshSuivi()
+	end)
+	scanBtn:SetScript("OnEnter", function(self)
+		GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
+		GameTooltip:AddLine(scanDone and "Relevé fait" or "Nouvelles campagnes")
+		for _, campaign in ipairs(UnknownCampaigns()) do
+			GameTooltip:AddLine(campaign.name .. " |cff999999(n° " .. campaign.id .. ")|r", 1, 1, 1)
+		end
+		GameTooltip:AddLine(scanDone and "Faites /reload pour écrire le fichier, puis consolidez la liste."
+			or "Clic : relevé des campagnes du jeu (puis /reload), pour les ajouter à la liste.", 0.6, 0.6, 0.6, true)
+		GameTooltip:Show()
+	end)
+	scanBtn:SetScript("OnLeave", GameTooltip_Hide)
+	scanBtn:Hide()
+	frame.scanButton = scanBtn
+
 	-- Bouton Options (barre de titre, à gauche, comme dans la fenêtre Polypode) : ouvre
 	-- Options > AddOns > Polypode > Suivi, et ferme la fenêtre pour ne pas masquer le panneau.
 	local optionsBtn = CreateFrame("Button", nil, frame, "UIPanelButtonTemplate")
@@ -2058,6 +2130,7 @@ local function Build()
 	if P.SkinButton then
 		P.SkinButton(optionsBtn)
 		P.SkinButton(activityBtn)
+		P.SkinButton(scanBtn)
 	end
 	if P.SkinCheckBox then -- Polypode 0.53.3
 		P.SkinCheckBox(allCheck)
@@ -2079,6 +2152,21 @@ function P.RefreshSuivi()
 	local allText = frame.allCheck.Text or frame.allCheck.text
 	if allText then
 		allText:SetFontObject(IsSolo() and "GameFontDisableSmall" or "GameFontHighlightSmall")
+	end
+	-- Bouton « Nouveau » : campagnes inconnues (auteur seulement), clignotant jusqu'au relevé.
+	local scanBtn = frame.scanButton
+	if IsOwner() and #UnknownCampaigns() > 0 then
+		scanBtn:SetText(scanDone and "Relevé" or "Nouveau")
+		scanBtn.flash:SetShown(not scanDone)
+		if scanDone then
+			scanBtn.pulse:Stop()
+		elseif not scanBtn.pulse:IsPlaying() then
+			scanBtn.pulse:Play()
+		end
+		scanBtn:Show()
+	else
+		scanBtn.pulse:Stop()
+		scanBtn:Hide()
 	end
 	local items, header, emptyText = BuildItems()
 	if SuiviSettings().activityMode then

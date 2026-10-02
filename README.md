@@ -23,12 +23,20 @@ Nécessite **Polypode 0.51.0** ou plus récent.
 ## Utilisation
 
 Le bouton **Suivi** (barre de titre de la fenêtre Polypode) ou `/poly suivi` ouvre une fenêtre
-présentée comme un **tableau sans trait** : une ligne d'en-tête (Coffre, Runes, icônes des écus,
-icône du catalyseur, Traques, Gouffres, Donjons, Raids), puis une ligne par membre de l'équipe sélectionnée (leader en
+présentée comme un **tableau sans trait** : une ligne d'en-tête (Personnage, Coffre, Runes, icônes
+des écus, icône du catalyseur, Campagne, Traques, Gouffres, Donjons, Raids), puis une ligne par
+membre de l'équipe sélectionnée (leader en
 tête), aux colonnes alignées verticalement (à droite, à la largeur de leur plus long contenu ; le
 nom prend la place restante et se tronque si la fenêtre est étroite ; une colonne vide chez tous
 est masquée ; au survol, chaque en-tête indique ce que compte sa colonne — grande chambre
-forte, nom de l'écu, catalyseur...) :
+forte, nom de l'écu, catalyseur...).
+
+**Tri** : un clic sur un en-tête trie le tableau par cette colonne (du plus grand au plus petit ;
+« Personnage » : par nom, de A à Z), un second clic inverse l'ordre ; une flèche marque la colonne
+triée, les personnages sans valeur restent en bas. Le tri est gardé par personnage ; sans tri
+choisi, le leader est en tête.
+
+Les colonnes :
 
 - une **enveloppe** à gauche du nom si le personnage a du **courrier non lu**, ou un courrier qui
   expire dans moins de 3 jours ;
@@ -38,6 +46,8 @@ forte, nom de l'écu, catalyseur...) :
 - les **écus** d'amélioration d'objet (icône et quantité), de l'aventurier à gauche au mythique à droite ;
 - les **charges du catalyseur** disponibles (monnaie de la saison : flux de mana de Chancrevenin
   en saison 2 de Midnight, 0 en gris) ;
+- **Campagne** faits/total : chapitres terminés de la campagne la plus récente (« La malédiction
+  d'Ula'tek » en 12.1 ; vert si terminée, gris si pas commencée) ;
 - ce qui a été fait **cette semaine** : nombre de traques, gouffres, donjons et raids (en gris
   si zéro ; raids = boss tués).
 
@@ -50,6 +60,13 @@ Au survol d'un personnage, l'infobulle détaille :
   de Dundun, fragments de clé de coffre, honneur, conquête...) ;
 - **Renommées** débloquées de l'extension (masquables, voir Options) ;
 - **Runes de pouvoir** : points à dépenser, et si une rune est achetable ;
+- **Campagnes (chapitres)** : avancement des campagnes de l'extension en cours, « patch – nom :
+  faits/total » (ex. « 12.1 – La malédiction d'Ula'tek : 1/6 »), et, pour une campagne bloquée, ce
+  qu'il faut faire pour la reprendre (texte du jeu, en gris). Avec l'option « Campagnes des
+  extensions précédentes », suivent les extensions précédentes (de Mists of Pandaria à The War
+  Within, de la plus récente à la plus ancienne) : campagnes commencées mais pas finies, et nombre
+  de campagnes terminées par extension. Les campagnes à variantes (Alliance / Horde, congrégations
+  de Shadowlands, domaines de classe de Legion) n'occupent qu'une ligne : celle du personnage ;
 - la date des informations d'un autre personnage ;
 - **Cette semaine** : traques faites par difficulté (Normal, Difficile, Cauchemar, sur 4), gouffres
   par palier, donjons héroïques / mythiques / mythiques+ avec le niveau des clés, boss de raid par
@@ -120,7 +137,11 @@ ordre alphabétique, avec la date de leurs informations (« il y a 2 h », « du
   (liste des écus choisie selon la saison de Midnight : saison 1 ou 2 ; selon la version du
   client si la saison est inconnue). Ils seront à mettre à jour à la prochaine
   extension.
-- Sur **WoW Forever**, ce qui n'existe pas (runes, écus de Midnight...) reste simplement vide.
+- **Campagnes** : la liste des campagnes (identifiants du jeu, classées par extension et patch) est
+  tirée d'un relevé de toutes les campagnes du jeu ; un chapitre est terminé quand sa suite de
+  quêtes l'est (comme dans le journal de quêtes). Elle est à compléter quand un patch ajoute une
+  campagne ; en attendant, une nouvelle campagne commencée apparaît dans « Autres campagnes ».
+- Sur **WoW Forever**, ce qui n'existe pas (runes, écus de Midnight, campagnes...) reste simplement vide.
 
 ---
 
@@ -131,6 +152,7 @@ Dans **Options → AddOns → Polypode → Suivi** (réglage propre à chaque pe
 | Option | Défaut | Effet |
 |---|---|---|
 | Tous les personnages | Non | La fenêtre liste tous les personnages dont des informations ont été enregistrées au lieu de l'équipe sélectionnée (même case que dans la barre de titre de la fenêtre). Toujours cochée (et grisée) en **mode solo** de Polypode |
+| Campagnes des extensions précédentes | Non | Ajoute à l'infobulle de chaque membre les campagnes des extensions précédentes (depuis Mists of Pandaria) : celles commencées mais pas finies, et le nombre de campagnes terminées par extension |
 | Afficher les renommées | Non | Détaille les renommées de l'extension dans l'infobulle de chaque membre. Inutile avec un seul compte Battle.net : les renommées y sont communes à tous les personnages |
 
 ---
@@ -148,6 +170,11 @@ travail de recensement.
 
 ## Version
 
+`1.19.0` : outil de l'auteur : bouton « Nouveau » quand le jeu contient une campagne absente de la liste.
+`1.18.0` : liste des campagnes reconstruite d'après un relevé du jeu (Mists of Pandaria à Midnight, variantes regroupées), chapitres comptés par suite de quêtes, raison du blocage d'une campagne.
+`1.17.0` : tri du tableau par clic sur un en-tête de colonne.
+`1.16.0` : option « Campagnes des extensions précédentes ».
+`1.15.0` : avancement des campagnes (chapitres) par extension, colonne « Campagne ».
 `1.14.1` : libellé « Tous les personnages » écarté de 5 px de sa case (skin EllesmereUI).
 `1.14.0` : mode solo de Polypode (0.54.0) : « Tous les personnages » imposé, case cochée et grisée.
 `1.13.3` : case « Tous les personnages » skinnée EllesmereUI / ElvUI (`P.SkinCheckBox`, Polypode 0.53.3).
