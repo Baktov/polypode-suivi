@@ -170,6 +170,7 @@ travail de recensement.
 
 ## Version
 
+`1.19.1` : correctif : l'avancement des campagnes d'un personnage était sauvegardé à zéro à la déconnexion (relevé fait pendant la sortie du monde, quand le jeu a déjà vidé ces données). La déconnexion garde le dernier relevé fait en jeu, et l'avancement sauvegardé d'une campagne ne recule plus (relevé trop tôt à la connexion).
 `1.19.0` : outil de l'auteur : bouton « Nouveau » quand le jeu contient une campagne absente de la liste.
 `1.18.0` : liste des campagnes reconstruite d'après un relevé du jeu (Mists of Pandaria à Midnight, variantes regroupées), chapitres comptés par suite de quêtes, raison du blocage d'une campagne.
 `1.17.0` : tri du tableau par clic sur un en-tête de colonne.

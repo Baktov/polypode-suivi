@@ -884,8 +884,39 @@ local function StoreOwn(sections)
 	received[P.GetCharKey()] = { sections = sections, at = now, times = times }
 end
 
+-- RELEVÉS DOUTEUX : pendant la sortie du monde (déconnexion, /reload), le jeu a déjà vidé une partie
+-- de ses données (campagnes « non terminées », chapitres à 0...) ; un relevé fait alors écraserait
+-- le bon. Aucun relevé ni envoi entre PLAYER_LEAVING_WORLD et PLAYER_ENTERING_WORLD, et à
+-- PLAYER_LOGOUT on sauvegarde le dernier relevé fait en jeu (lastOwn), sans relire.
+local lastOwn -- dernier relevé du personnage joué fait en jeu
+local leavingWorld = false
+
+-- L'avancement d'une campagne ne recule pas : une campagne absente du nouveau relevé, ou avec moins
+-- de chapitres faits (même total), garde la valeur sauvegardée (relevé trop tôt à la connexion,
+-- quêtes pas encore chargées).
+local function KeepCampaignProgress(own)
+	local stored = received[P.GetCharKey()]
+	local old = stored and stored.sections and stored.sections.S
+	if not (old and own.S) then
+		return
+	end
+	for id, value in pairs(old) do
+		local oldDone, oldTotal = tostring(value):match("^(%d+)/(%d+)")
+		local new = own.S[id]
+		local newDone, newTotal = tostring(new or ""):match("^(%d+)/(%d+)")
+		if oldDone and (not newDone or (newTotal == oldTotal and tonumber(newDone) < tonumber(oldDone))) then
+			own.S[id] = value
+		end
+	end
+end
+
 local function SendAll(target)
+	if leavingWorld then
+		return
+	end
 	local own = ReadOwn()
+	KeepCampaignProgress(own)
+	lastOwn = own
 	StoreOwn(own)
 	local token = P.GetTeamToken and P.GetTeamToken()
 	if not token or not P.WhisperOnline then
@@ -2361,14 +2392,17 @@ setup:SetScript("OnEvent", function(_, event, addonName)
 	elseif event == "QUEST_DATA_LOAD_RESULT" then
 		P.RefreshSuivi()
 	elseif event == "PLAYER_LOGOUT" then
-		StoreOwn(ReadOwn())
+		-- Pas de relecture ici (données du jeu déjà vidées) : le dernier relevé fait en jeu.
+		if lastOwn then
+			StoreOwn(lastOwn)
+		end
 	end
 end)
 
 -- Changements du personnage joué : envoi différé des sections modifiées, et fenêtre à jour.
 local events = CreateFrame("Frame")
 for _, event in ipairs({
-	"PLAYER_ENTERING_WORLD", "WEEKLY_REWARDS_UPDATE", "CURRENCY_DISPLAY_UPDATE",
+	"PLAYER_ENTERING_WORLD", "PLAYER_LEAVING_WORLD", "WEEKLY_REWARDS_UPDATE", "CURRENCY_DISPLAY_UPDATE",
 	"MAJOR_FACTION_RENOWN_LEVEL_CHANGED", "TRAIT_CONFIG_UPDATED", "BAG_UPDATE_DELAYED",
 	"QUEST_TURNED_IN", "QUEST_ACCEPTED", "QUEST_REMOVED", -- activités
 	"UPDATE_PENDING_MAIL", "MAIL_INBOX_UPDATE", "MAIL_CLOSED", -- courrier
@@ -2379,7 +2413,12 @@ for _, event in ipairs({
 	end
 end
 events:SetScript("OnEvent", function(_, event)
+	if event == "PLAYER_LEAVING_WORLD" then
+		leavingWorld = true -- sortie du monde : plus de relevé (données du jeu en cours de vidage)
+		return
+	end
 	if event == "PLAYER_ENTERING_WORLD" then
+		leavingWorld = false
 		CountDungeonEntry() -- donjon normal / avec suivants : compté à l'entrée
 	end
 	if event == "MAIL_INBOX_UPDATE" then
