@@ -1633,6 +1633,11 @@ local function Build()
 	if P.SkinCheckBox then -- Polypode 0.53.3
 		P.SkinCheckBox(allCheck)
 	end
+	-- Libellé écarté de la case (après le skin : EllesmereUI le collait à son cadre).
+	if allText then
+		allText:ClearAllPoints()
+		allText:SetPoint("LEFT", allCheck, "RIGHT", 5, 0)
+	end
 end
 
 -- Remplit la liste, si la fenêtre est ouverte.

@@ -148,6 +148,7 @@ travail de recensement.
 
 ## Version
 
+`1.14.1` : libellé « Tous les personnages » écarté de 5 px de sa case (skin EllesmereUI).
 `1.14.0` : mode solo de Polypode (0.54.0) : « Tous les personnages » imposé, case cochée et grisée.
 `1.13.3` : case « Tous les personnages » skinnée EllesmereUI / ElvUI (`P.SkinCheckBox`, Polypode 0.53.3).
 `1.13.2` : personnage supprimé dans Polypode (Maj + clic) : ses données de suivi sont oubliées, ici et sur les autres clients connectés.
