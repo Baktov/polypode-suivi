@@ -213,6 +213,7 @@ travail de recensement.
 
 ## Version
 
+`1.24.1` : notions de clic en bleu dans les infobulles et les descriptions des options (Polypode 0.60).
 `1.24.0` : panneau « Quêtes » : toutes les quêtes en cours chez au moins un personnage (le personnage joué compris), gardées tant que l'un d'eux l'a en cours, même déconnecté ; colonnes « Terminée ou à prendre », « En cours », « Terminée » (quêtes rendues, nouvelle section Q) et « Inconnu ».
 `1.23.0` : panneau « Quêtes » (bouton à gauche de « Campagnes », `/poly quetes`) : quêtes du leader avec les personnages qui ne les ont pas, les ont ou sont inconnus ; repris de Polypode Quêtes, désormais obsolète. Nécessite Polypode 0.58.
 `1.22.0` : clic droit sur le bouton « Suivi » : petite fenêtre d'options à côté du bouton (au lieu du panneau de WoW). Nécessite Polypode 0.57.

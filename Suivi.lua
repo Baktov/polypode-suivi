@@ -3,6 +3,16 @@
 local _, ns = ...
 local P = Polypode -- dépendance obligatoire (## Dependencies: Polypode), chargée avant nous
 
+-- Infobulles : notions de clic en bleu (règle commune, P.ShowTooltip de Polypode 0.59.1), sinon
+-- affichage simple.
+local function ShowTooltip()
+	if P.ShowTooltip then
+		P.ShowTooltip()
+	else
+		GameTooltip:Show()
+	end
+end
+
 -- PANNEAU ACTIVITÉS (bouton « Activités » en haut à droite, option activityMode) : les activités
 -- de Midnight (ns.ACTIVITIES, Activities.lua, liste reprise de Plumber) par catégorie, avec à
 -- droite de chaque ligne les personnages qui l'ont faite (vert) ou commencée (jaune). Section A :
@@ -2026,7 +2036,7 @@ local function CellHover(row, i)
 			if self.sortID then
 				GameTooltip:AddLine("Clic : trier par cette colonne (clic suivant : ordre inverse)", 0.6, 0.6, 0.6, true)
 			end
-			GameTooltip:Show()
+			ShowTooltip()
 		end)
 		hover:SetScript("OnLeave", GameTooltip_Hide)
 		row.cellHovers[i] = hover
@@ -2492,7 +2502,7 @@ local function Build()
 			and "Revient au résumé par personnage (coffre, écus, ressources, runes)."
 			or "Affiche les activités de l'extension (gouffres, traque, factions...) avec, à droite de "
 				.. "chacune, les personnages qui l'ont faite (vert) ou commencée (jaune).", 1, 1, 1, true)
-		GameTooltip:Show()
+		ShowTooltip()
 	end)
 	activityBtn:SetScript("OnLeave", GameTooltip_Hide)
 	frame.activityButton = activityBtn
@@ -2514,7 +2524,7 @@ local function Build()
 			or "Affiche toutes les campagnes, par extension, avec à droite de chacune les personnages "
 				.. "qui l'ont finie (vert), commencée (jaune) ou pas faite (rouge). Survol d'une "
 				.. "campagne : avancement de chacun.", 1, 1, 1, true)
-		GameTooltip:Show()
+		ShowTooltip()
 	end)
 	campaignBtn:SetScript("OnLeave", GameTooltip_Hide)
 	frame.campaignButton = campaignBtn
@@ -2536,7 +2546,7 @@ local function Build()
 			or "Affiche les quêtes du leader de l'équipe sélectionnée avec, à droite de chacune, les "
 				.. "personnages qui ne l'ont pas (rouge), l'ont (vert) ou dont le journal n'est pas "
 				.. "connu (gris). Clic sur une quête : l'ouvrir dans le journal.", 1, 1, 1, true)
-		GameTooltip:Show()
+		ShowTooltip()
 	end)
 	questBtn:SetScript("OnLeave", GameTooltip_Hide)
 	frame.questButton = questBtn
@@ -2572,7 +2582,7 @@ local function Build()
 		end
 		GameTooltip:AddLine(scanDone and "Faites /reload pour écrire le fichier, puis consolidez la liste."
 			or "Clic : relevé des campagnes du jeu (puis /reload), pour les ajouter à la liste.", 0.6, 0.6, 0.6, true)
-		GameTooltip:Show()
+		ShowTooltip()
 	end)
 	scanBtn:SetScript("OnLeave", GameTooltip_Hide)
 	scanBtn:Hide()
@@ -2589,7 +2599,7 @@ local function Build()
 		GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
 		GameTooltip:AddLine("Options")
 		GameTooltip:AddLine("Ouvre les options du suivi (Options > AddOns > Polypode > Suivi).", 1, 1, 1, true)
-		GameTooltip:Show()
+		ShowTooltip()
 	end)
 	optionsBtn:SetScript("OnLeave", GameTooltip_Hide)
 	P.ui.suiviOptionsButton = optionsBtn
@@ -2616,7 +2626,7 @@ local function Build()
 		if IsSolo() then
 			GameTooltip:AddLine("Imposée en mode solo (pas d'équipe).", 1, 0.25, 0.25, true)
 		end
-		GameTooltip:Show()
+		ShowTooltip()
 	end)
 	allCheck:SetScript("OnLeave", GameTooltip_Hide)
 	allCheck:SetMotionScriptsWhileDisabled(true) -- infobulle aussi grisée (mode solo)
@@ -2942,6 +2952,7 @@ local function BuildSettingsPanel()
 	-- (P.ToggleOptionsPopup, Polypode 0.57.0), avec le même réglage.
 	local popupItems = {}
 	local function AddCheck(setting, tooltip)
+		tooltip = P.ColorClicks and P.ColorClicks(tooltip) or tooltip -- clics en bleu
 		Settings.CreateCheckbox(category, setting, tooltip)
 		popupItems[#popupItems + 1] = { kind = "check", setting = setting, tooltip = tooltip }
 	end

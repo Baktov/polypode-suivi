@@ -67,7 +67,7 @@ Retail (120000) et WoW Forever (16001) avec tests d'existence des API (lectures 
 `P.WhisperOnline`, `P.IsSender`, `P.MAX_MESSAGE_LENGTH`, `P.RefreshUI` (accroche), `P.GetTeamToken`,
 `P.GetCharKey`, `P.GetDisplayName`, `P.db.roster`, `P.GetSelectedTeam`, `P.GetTeamLeader`,
 `P.GetTeamMembers`, `P.GetCharacter`, `P.GetCharacterQuests`, `P.RegisterQuestLogCallback` (si présente, Polypode 0.58.0), `P.SortedKeyItems`, `P.IsCharacterConnected` (si présente, panneau campagnes), `P.ToggleOptionsPopup` (si présente, Polypode 0.57.0), `P.optionsCategory`, `P.CreatePanel`, `P.CreateScrollList`, `P.SetListData`,
-`P.SkinFrame`, `P.SkinPanel`, `P.SkinButton`, `P.SkinCheckBox` (si présents), `P.Debug`. Toute évolution de ces fonctions dans Polypode doit rester
+`P.SkinFrame`, `P.SkinPanel`, `P.SkinButton`, `P.SkinCheckBox` (si présents), `P.Debug`, `P.ShowTooltip` / `P.ColorClicks` (si présentes, Polypode 0.60.0 : clics en bleu dans les infobulles) ; toute infobulle par la locale `ShowTooltip`. Toute évolution de ces fonctions dans Polypode doit rester
 compatible, ou ce fichier doit suivre.
 
 ## Pistes
