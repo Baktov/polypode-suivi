@@ -213,6 +213,7 @@ travail de recensement.
 
 ## Version
 
+`2.0.0` : première version publique (release GitHub v2.0.0). Nécessite Polypode 2.0.0.
 `1.24.2` : bouton « Résumé » (à la place de « Quêtes », « Campagnes » ou « Activités » quand leur panneau est affiché) mis en avant par un voile bleu doux.
 `1.24.1` : notions de clic en bleu dans les infobulles et les descriptions des options (Polypode 0.60).
 `1.24.0` : panneau « Quêtes » : toutes les quêtes en cours chez au moins un personnage (le personnage joué compris), gardées tant que l'un d'eux l'a en cours, même déconnecté ; colonnes « Terminée ou à prendre », « En cours », « Terminée » (quêtes rendues, nouvelle section Q) et « Inconnu ».
