@@ -114,6 +114,23 @@ la partage pas avec les autres addons : seules les activités reposant sur une q
 mettre à jour quand un patch change les activités. Les activités sont remises à zéro à la
 réinitialisation hebdomadaire, et les quotidiennes chaque jour.
 
+### Quêtes
+
+Le bouton **Quêtes** (à gauche de **Campagnes**), ou `/poly quetes`, remplace le résumé par les
+**quêtes du leader de l'équipe sélectionnée** (les vôtres si l'équipe n'a pas de leader), reprises
+de l'ancien addon Polypode Quêtes. À droite, trois colonnes **Ne l'ont pas** (rouge), **L'ont**
+(vert) et **Inconnu** (gris : personnage dont le journal n'a pas été reçu — pas de Polypode, pas
+encore vu cette session) citent chacune un ou deux personnages, les connectés d'abord, « +n » pour
+les autres. Les quêtes qui manquent au plus de personnages viennent en premier ; au survol,
+l'infobulle détaille qui l'a et qui ne l'a pas. Avec la case **Tous les personnages**, la
+comparaison porte sur tous les personnages enregistrés.
+
+Un **clic sur une quête** l'ouvre dans le journal de quêtes (carte du monde) et ferme la fenêtre.
+Seules les quêtes présentes dans **votre propre journal** peuvent s'ouvrir (limite de WoW) ; pour
+les autres, un message l'indique. Les journaux sont échangés par Polypode (à la connexion et à
+chaque quête acceptée, rendue ou abandonnée) : le panneau se met à jour seul (nécessite Polypode
+0.58). Les expéditions, objectifs bonus et quêtes cachées ne sont pas listés.
+
 ### Campagnes
 
 Le bouton **Campagnes** (à gauche de **Activités**) remplace le résumé par la **liste de toutes les
@@ -187,6 +204,7 @@ travail de recensement.
 
 ## Version
 
+`1.23.0` : panneau « Quêtes » (bouton à gauche de « Campagnes », `/poly quetes`) : quêtes du leader avec les personnages qui ne les ont pas, les ont ou sont inconnus ; repris de Polypode Quêtes, désormais obsolète. Nécessite Polypode 0.58.
 `1.22.0` : clic droit sur le bouton « Suivi » : petite fenêtre d'options à côté du bouton (au lieu du panneau de WoW). Nécessite Polypode 0.57.
 `1.21.3` : clic droit sur le bouton « Suivi » (fenêtre Polypode et barre flottante) : options du suivi.
 `1.21.2` : panneau « Campagnes » : sur la ligne d'une extension, les personnages qui l'ont terminée sont en bleu, alignés à gauche sur la colonne « Finie ».

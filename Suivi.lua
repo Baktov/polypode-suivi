@@ -17,6 +17,14 @@ local P = Polypode -- dépendance obligatoire (## Dependencies: Polypode), charg
 -- peuvent pas faire) ; infobulle = avancement de chacun (chapitres
 -- faits / total, raison d'un blocage). Lu dans la section S.
 
+-- PANNEAU QUÊTES (bouton « Quêtes », à gauche de « Campagnes », option questMode ; repris de
+-- l'addon Polypode Quêtes, obsolète) : les quêtes du leader de l'équipe sélectionnée (les siennes
+-- sans leader), avec à droite trois colonnes « Ne l'ont pas » (rouge), « L'ont » (vert),
+-- « Inconnu » (gris : journal pas reçu de son Polypode), un ou deux noms en exemple ; celles qui
+-- manquent au plus de personnages d'abord. Clic : ouvre la quête dans le journal (seulement si elle
+-- est dans celui du personnage joué). Journaux échangés par Polypode (QLOG, P.GetCharacterQuests),
+-- qui prévient à chaque journal reçu ou modifié (P.RegisterQuestLogCallback, Polypode 0.58.0).
+
 -- Addon compagnon de Polypode, indépendant : bouton « Suivi » dans la barre de titre de la
 -- fenêtre Polypode (P.AddTitleButton) et /poly suivi (P.RegisterSlashCommand). La fenêtre liste
 -- les membres de l'équipe sélectionnée (leader en tête) avec un résumé par ligne ; le détail
@@ -67,14 +75,15 @@ local SECTIONS = { "V", "C", "R", "F", "P", "A", "M", "W", "S" }
 local DEFAULTS = {
 	showAll = false, -- tous les personnages sauvegardés au lieu de l'équipe sélectionnée
 	activityMode = false, -- panneau « Activités » au lieu du résumé
-	campaignMode = false, -- panneau « Campagnes » au lieu du résumé (exclusif avec activityMode)
+	campaignMode = false, -- panneau « Campagnes » au lieu du résumé
+	questMode = false, -- panneau « Quêtes » au lieu du résumé (les trois panneaux s'excluent)
 	showOldCampaigns = false, -- campagnes des extensions précédentes dans l'infobulle
 	showFactions = false, -- renommées dans l'infobulle (inutile avec un seul compte Battle.net :
 	-- elles y sont communes à tous les personnages)
 	width = 620, height = 340, -- taille de la fenêtre (poignée de redimensionnement)
 	sortDesc = false, -- tri : ordre inverse (sortColumn : "name", id de colonne, ou nil = sans tri)
 }
-local MIN_WIDTH, MIN_HEIGHT = 560, 200 -- barre de titre : Options, case, Campagnes, Activités
+local MIN_WIDTH, MIN_HEIGHT = 640, 200 -- barre de titre : Options, case, Quêtes, Campagnes, Activités
 
 local function SuiviSettings()
 	return PolypodeSuiviDB or DEFAULTS
@@ -1508,6 +1517,95 @@ local function CampaignTooltip(item)
 	return lines
 end
 
+-- PANNEAU QUÊTES --------------------------------------------------------------------------
+
+local QUEST_COLUMNS = { -- colonnes de droite, de gauche à droite
+	{ list = "missing", title = "Ne l'ont pas", color = "|cffff5555" },
+	{ list = "having", title = "L'ont", color = "|cff40ff40" },
+	{ list = "unknown", title = "Inconnu", color = "|cff999999" },
+}
+
+-- Personnage dont on liste les quêtes : le leader de l'équipe sélectionnée, sinon soi.
+local function QuestReference()
+	local team = P.GetSelectedTeam()
+	return team and P.GetTeamLeader(team) or P.GetCharKey()
+end
+
+-- Lignes du panneau pour les personnages keys : { questColumns } puis une ligne par quête de la
+-- référence ({ quest, questID, title, missing, having, unknown } : clés des autres personnages),
+-- celles qui manquent au plus de personnages d'abord ; et le texte de liste vide.
+local function BuildQuestItems(keys)
+	local reference = QuestReference()
+	local name = P.GetDisplayName(reference)
+	local quests = P.GetCharacterQuests and P.GetCharacterQuests(reference)
+	if not quests then
+		return {}, "Journal de quêtes de " .. name .. " pas encore reçu."
+	end
+	local items = {}
+	for questID in pairs(quests) do
+		local item = { quest = true, questID = questID, title = QuestTitle(questID) or ("Quête n° " .. questID),
+			missing = {}, having = {}, unknown = {} }
+		for _, key in ipairs(keys) do
+			if key ~= reference then
+				local memberQuests = P.GetCharacterQuests(key)
+				local list = not memberQuests and item.unknown or memberQuests[questID] and item.having
+					or item.missing
+				list[#list + 1] = key
+			end
+		end
+		items[#items + 1] = item
+	end
+	if #items == 0 then
+		return {}, "Aucune quête dans le journal de " .. name .. "."
+	end
+	table.sort(items, function(a, b)
+		if #a.missing ~= #b.missing then
+			return #a.missing > #b.missing
+		end
+		return a.title < b.title
+	end)
+	table.insert(items, 1, { questColumns = true })
+	return items
+end
+
+-- Texte de chaque colonne de droite d'une quête : un ou deux noms, connectés d'abord.
+local function QuestColumnTexts(item)
+	local texts = {}
+	for i, column in ipairs(QUEST_COLUMNS) do
+		texts[i] = NameList(item[column.list], column.color, CAMPAIGN_EXAMPLES)
+	end
+	return texts
+end
+
+-- Vrai si la quête est dans le journal du personnage joué (seules celles-ci s'ouvrent en détail).
+local function InOwnLog(questID)
+	return C_QuestLog.GetLogIndexForQuestID and C_QuestLog.GetLogIndexForQuestID(questID) ~= nil
+end
+
+-- Infobulle d'une quête : qui ne l'a pas, qui l'a, qui est inconnu.
+local function QuestTooltip(item)
+	local lines = { item.title, "|cff999999Quête n° " .. item.questID .. " — journal de "
+		.. P.GetDisplayName(QuestReference()) .. "|r" }
+	if InOwnLog(item.questID) then
+		lines[#lines + 1] = "Clic : ouvrir dans le journal de quêtes"
+	else
+		lines[#lines + 1] = "|cff999999Absente de votre journal (ne s'ouvre pas au clic)|r"
+	end
+	local function Section(title, keys)
+		if #keys > 0 then
+			lines[#lines + 1] = " "
+			lines[#lines + 1] = title
+			for _, key in ipairs(keys) do
+				lines[#lines + 1] = "  " .. P.GetDisplayName(key)
+			end
+		end
+	end
+	Section("|cffff5555Ne l'ont pas :|r", item.missing)
+	Section("|cff40ff40L'ont :|r", item.having)
+	Section("|cff999999Inconnu (journal pas reçu de leur Polypode) :|r", item.unknown)
+	return lines
+end
+
 -- FENÊTRE ---------------------------------------------------------------------------------
 
 local function Icon(fileID)
@@ -2204,6 +2302,43 @@ local function BuildItems()
 	return items, "Suivi de l'équipe « " .. team .. " »", "Aucun personnage dans l'équipe."
 end
 
+-- Panneaux « Activités », « Campagnes », « Quêtes » : un seul à la fois ; le bouton du panneau
+-- affiché revient au résumé.
+local PANEL_MODES = { "activityMode", "campaignMode", "questMode" }
+
+local function TogglePanel(mode)
+	local settings = SuiviSettings()
+	local shown = not settings[mode]
+	for _, other in ipairs(PANEL_MODES) do
+		settings[other] = false
+	end
+	settings[mode] = shown
+	P.RefreshSuivi()
+end
+
+-- Clic sur une quête : ouvre le journal de quêtes (carte du monde) sur son détail ; journal simple
+-- si l'API manque. La fenêtre se ferme, pour ne pas masquer la carte.
+local function OpenInQuestLog(item)
+	if not InOwnLog(item.questID) then
+		UIErrorsFrame:AddMessage("« " .. item.title .. " » n'est pas dans votre journal de quêtes.", 1, 0.1, 0.1)
+		return
+	end
+	frame:Hide()
+	-- Différé d'une image : la carte s'ouvre après le traitement du clic.
+	C_Timer.After(0, function()
+		if QuestMapFrame_OpenToQuestDetails then
+			QuestMapFrame_OpenToQuestDetails(item.questID)
+		else
+			if C_QuestLog.SetSelectedQuest then
+				C_QuestLog.SetSelectedQuest(item.questID)
+			end
+			if ToggleQuestLog then
+				ToggleQuestLog()
+			end
+		end
+	end)
+end
+
 -- Ouvre Options > AddOns > Polypode > Suivi (bouton Options de la fenêtre, clic droit sur le bouton
 -- « Suivi » de Polypode et de la barre flottante) ; ferme la fenêtre pour ne pas masquer le panneau.
 local function OpenSuiviOptions()
@@ -2254,9 +2389,7 @@ local function Build()
 	activityBtn:SetSize(80, 20)
 	activityBtn:SetPoint("RIGHT", closeBtn, "LEFT", -4, 0)
 	activityBtn:SetScript("OnClick", function()
-		SuiviSettings().activityMode = not SuiviSettings().activityMode
-		SuiviSettings().campaignMode = false
-		P.RefreshSuivi()
+		TogglePanel("activityMode")
 	end)
 	activityBtn:SetScript("OnEnter", function(self)
 		GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
@@ -2272,14 +2405,12 @@ local function Build()
 	P.ui.suiviActivityButton = activityBtn
 
 	-- Bouton « Campagnes » / « Résumé » (à gauche de « Activités ») : panneau des campagnes
-	-- (option campaignMode, exclusive avec activityMode).
+	-- (option campaignMode).
 	local campaignBtn = CreateFrame("Button", nil, frame, "UIPanelButtonTemplate")
 	campaignBtn:SetSize(84, 20)
 	campaignBtn:SetPoint("RIGHT", activityBtn, "LEFT", -4, 0)
 	campaignBtn:SetScript("OnClick", function()
-		SuiviSettings().campaignMode = not SuiviSettings().campaignMode
-		SuiviSettings().activityMode = false
-		P.RefreshSuivi()
+		TogglePanel("campaignMode")
 	end)
 	campaignBtn:SetScript("OnEnter", function(self)
 		GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
@@ -2295,12 +2426,34 @@ local function Build()
 	frame.campaignButton = campaignBtn
 	P.ui.suiviCampaignButton = campaignBtn
 
-	-- Bouton « Nouveau » (auteur seulement, à gauche de « Campagnes ») : affiché s'il existe des
+	-- Bouton « Quêtes » / « Résumé » (à gauche de « Campagnes ») : panneau des quêtes du leader
+	-- (option questMode).
+	local questBtn = CreateFrame("Button", nil, frame, "UIPanelButtonTemplate")
+	questBtn:SetSize(70, 20)
+	questBtn:SetPoint("RIGHT", campaignBtn, "LEFT", -4, 0)
+	questBtn:SetScript("OnClick", function()
+		TogglePanel("questMode")
+	end)
+	questBtn:SetScript("OnEnter", function(self)
+		GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
+		GameTooltip:AddLine(SuiviSettings().questMode and "Résumé" or "Quêtes")
+		GameTooltip:AddLine(SuiviSettings().questMode
+			and "Revient au résumé par personnage (coffre, écus, ressources, runes)."
+			or "Affiche les quêtes du leader de l'équipe sélectionnée avec, à droite de chacune, les "
+				.. "personnages qui ne l'ont pas (rouge), l'ont (vert) ou dont le journal n'est pas "
+				.. "connu (gris). Clic sur une quête : l'ouvrir dans le journal.", 1, 1, 1, true)
+		GameTooltip:Show()
+	end)
+	questBtn:SetScript("OnLeave", GameTooltip_Hide)
+	frame.questButton = questBtn
+	P.ui.suiviQuestButton = questBtn
+
+	-- Bouton « Nouveau » (auteur seulement, à gauche de « Quêtes ») : affiché s'il existe des
 	-- campagnes inconnues (UnknownCampaigns), clignotant rouge tant que le relevé n'est pas fait ;
 	-- clic = relevé des campagnes (ScanCampaigns), puis /reload pour écrire le fichier.
 	local scanBtn = CreateFrame("Button", nil, frame, "UIPanelButtonTemplate")
 	scanBtn:SetSize(76, 20)
-	scanBtn:SetPoint("RIGHT", campaignBtn, "LEFT", -4, 0)
+	scanBtn:SetPoint("RIGHT", questBtn, "LEFT", -4, 0)
 	scanBtn:SetText("Nouveau")
 	local flash = scanBtn:CreateTexture(nil, "OVERLAY")
 	flash:SetAllPoints()
@@ -2399,7 +2552,11 @@ local function Build()
 	frame.resizeGrip = grip
 	-- Une liste pour les deux panneaux : membres (résumé) ou en-têtes et lignes d'activités.
 	P.CreateScrollList(listPanel, function(data)
-		if data.campaignColumns then
+		if data.questColumns then
+			return "|cff999999Quête|r"
+		elseif data.quest then
+			return "  " .. data.title
+		elseif data.campaignColumns then
 			return "|cff999999Campagne|r"
 		elseif data.campaignHeader then
 			return "|cffffd200" .. ExpansionName(data.expansion) .. "|r"
@@ -2418,11 +2575,15 @@ local function Build()
 		onClick = function(data)
 			if data.columnHeader then
 				SetSort("name")
+			elseif data.quest then
+				OpenInQuestLog(data)
 			end
 		end,
 		tooltip = function(data)
-			if data.columnHeader or data.campaignColumns then
+			if data.columnHeader or data.campaignColumns or data.questColumns then
 				return nil -- pas d'infobulle sur une ligne d'en-tête
+			elseif data.quest then
+				return QuestTooltip(data)
 			elseif data.campaignHeader then
 				return ExpansionTooltip(data)
 			elseif data.campaign then
@@ -2445,7 +2606,7 @@ local function Build()
 				row.rightText:SetJustifyH("RIGHT")
 				row.rightText:SetWordWrap(false)
 			end
-			-- Campagnes : trois colonnes à droite (titres sur la ligne d'en-tête).
+			-- Campagnes et quêtes : trois colonnes à droite (titres sur la ligne d'en-tête).
 			local columnTexts
 			if data.campaignColumns then
 				columnTexts = {}
@@ -2454,6 +2615,13 @@ local function Build()
 				end
 			elseif data.campaign then
 				columnTexts = CampaignColumnTexts(data)
+			elseif data.questColumns then
+				columnTexts = {}
+				for i, column in ipairs(QUEST_COLUMNS) do
+					columnTexts[i] = column.color .. column.title .. "|r"
+				end
+			elseif data.quest then
+				columnTexts = QuestColumnTexts(data)
 			end
 			local firstColumn = LayoutCampaignColumns(row, columnTexts,
 				data.campaignHeader and ExpansionNamesText(data) or nil)
@@ -2484,6 +2652,7 @@ local function Build()
 		P.SkinButton(optionsBtn)
 		P.SkinButton(activityBtn)
 		P.SkinButton(campaignBtn)
+		P.SkinButton(questBtn)
 		P.SkinButton(scanBtn)
 	end
 	if P.SkinCheckBox then -- Polypode 0.53.3
@@ -2526,12 +2695,19 @@ function P.RefreshSuivi()
 	local settings = SuiviSettings()
 	frame.activityButton:SetText(settings.activityMode and "Résumé" or "Activités")
 	frame.campaignButton:SetText(settings.campaignMode and "Résumé" or "Campagnes")
-	if settings.activityMode or settings.campaignMode then
+	frame.questButton:SetText(settings.questMode and "Résumé" or "Quêtes")
+	if settings.activityMode or settings.campaignMode or settings.questMode then
 		local keys = {}
 		for i, item in ipairs(items) do
 			keys[i] = item.key
 		end
-		if settings.campaignMode then
+		if settings.questMode then
+			local questEmpty
+			items, questEmpty = BuildQuestItems(keys)
+			header = header:gsub("^Suivi", "Quêtes") .. "  |cff999999· journal de "
+				.. P.GetDisplayName(QuestReference()) .. "|r"
+			emptyText = questEmpty or emptyText
+		elseif settings.campaignMode then
 			items = #keys > 0 and BuildCampaignItems(keys) or {}
 			header = header:gsub("^Suivi", "Campagnes")
 			emptyText = #keys > 0 and "Aucune campagne connue." or emptyText
@@ -2554,6 +2730,20 @@ function P.RefreshSuivi()
 	listPanel.header:SetText(header)
 	listPanel.emptyText:SetText(emptyText)
 	P.SetListData(listPanel, items)
+end
+
+-- Ouvre la fenêtre sur le panneau « Quêtes » (/poly quetes, ancienne commande de Polypode Quêtes).
+local function OpenQuestPanel()
+	local settings = SuiviSettings()
+	for _, mode in ipairs(PANEL_MODES) do
+		settings[mode] = false
+	end
+	settings.questMode = true
+	if not frame then
+		Build()
+	end
+	frame:Show()
+	P.RefreshSuivi()
 end
 
 -- Ouvre / ferme la fenêtre (bouton « Suivi », /poly suivi).
@@ -2606,6 +2796,17 @@ if P.RegisterSlashCommand then
 			P.ToggleSuivi()
 		end
 	end, "suivi de l'équipe (coffre, écus, ressources, renommées, runes)")
+	P.RegisterSlashCommand("quetes", OpenQuestPanel, "quêtes du leader manquantes chez les membres de l'équipe")
+	P.RegisterSlashCommand("quêtes", OpenQuestPanel) -- alias, absent de l'aide
+end
+
+-- Journal de quêtes reçu ou modifié (Polypode 0.58.0) : panneau « Quêtes » à jour s'il est affiché.
+if P.RegisterQuestLogCallback then
+	P.RegisterQuestLogCallback(function()
+		if SuiviSettings().questMode then
+			P.RefreshSuivi()
+		end
+	end)
 end
 
 -- Personnage supprimé dans Polypode (Maj + clic dans « Personnages disponibles », ou sur un
