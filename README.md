@@ -116,12 +116,16 @@ réinitialisation hebdomadaire, et les quotidiennes chaque jour.
 
 Le bouton **Campagnes** (à gauche de **Activités**) remplace le résumé par la **liste de toutes les
 campagnes** suivies, de Mists of Pandaria à Midnight, rangées par extension (l'extension en cours
-d'abord, puis de la plus récente à la plus ancienne), « patch – nom ». À droite de chaque campagne,
-les personnages suivis qui l'ont **finie** (vert), **commencée** (jaune) ou **pas faite** (rouge) ;
-un personnage dont on n'a encore reçu aucune information n'est pas cité. **Au survol** d'une
-campagne : l'avancement de chaque personnage (« 2/7 chapitres », « pas commencée », « inconnu »),
-avec la raison du blocage d'une campagne bloquée. Le bouton **Résumé** revient à l'affichage par
-personnage.
+d'abord, puis de la plus récente à la plus ancienne), « patch – nom ». À droite, trois colonnes
+**Finie** (vert), **En cours** (jaune) et **Pas commencée** (rouge) citent chacune un ou deux
+personnages en exemple, les **connectés d'abord**, puis « +n » pour les autres ; un personnage dont
+on n'a encore reçu aucune information n'est pas cité. À droite du nom de chaque **extension**, les
+personnages qui en ont **fini toutes les campagnes** (au survol : campagnes finies par chacun,
+« 5/10 »). Toutes les campagnes de l'extension comptent, y compris celles réservées à une race ou
+à un mode (« Dracthyr, éveillez-vous », « Legion Remix ») : un personnage qui n'y a pas accès ne
+termine donc pas l'extension. **Au survol** d'une campagne : l'avancement de chaque personnage
+(« 2/7 chapitres », « pas commencée », « inconnu »), avec la raison du blocage d'une campagne
+bloquée. Le bouton **Résumé** revient à l'affichage par personnage.
 
 Le bouton **Options** (à gauche de la barre de titre) ouvre directement les options du suivi
 (Options → AddOns → Polypode → Suivi). La case **Tous les personnages** (à sa droite, rappelée
@@ -181,6 +185,7 @@ travail de recensement.
 
 ## Version
 
+`1.21.0` : panneau « Campagnes » : trois colonnes Finie / En cours / Pas commencée (un ou deux noms en exemple, connectés d'abord), et à droite de chaque extension les personnages qui en ont fini toutes les campagnes.
 `1.20.0` : panneau « Campagnes » (bouton à gauche de « Activités ») : toutes les campagnes par extension, avec les personnages qui les ont finies (vert), commencées (jaune) ou pas faites (rouge), et l'avancement de chacun en infobulle.
 `1.19.1` : correctif : l'avancement des campagnes d'un personnage était sauvegardé à zéro à la déconnexion (relevé fait pendant la sortie du monde, quand le jeu a déjà vidé ces données). La déconnexion garde le dernier relevé fait en jeu, et l'avancement sauvegardé d'une campagne ne recule plus (relevé trop tôt à la connexion).
 `1.19.0` : outil de l'auteur : bouton « Nouveau » quand le jeu contient une campagne absente de la liste.

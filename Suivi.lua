@@ -10,9 +10,11 @@ local P = Polypode -- dépendance obligatoire (## Dependencies: Polypode), charg
 -- remise à zéro à la réinitialisation hebdomadaire (et quotidienne pour les activités daily).
 
 -- PANNEAU CAMPAGNES (bouton « Campagnes », à gauche de « Activités », option campaignMode) : toutes
--- les campagnes de ns.CAMPAIGNS par extension (en cours d'abord), avec à droite de chaque ligne les
--- personnages qui l'ont finie (vert), commencée (jaune) ou pas faite (rouge) ; infobulle =
--- avancement de chacun (chapitres faits / total, raison d'un blocage). Lu dans la section S.
+-- les campagnes de ns.CAMPAIGNS par extension (en cours d'abord), avec à droite trois colonnes
+-- « Finie » (vert), « En cours » (jaune), « Pas commencée » (rouge) donnant un ou deux noms en
+-- exemple (connectés d'abord, « +n » pour les autres) ; à droite de chaque extension, les
+-- personnages qui en ont fini toutes les campagnes ; infobulle = avancement de chacun (chapitres
+-- faits / total, raison d'un blocage). Lu dans la section S.
 
 -- Addon compagnon de Polypode, indépendant : bouton « Suivi » dans la barre de titre de la
 -- fenêtre Polypode (P.AddTitleButton) et /poly suivi (P.RegisterSlashCommand). La fenêtre liste
@@ -1268,6 +1270,46 @@ local function CampaignState(value, known)
 end
 
 local CAMPAIGN_COLORS = { done = "|cff40ff40", started = "|cffffd200", none = "|cffff4040" }
+local CAMPAIGN_COLUMNS = { -- colonnes de droite, de gauche à droite
+	{ state = "done", title = "Finie" },
+	{ state = "started", title = "En cours" },
+	{ state = "none", title = "Pas commencée" },
+}
+local CAMPAIGN_COLUMN_WIDTH, CAMPAIGN_COLUMN_GAP = 105, 6
+local CAMPAIGN_EXAMPLES = 2 -- noms cités par colonne
+
+-- Personnage connecté (règle « connecté » de Polypode, 0.51.2), pour citer ceux-là d'abord.
+local function IsConnected(key)
+	return P.IsCharacterConnected ~= nil and P.IsCharacterConnected(key) == true
+end
+
+-- Noms colorés (color) de keys, connectés d'abord (ordre de keys gardé sinon) ; limit : nombre
+-- de noms cités au plus, les autres comptés « +n » (nil = tous).
+local function NameList(keys, color, limit)
+	local ordered = {}
+	for _, key in ipairs(keys) do
+		if IsConnected(key) then
+			ordered[#ordered + 1] = key
+		end
+	end
+	for _, key in ipairs(keys) do
+		if not IsConnected(key) then
+			ordered[#ordered + 1] = key
+		end
+	end
+	local names = {}
+	for i, key in ipairs(ordered) do
+		if limit and i > limit then
+			break
+		end
+		names[#names + 1] = color .. ShortName(key) .. "|r"
+	end
+	local text = table.concat(names, ", ")
+	if limit and #ordered > limit then
+		text = text .. " |cff999999+" .. (#ordered - limit) .. "|r"
+	end
+	return text
+end
 
 -- Lignes du panneau : un en-tête par extension (en cours d'abord, puis de la plus récente à la plus
 -- ancienne), puis toutes ses campagnes dans l'ordre de ns.CAMPAIGNS ; values[clé] = valeur de la
@@ -1305,9 +1347,26 @@ local function BuildCampaignItems(keys)
 		end
 		return a.expansion > b.expansion
 	end)
-	local items = {}
+	local items = { { campaignColumns = true } }
 	for _, group in ipairs(order) do
-		items[#items + 1] = { campaignHeader = true, expansion = group.expansion }
+		-- Campagnes finies par personnage ; extension terminée = toutes finies.
+		local finished, finishedKeys = {}, {}
+		for _, key in ipairs(keys) do
+			if known[key] then
+				local count = 0
+				for _, row in ipairs(group.rows) do
+					if CampaignState(row.values[key], true) == "done" then
+						count = count + 1
+					end
+				end
+				finished[key] = count
+				if count == #group.rows then
+					finishedKeys[#finishedKeys + 1] = key
+				end
+			end
+		end
+		items[#items + 1] = { campaignHeader = true, expansion = group.expansion, finished = finished,
+			finishedKeys = finishedKeys, total = #group.rows, keys = keys }
 		for _, row in ipairs(group.rows) do
 			items[#items + 1] = row
 		end
@@ -1324,17 +1383,74 @@ local function CampaignTitle(item)
 	return item.campaign.patch .. " – " .. CampaignName(item.campaignID, item.campaign)
 end
 
--- Texte de droite : personnages qui l'ont finie (vert), commencée (jaune), pas faite (rouge) ;
--- ceux dont on n'a aucune donnée ne sont pas cités (infobulle : « inconnu »).
-local function CampaignRightText(item)
-	local parts = {}
+-- Texte de chaque colonne de droite d'une campagne : un ou deux noms des personnages dans cet
+-- état, connectés d'abord ; ceux dont on n'a aucune donnée ne sont pas cités (infobulle :
+-- « inconnu »).
+local function CampaignColumnTexts(item)
+	local byState = { done = {}, started = {}, none = {} }
 	for _, key in ipairs(item.keys) do
 		local state = CampaignState(item.values[key], item.known[key])
 		if state then
-			parts[#parts + 1] = CAMPAIGN_COLORS[state] .. ShortName(key) .. "|r"
+			table.insert(byState[state], key)
 		end
 	end
-	return table.concat(parts, ", ")
+	local texts = {}
+	for i, column in ipairs(CAMPAIGN_COLUMNS) do
+		texts[i] = NameList(byState[column.state], CAMPAIGN_COLORS[column.state], CAMPAIGN_EXAMPLES)
+	end
+	return texts
+end
+
+-- Texte de droite d'une extension : personnages qui en ont fini toutes les campagnes.
+local function ExpansionRightText(item)
+	return NameList(item.finishedKeys, CAMPAIGN_COLORS.done)
+end
+
+-- Infobulle d'une extension : campagnes finies par chaque personnage.
+local function ExpansionTooltip(item)
+	local lines = { ExpansionName(item.expansion) }
+	lines[#lines + 1] = "|cff999999Campagnes finies sur " .. item.total .. "|r"
+	lines[#lines + 1] = " "
+	for _, key in ipairs(item.keys) do
+		local count = item.finished[key]
+		local status
+		if not count then
+			status = "|cff999999inconnu (pas d'infos)|r"
+		else
+			local color = (count >= item.total and CAMPAIGN_COLORS.done) or (count > 0 and CAMPAIGN_COLORS.started)
+				or CAMPAIGN_COLORS.none
+			status = color .. count .. "/" .. item.total .. "|r"
+		end
+		lines[#lines + 1] = P.GetDisplayName(key) .. " : " .. status
+	end
+	return lines
+end
+
+-- Colonnes de droite d'une ligne du panneau (créées une fois, lignes recyclées) : remplies avec
+-- texts (titres ou noms), ou masquées si texts est nil. Renvoie la première, ou nil.
+local function LayoutCampaignColumns(row, texts)
+	if not row.campaignColumns then
+		row.campaignColumns = {}
+		local previous
+		for i = #CAMPAIGN_COLUMNS, 1, -1 do
+			local cell = row:CreateFontString(nil, "OVERLAY", "GameFontHighlight")
+			cell:SetWidth(CAMPAIGN_COLUMN_WIDTH)
+			cell:SetJustifyH("LEFT")
+			cell:SetWordWrap(false)
+			if previous then
+				cell:SetPoint("RIGHT", previous, "LEFT", -CAMPAIGN_COLUMN_GAP, 0)
+			else
+				cell:SetPoint("RIGHT", -4, 0)
+			end
+			row.campaignColumns[i] = cell
+			previous = cell
+		end
+	end
+	for i, cell in ipairs(row.campaignColumns) do
+		cell:SetText(texts and texts[i] or "")
+		cell:SetShown(texts ~= nil)
+	end
+	return texts and row.campaignColumns[1] or nil
 end
 
 -- Infobulle : avancement de chaque personnage (chapitres faits / total) et raison d'un blocage.
@@ -2248,7 +2364,9 @@ local function Build()
 	frame.resizeGrip = grip
 	-- Une liste pour les deux panneaux : membres (résumé) ou en-têtes et lignes d'activités.
 	P.CreateScrollList(listPanel, function(data)
-		if data.campaignHeader then
+		if data.campaignColumns then
+			return "|cff999999Campagne|r"
+		elseif data.campaignHeader then
 			return "|cffffd200" .. ExpansionName(data.expansion) .. "|r"
 		elseif data.campaign then
 			return "  " .. CampaignTitle(data)
@@ -2268,8 +2386,10 @@ local function Build()
 			end
 		end,
 		tooltip = function(data)
-			if data.columnHeader or data.campaignHeader then
+			if data.columnHeader or data.campaignColumns then
 				return nil -- pas d'infobulle sur une ligne d'en-tête
+			elseif data.campaignHeader then
+				return ExpansionTooltip(data)
 			elseif data.campaign then
 				return CampaignTooltip(data)
 			elseif data.activityHeader then
@@ -2290,8 +2410,22 @@ local function Build()
 				row.rightText:SetJustifyH("RIGHT")
 				row.rightText:SetWordWrap(false)
 			end
-			if data.activity or data.campaign then
-				row.rightText:SetText(data.campaign and CampaignRightText(data) or ActivityRightText(data))
+			-- Campagnes : trois colonnes à droite (titres sur la ligne d'en-tête).
+			local columnTexts
+			if data.campaignColumns then
+				columnTexts = {}
+				for i, column in ipairs(CAMPAIGN_COLUMNS) do
+					columnTexts[i] = CAMPAIGN_COLORS[column.state] .. column.title .. "|r"
+				end
+			elseif data.campaign then
+				columnTexts = CampaignColumnTexts(data)
+			end
+			local firstColumn = LayoutCampaignColumns(row, columnTexts)
+			if firstColumn then
+				row.rightText:Hide()
+				row.text:SetPoint("RIGHT", firstColumn, "LEFT", -6, 0)
+			elseif data.activity or data.campaignHeader then
+				row.rightText:SetText(data.campaignHeader and ExpansionRightText(data) or ActivityRightText(data))
 				row.rightText:Show()
 				row.text:SetPoint("RIGHT", row.rightText, "LEFT", -6, 0)
 			elseif firstCell then
