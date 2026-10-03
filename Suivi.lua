@@ -100,6 +100,10 @@ local DEFAULTS = {
 }
 local MIN_WIDTH, MIN_HEIGHT = 640, 200 -- barre de titre : Options, case, Quêtes, Campagnes, Activités
 
+-- Retail (interface >= 100000) : les panneaux « Activités » et « Campagnes » (Midnight, campagnes
+-- de Mists of Pandaria à Midnight) n'existent pas sur WoW Forever (16001) : boutons masqués.
+local IS_RETAIL = (tonumber((select(4, GetBuildInfo()))) or 0) >= 100000
+
 local function SuiviSettings()
 	return PolypodeSuiviDB or DEFAULTS
 end
@@ -2534,7 +2538,14 @@ local function Build()
 	-- (option questMode).
 	local questBtn = CreateFrame("Button", nil, frame, "UIPanelButtonTemplate")
 	questBtn:SetSize(70, 20)
-	questBtn:SetPoint("RIGHT", campaignBtn, "LEFT", -4, 0)
+	if IS_RETAIL then
+		questBtn:SetPoint("RIGHT", campaignBtn, "LEFT", -4, 0)
+	else
+		-- WoW Forever : ni « Activités » ni « Campagnes », « Quêtes » prend leur place.
+		activityBtn:Hide()
+		campaignBtn:Hide()
+		questBtn:SetPoint("RIGHT", closeBtn, "LEFT", -4, 0)
+	end
 	questBtn:SetScript("OnClick", function()
 		TogglePanel("questMode")
 	end)
@@ -2792,7 +2803,7 @@ function P.RefreshSuivi()
 	end
 	-- Bouton « Nouveau » : campagnes inconnues (auteur seulement), clignotant jusqu'au relevé.
 	local scanBtn = frame.scanButton
-	if IsOwner() and #UnknownCampaigns() > 0 then
+	if IS_RETAIL and IsOwner() and #UnknownCampaigns() > 0 then
 		scanBtn:SetText(scanDone and "Relevé" or "Nouveau")
 		scanBtn.flash:SetShown(not scanDone)
 		if scanDone then
@@ -2807,6 +2818,9 @@ function P.RefreshSuivi()
 	end
 	local items, header, emptyText = BuildItems()
 	local settings = SuiviSettings()
+	if not IS_RETAIL then -- panneaux absents de WoW Forever (boutons masqués)
+		settings.activityMode, settings.campaignMode = false, false
+	end
 	frame.activityButton:SetText(settings.activityMode and "Résumé" or "Activités")
 	frame.campaignButton:SetText(settings.campaignMode and "Résumé" or "Campagnes")
 	frame.questButton:SetText(settings.questMode and "Résumé" or "Quêtes")

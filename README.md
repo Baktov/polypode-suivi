@@ -95,7 +95,7 @@ cette saison (nouvelle saison ou nouvelle extension).
 
 ### Activités
 
-Le bouton **Activités** (en haut à droite) remplace le résumé par le panneau des **activités de
+Le bouton **Activités** (en haut à droite, Retail seulement) remplace le résumé par le panneau des **activités de
 l'extension**, rangées comme dans Plumber : **Lune-d'Argent** (quêtes répétables, méta
 hebdomadaires, donjons et étincelles de guerre proposées dans la ville, trouvées sur la carte),
 Gouffres, Traque, Forces de Zul'jarra, Cour de Lune-d'Argent, Tribu amani, Harandar, La
@@ -142,7 +142,7 @@ chaque quête acceptée, rendue ou abandonnée) : le panneau se met à jour seul
 
 ### Campagnes
 
-Le bouton **Campagnes** (à gauche de **Activités**) remplace le résumé par la **liste de toutes les
+Le bouton **Campagnes** (à gauche de **Activités**, Retail seulement) remplace le résumé par la **liste de toutes les
 campagnes** suivies, de Mists of Pandaria à Midnight, rangées par extension (l'extension en cours
 d'abord, puis de la plus récente à la plus ancienne), « patch – nom ». À droite, trois colonnes
 **Finie** (vert), **En cours** (jaune) et **Pas commencée** (rouge) citent chacune un ou deux
@@ -184,7 +184,8 @@ ordre alphabétique, avec la date de leurs informations (« il y a 2 h », « du
   tirée d'un relevé de toutes les campagnes du jeu ; un chapitre est terminé quand sa suite de
   quêtes l'est (comme dans le journal de quêtes). Elle est à compléter quand un patch ajoute une
   campagne ; en attendant, une nouvelle campagne commencée apparaît dans « Autres campagnes ».
-- Sur **WoW Forever**, ce qui n'existe pas (runes, écus de Midnight, campagnes...) reste simplement vide.
+- Sur **WoW Forever**, ce qui n'existe pas (runes, écus de Midnight...) reste simplement vide, et les
+  boutons **Activités** et **Campagnes** sont masqués (**Quêtes** prend leur place).
 
 ---
 
@@ -213,6 +214,7 @@ travail de recensement.
 
 ## Version
 
+`2.0.1` : WoW Forever : boutons et panneaux « Activités » et « Campagnes » masqués (propres à Retail).
 `2.0.0` : première version publique (release GitHub v2.0.0). Nécessite Polypode 2.0.0.
 `1.24.2` : bouton « Résumé » (à la place de « Quêtes », « Campagnes » ou « Activités » quand leur panneau est affiché) mis en avant par un voile bleu doux.
 `1.24.1` : notions de clic en bleu dans les infobulles et les descriptions des options (Polypode 0.60).
