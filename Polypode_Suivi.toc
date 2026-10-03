@@ -1,8 +1,8 @@
 ## Interface: 120000, 16001
 ## Title: Polypode Suivi
-## Notes: Suivi de l'équipe pour Polypode : grande chambre forte, écus, ressources, renommées, runes et campagnes de chaque membre.
+## Notes: Suivi de l'équipe pour Polypode : grande chambre forte, écus, ressources, renommées, runes et campagnes de chaque membre ; Héritage sur WoW Forever.
 ## Author: Baktov
-## Version: 2.0.2
+## Version: 2.1.0
 ## Dependencies: Polypode
 ## SavedVariables: PolypodeSuiviData, PolypodeSuiviScan, PolypodeSuiviQuests
 ## SavedVariablesPerCharacter: PolypodeSuiviDB

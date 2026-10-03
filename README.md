@@ -184,9 +184,13 @@ ordre alphabétique, avec la date de leurs informations (« il y a 2 h », « du
   tirée d'un relevé de toutes les campagnes du jeu ; un chapitre est terminé quand sa suite de
   quêtes l'est (comme dans le journal de quêtes). Elle est à compléter quand un patch ajoute une
   campagne ; en attendant, une nouvelle campagne commencée apparaît dans « Autres campagnes ».
-- Sur **WoW Forever**, tout ce qui est propre à Retail est masqué en attendant un suivi adapté :
-  boutons **Activités** et **Campagnes** (**Quêtes** prend leur place), colonnes du résumé (nom
-  seul), saison dans l'en-tête, infobulle réduite au courrier, options des campagnes et renommées.
+- Sur **WoW Forever**, tout ce qui est propre à Retail est masqué : boutons **Activités** et
+  **Campagnes** (**Quêtes** prend leur place), colonnes Retail du résumé, saison dans l'en-tête,
+  options des campagnes et renommées. Le résumé suit à la place l'**Héritage** de chaque personnage :
+  colonnes **Héritage** (points gagnés, communs au compte / maximum), **Dépensés** (points placés dans
+  ses arbres / plafond par personnage), **À dépenser** (en vert) et **Défis** (faits / total) ;
+  infobulle : courrier, puis le même détail avec les points dépensés par arbre (Métiers, Aventure,
+  Progression). Le panneau Héritage du jeu n'a pas besoin d'être ouvert.
 
 ---
 
@@ -215,6 +219,7 @@ travail de recensement.
 
 ## Version
 
+`2.1.0` : WoW Forever : suivi de l'Héritage (points gagnés, dépensés par arbre, à dépenser, défis) en colonnes et en infobulle.
 `2.0.2` : WoW Forever : colonnes du résumé, détail Retail de l'infobulle, saison et options des campagnes / renommées masqués.
 `2.0.1` : WoW Forever : boutons et panneaux « Activités » et « Campagnes » masqués (propres à Retail).
 `2.0.0` : première version publique (release GitHub v2.0.0). Nécessite Polypode 2.0.0.

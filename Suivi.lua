@@ -84,7 +84,7 @@ local RESOURCES = {
 	{ "c", 1602 }, { "c", 1792 }, { "c", 2123 }, { "c", 2797 },
 }
 
-local SECTIONS = { "V", "C", "R", "F", "P", "A", "M", "W", "S", "Q" }
+local SECTIONS = { "V", "C", "R", "F", "P", "A", "M", "W", "S", "Q", "H" }
 
 -- Options par personnage (PolypodeSuiviDB, Options → AddOns → Polypode → Suivi).
 local DEFAULTS = {
@@ -302,6 +302,78 @@ local function ReadRunes()
 		data.b = CanPurchaseRune(configID, unspent) and 1 or 0
 	end
 	return data
+end
+
+-- HÉRITAGE (WoW Forever, section H) : système bâti par Blizzard sur des API existantes
+-- (Blizzard_LegacySystem) : points gagnés = renom de la faction LEGACY_REWARD_TRACK_FACTION_ID
+-- (compte), dépensés par personnage dans trois arbres de talents C_Traits, défis = hauts faits.
+-- e = points gagnés, m = maximum, u = à dépenser, x = plafond par personnage, s<arbre> = points
+-- dépensés dans l'arbre, d / t = défis faits / total. Vide hors Forever (constantes absentes).
+local function LegacyTrees()
+	local consts = Constants and Constants.LegacyConsts
+	if not consts then
+		return nil
+	end
+	return {
+		{ id = consts.LEGACY_TREE_PROFESSIONS_ID, name = LEGACY_TREE_PROFESSIONS or "Métiers" },
+		{ id = consts.LEGACY_TREE_ADVENTURE_ID, name = LEGACY_TREE_ADVENTURE or "Aventure" },
+		{ id = consts.LEGACY_TREE_PROGRESSION_ID, name = LEGACY_TREE_PROGRESSION or "Progression" },
+	}, consts
+end
+
+local function ReadLegacy()
+	local data = {}
+	local trees, consts = LegacyTrees()
+	if not trees then
+		return data
+	end
+	if C_MajorFactions and C_MajorFactions.GetCurrentRenownLevel then
+		data.e = C_MajorFactions.GetCurrentRenownLevel(consts.LEGACY_REWARD_TRACK_FACTION_ID)
+	end
+	if C_Traits and C_Traits.GetMaxAvailableTraitCurrency then
+		data.m = C_Traits.GetMaxAvailableTraitCurrency(consts.LEGACY_POINTS_TRAIT_CURRENCY_ID, false)
+	end
+	if C_Traits and C_Traits.GetConfigIDByTreeID and C_Traits.GetTreeCurrencyInfo then
+		for _, tree in ipairs(trees) do
+			local configID = tree.id and C_Traits.GetConfigIDByTreeID(tree.id)
+			local info = configID and C_Traits.GetTreeCurrencyInfo(configID, tree.id, false)
+			info = info and info[1]
+			if info then
+				-- Monnaie commune aux trois arbres : à dépenser et plafond lus sur n'importe lequel.
+				data.u = info.quantity
+				data.x = info.maxQuantity
+				data["s" .. tree.id] = info.spentInTree or 0
+			end
+		end
+	end
+	-- Défis : sur Forever, toutes les catégories de hauts faits sont des défis d'Héritage (comme
+	-- LegacyChallengesPageMixin:GenerateDataProvider).
+	if GetCategoryList and GetCategoryNumAchievements then
+		local done, total = 0, 0
+		for _, categoryID in ipairs(GetCategoryList() or {}) do
+			local count, completed = GetCategoryNumAchievements(categoryID)
+			total = total + (count or 0)
+			done = done + (completed or 0)
+		end
+		if total > 0 then
+			data.d, data.t = done, total
+		end
+	end
+	return data
+end
+
+-- Points d'Héritage dépensés par le personnage (somme des arbres de la section H), ou nil.
+local function LegacySpent(legacy)
+	if not legacy then
+		return nil
+	end
+	local spent
+	for k, v in pairs(legacy) do
+		if k:match("^s%d+$") then
+			spent = (spent or 0) + (tonumber(v) or 0)
+		end
+	end
+	return spent
 end
 
 -- Clé d'une activité dans la section A.
@@ -902,7 +974,8 @@ local function ReadQuestCompletion()
 end
 
 local READERS = { V = ReadVault, C = ReadCrests, R = ReadResources, F = ReadFactions, P = ReadRunes,
-	A = ReadActivities, M = ReadMail, W = ReadWeekly, S = ReadCampaigns, Q = ReadQuestCompletion }
+	A = ReadActivities, M = ReadMail, W = ReadWeekly, S = ReadCampaigns, Q = ReadQuestCompletion,
+	H = ReadLegacy }
 
 local function ReadOwn()
 	local sections = {}
@@ -1802,8 +1875,43 @@ local measure -- texte caché servant à mesurer les cellules
 -- valeur(sections) pour le tri (nil = sans valeur), tip = { titre, texte } (infobulle de
 -- l'en-tête) } ; une colonne d'écu par écu de la saison.
 local function MemberColumns()
-	if not IS_RETAIL then -- WoW Forever : colonnes propres à Retail, nom seul
-		return {}
+	if not IS_RETAIL then -- WoW Forever : colonnes de l'Héritage (section H)
+		return {
+			{ "Héritage", function(sections)
+				local legacy = sections.H or {}
+				local earned = tonumber(legacy.e)
+				if not earned then
+					return ""
+				end
+				return "|cffffd200" .. earned .. (legacy.m and ("/" .. legacy.m) or "") .. "|r"
+			end, id = "legacy", sort = function(sections)
+				return tonumber(sections.H and sections.H.e)
+			end, tip = { "Points d'Héritage", "Points gagnés par les défis (communs au compte) / maximum." } },
+			{ "Dépensés", function(sections)
+				local legacy = sections.H
+				local spent = LegacySpent(legacy)
+				if not spent then
+					return ""
+				end
+				return spent .. (legacy.x and ("/" .. legacy.x) or "")
+			end, id = "legacySpent", sort = function(sections)
+				return LegacySpent(sections.H)
+			end, tip = { "Points dépensés", "Points d'Héritage dépensés par ce personnage dans ses "
+				.. "arbres / plafond par personnage. Détail par arbre : infobulle du personnage." } },
+			{ "À dépenser", function(sections)
+				local unspent = tonumber(sections.H and sections.H.u)
+				return (unspent and unspent > 0) and ("|cff40ff40" .. unspent .. "|r") or ""
+			end, id = "legacyUnspent", sort = function(sections)
+				return tonumber(sections.H and sections.H.u)
+			end, tip = { "Points à dépenser", "Points d'Héritage que ce personnage peut encore "
+				.. "placer dans ses arbres." } },
+			{ "Défis", function(sections)
+				local legacy = sections.H or {}
+				return legacy.d and (legacy.d .. "/" .. legacy.t) or ""
+			end, id = "challenges", sort = function(sections)
+				return tonumber(sections.H and sections.H.d)
+			end, tip = { "Défis d'Héritage", "Défis faits / total." } },
+		}
 	end
 	local columns = {
 		{ "Coffre", function(sections)
@@ -2198,9 +2306,32 @@ local function MemberTooltip(item)
 		end
 	end
 
-	-- WoW Forever : la suite (chambre forte, écus, ressources, renommées, runes, campagnes,
-	-- exploration) est propre à Retail.
+	-- WoW Forever : Héritage, puis rien d'autre (chambre forte, écus, ressources, renommées, runes,
+	-- campagnes, exploration : propres à Retail).
 	if not IS_RETAIL then
+		local legacy = sections.H
+		if legacy and legacy.e then
+			lines[#lines + 1] = " "
+			lines[#lines + 1] = "|cffffd200Héritage|r"
+			lines[#lines + 1] = "  Points gagnés : " .. legacy.e .. (legacy.m and (" / " .. legacy.m) or "")
+			local spent = LegacySpent(legacy)
+			if spent then
+				lines[#lines + 1] = "  Points dépensés : " .. spent .. (legacy.x and (" / " .. legacy.x) or "")
+				for _, tree in ipairs(LegacyTrees() or {}) do
+					local inTree = tonumber(legacy["s" .. tostring(tree.id)])
+					if inTree then
+						lines[#lines + 1] = "    " .. tree.name .. " : " .. inTree
+					end
+				end
+			end
+			local unspent = tonumber(legacy.u)
+			if unspent and unspent > 0 then
+				lines[#lines + 1] = "  |cff40ff40" .. unspent .. " point(s) à dépenser|r"
+			end
+			if legacy.d then
+				lines[#lines + 1] = "  Défis : " .. legacy.d .. " / " .. legacy.t
+			end
+		end
 		return lines
 	end
 
@@ -3103,6 +3234,7 @@ for _, event in ipairs({
 	"QUEST_TURNED_IN", "QUEST_ACCEPTED", "QUEST_REMOVED", -- activités
 	"UPDATE_PENDING_MAIL", "MAIL_INBOX_UPDATE", "MAIL_CLOSED", -- courrier
 	"CHALLENGE_MODE_COMPLETED", "ENCOUNTER_END", -- semaine (clés, boss)
+	"ACHIEVEMENT_EARNED", -- défis d'Héritage (WoW Forever)
 }) do
 	if not (C_EventUtils and C_EventUtils.IsEventValid) or C_EventUtils.IsEventValid(event) then
 		pcall(events.RegisterEvent, events, event)
