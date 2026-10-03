@@ -1802,6 +1802,9 @@ local measure -- texte caché servant à mesurer les cellules
 -- valeur(sections) pour le tri (nil = sans valeur), tip = { titre, texte } (infobulle de
 -- l'en-tête) } ; une colonne d'écu par écu de la saison.
 local function MemberColumns()
+	if not IS_RETAIL then -- WoW Forever : colonnes propres à Retail, nom seul
+		return {}
+	end
 	local columns = {
 		{ "Coffre", function(sections)
 			local unlocked, total = VaultSummary(sections.V)
@@ -2119,59 +2122,61 @@ local function MemberTooltip(item)
 	if item.key ~= P.GetCharKey() then
 		lines[#lines + 1] = "|cff999999Infos " .. FormatWhen(at) .. "|r"
 	end
-	if vaultReset then
+	if IS_RETAIL and vaultReset then
 		lines[#lines + 1] = "|cff999999Grande chambre forte remise à zéro (réinitialisation hebdomadaire "
 			.. "depuis ces infos)|r"
 	end
 
-	-- Cette semaine : détail par difficulté.
+	-- Cette semaine : détail par difficulté (Retail seulement : traques, gouffres, chambre forte...).
 	local week = sections.W or {}
-	lines[#lines + 1] = " "
-	lines[#lines + 1] = "|cffffd200Cette semaine|r"
-	local prey = {}
-	for difficulty, label in ipairs({ "Normal", "Difficile", "Cauchemar" }) do
-		prey[#prey + 1] = label .. " " .. (tonumber(week["t" .. difficulty]) or 0) .. "/4"
-	end
-	lines[#lines + 1] = "  Traque : " .. table.concat(prey, ", ")
-	local delves = {}
-	for key, count in pairs(week) do
-		local tier = tonumber(key:match("^d(%d+)$"))
-		if tier then
-			delves[#delves + 1] = { tier = tier, count = count }
+	if IS_RETAIL then
+		lines[#lines + 1] = " "
+		lines[#lines + 1] = "|cffffd200Cette semaine|r"
+		local prey = {}
+		for difficulty, label in ipairs({ "Normal", "Difficile", "Cauchemar" }) do
+			prey[#prey + 1] = label .. " " .. (tonumber(week["t" .. difficulty]) or 0) .. "/4"
 		end
-	end
-	table.sort(delves, function(a, b)
-		return a.tier > b.tier
-	end)
-	local delveParts = {}
-	for _, delve in ipairs(delves) do
-		delveParts[#delveParts + 1] = (delve.tier > 1 and ("palier " .. delve.tier) or "palier 1 / activités du monde")
-			.. " ×" .. delve.count
-	end
-	lines[#lines + 1] = "  Gouffres : " .. (#delveParts > 0 and table.concat(delveParts, ", ") or "aucun")
-	local dungeons = {}
-	for key, label in pairs({ n = "normal*", f = "avec suivants*", h = "héroïque", m = "mythique",
-		p = "mythique+" }) do
-		if week[key] then
-			dungeons[#dungeons + 1] = label .. " ×" .. week[key]
+		lines[#lines + 1] = "  Traque : " .. table.concat(prey, ", ")
+		local delves = {}
+		for key, count in pairs(week) do
+			local tier = tonumber(key:match("^d(%d+)$"))
+			if tier then
+				delves[#delves + 1] = { tier = tier, count = count }
+			end
 		end
-	end
-	table.sort(dungeons)
-	local keys = week.k and tostring(week.k):gsub("%.", ", ")
-	lines[#lines + 1] = "  Donjons : " .. (#dungeons > 0 and table.concat(dungeons, ", ") or "aucun")
-		.. (keys and (" (clés " .. keys .. ")") or "")
-	if week.n or week.f then
-		lines[#lines + 1] = "  |cff999999* compté à l'entrée dans le donjon (non suivi par WoW)|r"
-	end
-	local raids = {}
-	for _, difficultyID in ipairs({ 17, 14, 15, 16 }) do
-		local count = week["r" .. difficultyID]
-		if count then
-			local name = GetDifficultyInfo and GetDifficultyInfo(difficultyID)
-			raids[#raids + 1] = (name or ("difficulté " .. difficultyID)) .. " ×" .. count
+		table.sort(delves, function(a, b)
+			return a.tier > b.tier
+		end)
+		local delveParts = {}
+		for _, delve in ipairs(delves) do
+			delveParts[#delveParts + 1] = (delve.tier > 1 and ("palier " .. delve.tier) or "palier 1 / activités du monde")
+				.. " ×" .. delve.count
 		end
+		lines[#lines + 1] = "  Gouffres : " .. (#delveParts > 0 and table.concat(delveParts, ", ") or "aucun")
+		local dungeons = {}
+		for key, label in pairs({ n = "normal*", f = "avec suivants*", h = "héroïque", m = "mythique",
+			p = "mythique+" }) do
+			if week[key] then
+				dungeons[#dungeons + 1] = label .. " ×" .. week[key]
+			end
+		end
+		table.sort(dungeons)
+		local keys = week.k and tostring(week.k):gsub("%.", ", ")
+		lines[#lines + 1] = "  Donjons : " .. (#dungeons > 0 and table.concat(dungeons, ", ") or "aucun")
+			.. (keys and (" (clés " .. keys .. ")") or "")
+		if week.n or week.f then
+			lines[#lines + 1] = "  |cff999999* compté à l'entrée dans le donjon (non suivi par WoW)|r"
+		end
+		local raids = {}
+		for _, difficultyID in ipairs({ 17, 14, 15, 16 }) do
+			local count = week["r" .. difficultyID]
+			if count then
+				local name = GetDifficultyInfo and GetDifficultyInfo(difficultyID)
+				raids[#raids + 1] = (name or ("difficulté " .. difficultyID)) .. " ×" .. count
+			end
+		end
+		lines[#lines + 1] = "  Raid (boss) : " .. (#raids > 0 and table.concat(raids, ", ") or "aucun")
 	end
-	lines[#lines + 1] = "  Raid (boss) : " .. (#raids > 0 and table.concat(raids, ", ") or "aucun")
 
 	-- Courrier : non lu, puis le dernier relevé de la boîte aux lettres (nombre, expiration).
 	local unread, expires = MailState(sections)
@@ -2191,6 +2196,12 @@ local function MemberTooltip(item)
 		else
 			lines[#lines + 1] = "  |cff999999Nombre et expiration : ouvrez la boîte aux lettres de ce personnage|r"
 		end
+	end
+
+	-- WoW Forever : la suite (chambre forte, écus, ressources, renommées, runes, campagnes,
+	-- exploration) est propre à Retail.
+	if not IS_RETAIL then
+		return lines
 	end
 
 	-- Grande chambre forte : une ligne par rangée, cases atteintes en vert.
@@ -2850,11 +2861,11 @@ function P.RefreshSuivi()
 		items = BuildMemberTable(items)
 	end
 	-- Saison en cours, et avertissement si les listes reprises de Plumber ne la couvrent pas.
-	local season = SeasonText()
+	local season = IS_RETAIL and SeasonText()
 	if season then
 		header = header .. "  |cff999999· " .. season .. "|r"
 	end
-	if ListsOutdated() then
+	if IS_RETAIL and ListsOutdated() then
 		header = header .. "  |cffff8000· listes à mettre à jour|r"
 	end
 	listPanel.header:SetText(header)
@@ -3000,31 +3011,33 @@ local function BuildSettingsPanel()
 		.. "(avec leur date) au lieu des membres de l'équipe sélectionnée. Même case que dans la barre "
 		.. "de titre de la fenêtre. Toujours cochée en mode solo de Polypode. Réglage propre à ce personnage.")
 
-	local campaignSetting = Settings.RegisterProxySetting(category, "POLYPODE_SUIVI_SHOW_OLD_CAMPAIGNS",
-		Settings.VarType.Boolean, "Campagnes des extensions précédentes", DEFAULTS.showOldCampaigns,
-		function()
-			return SuiviSettings().showOldCampaigns
-		end,
-		function(value)
-			SuiviSettings().showOldCampaigns = value
-		end)
-	AddCheck(campaignSetting,
-		"Dans l'infobulle de chaque personnage, ajoute aux campagnes de l'extension en cours celles des "
-		.. "extensions précédentes (depuis Battle for Azeroth) : les campagnes commencées mais pas finies, "
-		.. "et le nombre de campagnes terminées par extension. Réglage propre à ce personnage.")
+	if IS_RETAIL then -- campagnes et renommées : propres à Retail
+		local campaignSetting = Settings.RegisterProxySetting(category, "POLYPODE_SUIVI_SHOW_OLD_CAMPAIGNS",
+			Settings.VarType.Boolean, "Campagnes des extensions précédentes", DEFAULTS.showOldCampaigns,
+			function()
+				return SuiviSettings().showOldCampaigns
+			end,
+			function(value)
+				SuiviSettings().showOldCampaigns = value
+			end)
+		AddCheck(campaignSetting,
+			"Dans l'infobulle de chaque personnage, ajoute aux campagnes de l'extension en cours celles des "
+			.. "extensions précédentes (depuis Battle for Azeroth) : les campagnes commencées mais pas finies, "
+			.. "et le nombre de campagnes terminées par extension. Réglage propre à ce personnage.")
 
-	local setting = Settings.RegisterProxySetting(category, "POLYPODE_SUIVI_SHOW_FACTIONS",
-		Settings.VarType.Boolean, "Afficher les renommées", DEFAULTS.showFactions,
-		function()
-			return SuiviSettings().showFactions
-		end,
-		function(value)
-			SuiviSettings().showFactions = value
-		end)
-	AddCheck(setting,
-		"Dans la fenêtre « Suivi de l'équipe », détaille les renommées de l'extension de chaque "
-		.. "membre dans son infobulle. Inutile avec un seul compte Battle.net : les renommées y sont "
-		.. "communes à tous les personnages. Réglage propre à ce personnage.")
+		local setting = Settings.RegisterProxySetting(category, "POLYPODE_SUIVI_SHOW_FACTIONS",
+			Settings.VarType.Boolean, "Afficher les renommées", DEFAULTS.showFactions,
+			function()
+				return SuiviSettings().showFactions
+			end,
+			function(value)
+				SuiviSettings().showFactions = value
+			end)
+		AddCheck(setting,
+			"Dans la fenêtre « Suivi de l'équipe », détaille les renommées de l'extension de chaque "
+			.. "membre dans son infobulle. Inutile avec un seul compte Battle.net : les renommées y sont "
+			.. "communes à tous les personnages. Réglage propre à ce personnage.")
+	end
 	Settings.RegisterAddOnCategory(category)
 	settingsCategory = category
 	settingsPopup = { key = "Suivi", title = "Options du suivi", items = popupItems, category = category }

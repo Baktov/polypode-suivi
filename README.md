@@ -184,8 +184,9 @@ ordre alphabétique, avec la date de leurs informations (« il y a 2 h », « du
   tirée d'un relevé de toutes les campagnes du jeu ; un chapitre est terminé quand sa suite de
   quêtes l'est (comme dans le journal de quêtes). Elle est à compléter quand un patch ajoute une
   campagne ; en attendant, une nouvelle campagne commencée apparaît dans « Autres campagnes ».
-- Sur **WoW Forever**, ce qui n'existe pas (runes, écus de Midnight...) reste simplement vide, et les
-  boutons **Activités** et **Campagnes** sont masqués (**Quêtes** prend leur place).
+- Sur **WoW Forever**, tout ce qui est propre à Retail est masqué en attendant un suivi adapté :
+  boutons **Activités** et **Campagnes** (**Quêtes** prend leur place), colonnes du résumé (nom
+  seul), saison dans l'en-tête, infobulle réduite au courrier, options des campagnes et renommées.
 
 ---
 
@@ -214,6 +215,7 @@ travail de recensement.
 
 ## Version
 
+`2.0.2` : WoW Forever : colonnes du résumé, détail Retail de l'infobulle, saison et options des campagnes / renommées masqués.
 `2.0.1` : WoW Forever : boutons et panneaux « Activités » et « Campagnes » masqués (propres à Retail).
 `2.0.0` : première version publique (release GitHub v2.0.0). Nécessite Polypode 2.0.0.
 `1.24.2` : bouton « Résumé » (à la place de « Quêtes », « Campagnes » ou « Activités » quand leur panneau est affiché) mis en avant par un voile bleu doux.
