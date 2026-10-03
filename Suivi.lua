@@ -1271,6 +1271,7 @@ local function CampaignState(value, known)
 end
 
 local CAMPAIGN_COLORS = { done = "|cff40ff40", started = "|cffffd200", none = "|cffff4040" }
+local EXPANSION_DONE_COLOR = "|cff4da6ff" -- bleu : extension dont toutes les campagnes sont finies
 local CAMPAIGN_COLUMNS = { -- colonnes de droite, de gauche à droite
 	{ state = "done", title = "Finie" },
 	{ state = "started", title = "En cours" },
@@ -1409,9 +1410,10 @@ local function CampaignColumnTexts(item)
 	return texts
 end
 
--- Texte de droite d'une extension : personnages qui en ont fini toutes les campagnes.
-local function ExpansionRightText(item)
-	return NameList(item.finishedKeys, CAMPAIGN_COLORS.done)
+-- Noms d'une extension (en bleu, à partir de la colonne « Finie ») : personnages qui en ont fini
+-- toutes les campagnes.
+local function ExpansionNamesText(item)
+	return NameList(item.finishedKeys, EXPANSION_DONE_COLOR)
 end
 
 -- Infobulle d'une extension : campagnes finies par chaque personnage.
@@ -1436,8 +1438,10 @@ local function ExpansionTooltip(item)
 end
 
 -- Colonnes de droite d'une ligne du panneau (créées une fois, lignes recyclées) : remplies avec
--- texts (titres ou noms), ou masquées si texts est nil. Renvoie la première, ou nil.
-local function LayoutCampaignColumns(row, texts)
+-- texts (titres ou noms), ou masquées si texts est nil. Renvoie la première, ou nil. names : texte
+-- d'une ligne d'extension, aligné à gauche sur la colonne « Finie » jusqu'au bord droit (nil =
+-- masqué) ; renvoyé à la place de la première colonne.
+local function LayoutCampaignColumns(row, texts, names)
 	if not row.campaignColumns then
 		row.campaignColumns = {}
 		local previous
@@ -1458,6 +1462,18 @@ local function LayoutCampaignColumns(row, texts)
 	for i, cell in ipairs(row.campaignColumns) do
 		cell:SetText(texts and texts[i] or "")
 		cell:SetShown(texts ~= nil)
+	end
+	if not row.expansionNames then
+		row.expansionNames = row:CreateFontString(nil, "OVERLAY", "GameFontHighlight")
+		row.expansionNames:SetPoint("LEFT", row.campaignColumns[1], "LEFT") -- colonne masquée : ancre seule
+		row.expansionNames:SetPoint("RIGHT", -4, 0)
+		row.expansionNames:SetJustifyH("LEFT")
+		row.expansionNames:SetWordWrap(false)
+	end
+	row.expansionNames:SetText(names or "")
+	row.expansionNames:SetShown(names ~= nil)
+	if names then
+		return row.expansionNames
 	end
 	return texts and row.campaignColumns[1] or nil
 end
@@ -2411,8 +2427,8 @@ local function Build()
 			end
 			return MemberTooltip(data)
 		end,
-		-- Texte de droite des activités et des campagnes (personnages) ; colonnes du tableau pour le
-		-- résumé.
+		-- Texte de droite des activités (personnages), colonnes des campagnes, noms des extensions ;
+		-- colonnes du tableau pour le résumé.
 		decorate = function(row, data)
 			local firstCell = LayoutCells(row, data)
 			if not row.rightText then
@@ -2432,12 +2448,13 @@ local function Build()
 			elseif data.campaign then
 				columnTexts = CampaignColumnTexts(data)
 			end
-			local firstColumn = LayoutCampaignColumns(row, columnTexts)
+			local firstColumn = LayoutCampaignColumns(row, columnTexts,
+				data.campaignHeader and ExpansionNamesText(data) or nil)
 			if firstColumn then
 				row.rightText:Hide()
 				row.text:SetPoint("RIGHT", firstColumn, "LEFT", -6, 0)
-			elseif data.activity or data.campaignHeader then
-				row.rightText:SetText(data.campaignHeader and ExpansionRightText(data) or ActivityRightText(data))
+			elseif data.activity then
+				row.rightText:SetText(ActivityRightText(data))
 				row.rightText:Show()
 				row.text:SetPoint("RIGHT", row.rightText, "LEFT", -6, 0)
 			elseif firstCell then

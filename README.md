@@ -119,8 +119,8 @@ campagnes** suivies, de Mists of Pandaria à Midnight, rangées par extension (l
 d'abord, puis de la plus récente à la plus ancienne), « patch – nom ». À droite, trois colonnes
 **Finie** (vert), **En cours** (jaune) et **Pas commencée** (rouge) citent chacune un ou deux
 personnages en exemple, les **connectés d'abord**, puis « +n » pour les autres ; un personnage dont
-on n'a encore reçu aucune information n'est pas cité. À droite du nom de chaque **extension**, les
-personnages qui en ont **fini toutes les campagnes** (au survol : campagnes finies par chacun,
+on n'a encore reçu aucune information n'est pas cité. Sur la ligne de chaque **extension**, en **bleu** et
+alignés sur la colonne « Finie », les personnages qui en ont **fini toutes les campagnes** (au survol : campagnes finies par chacun,
 « 5/10 »). Les campagnes qu'une partie des personnages ne peut pas faire (« Dracthyr, éveillez-vous »,
 réservée aux Dracthyrs ; « Legion Remix », réservée aux personnages de Remix) restent listées mais
 ne sont **pas exigées** pour terminer l'extension (leur infobulle le précise). **Au survol** d'une campagne : l'avancement de chaque personnage
@@ -185,6 +185,7 @@ travail de recensement.
 
 ## Version
 
+`1.21.2` : panneau « Campagnes » : sur la ligne d'une extension, les personnages qui l'ont terminée sont en bleu, alignés à gauche sur la colonne « Finie ».
 `1.21.1` : panneau « Campagnes » : les campagnes réservées à une race ou à un mode de jeu (Dracthyr, Legion Remix) ne sont plus exigées pour terminer une extension.
 `1.21.0` : panneau « Campagnes » : trois colonnes Finie / En cours / Pas commencée (un ou deux noms en exemple, connectés d'abord), et à droite de chaque extension les personnages qui en ont fini toutes les campagnes.
 `1.20.0` : panneau « Campagnes » (bouton à gauche de « Activités ») : toutes les campagnes par extension, avec les personnages qui les ont finies (vert), commencées (jaune) ou pas faites (rouge), et l'avancement de chacun en infobulle.
