@@ -106,7 +106,7 @@ quêtes (bonus de renom, traque du monde), « nom n/total ». Les activités hab
 hebdomadaires) sont toujours listées ; les autres (quotidiennes, boss, avis de recherche...)
 apparaissent dès qu'elles sont actives pour le personnage joué, ou qu'un personnage suivi les a
 faites ou commencées. L'infobulle donne l'état de
-chaque personnage. Le bouton **Résumé** revient à l'affichage par personnage.
+chaque personnage. Le bouton **Résumé** (à la place du bouton du panneau affiché, sur un fond bleu doux) revient à l'affichage par personnage.
 
 Les titres sont ceux du jeu (en français). La liste des activités est reprise de Plumber, qui ne
 la partage pas avec les autres addons : seules les activités reposant sur une quête sont suivies
@@ -213,6 +213,7 @@ travail de recensement.
 
 ## Version
 
+`1.24.2` : bouton « Résumé » (à la place de « Quêtes », « Campagnes » ou « Activités » quand leur panneau est affiché) mis en avant par un voile bleu doux.
 `1.24.1` : notions de clic en bleu dans les infobulles et les descriptions des options (Polypode 0.60).
 `1.24.0` : panneau « Quêtes » : toutes les quêtes en cours chez au moins un personnage (le personnage joué compris), gardées tant que l'un d'eux l'a en cours, même déconnecté ; colonnes « Terminée ou à prendre », « En cours », « Terminée » (quêtes rendues, nouvelle section Q) et « Inconnu ».
 `1.23.0` : panneau « Quêtes » (bouton à gauche de « Campagnes », `/poly quetes`) : quêtes du leader avec les personnages qui ne les ont pas, les ont ou sont inconnus ; repris de Polypode Quêtes, désormais obsolète. Nécessite Polypode 0.58.

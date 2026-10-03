@@ -2759,6 +2759,16 @@ local function Build()
 		P.SkinButton(questBtn)
 		P.SkinButton(scanBtn)
 	end
+	-- Bouton « Résumé » (panneau affiché) mis en avant par un voile bleu doux, posé après le skin
+	-- pour rester visible avec EllesmereUI / ElvUI ; affiché par P.RefreshSuivi.
+	for _, button in ipairs({ activityBtn, campaignBtn, questBtn }) do
+		local tint = button:CreateTexture(nil, "OVERLAY")
+		tint:SetPoint("TOPLEFT", 2, -2)
+		tint:SetPoint("BOTTOMRIGHT", -2, 2)
+		tint:SetColorTexture(0.3, 0.65, 1, 0.25)
+		tint:Hide()
+		button.activeTint = tint
+	end
 	if P.SkinCheckBox then -- Polypode 0.53.3
 		P.SkinCheckBox(allCheck)
 	end
@@ -2800,6 +2810,9 @@ function P.RefreshSuivi()
 	frame.activityButton:SetText(settings.activityMode and "Résumé" or "Activités")
 	frame.campaignButton:SetText(settings.campaignMode and "Résumé" or "Campagnes")
 	frame.questButton:SetText(settings.questMode and "Résumé" or "Quêtes")
+	frame.activityButton.activeTint:SetShown(settings.activityMode and true or false)
+	frame.campaignButton.activeTint:SetShown(settings.campaignMode and true or false)
+	frame.questButton.activeTint:SetShown(settings.questMode and true or false)
 	if settings.activityMode or settings.campaignMode or settings.questMode then
 		local keys = {}
 		for i, item in ipairs(items) do
