@@ -2203,6 +2203,17 @@ local function BuildItems()
 	return items, "Suivi de l'équipe « " .. team .. " »", "Aucun personnage dans l'équipe."
 end
 
+-- Ouvre Options > AddOns > Polypode > Suivi (bouton Options de la fenêtre, clic droit sur le bouton
+-- « Suivi » de Polypode et de la barre flottante) ; ferme la fenêtre pour ne pas masquer le panneau.
+local function OpenSuiviOptions()
+	if settingsCategory and Settings and Settings.OpenToCategory then
+		if frame then
+			frame:Hide()
+		end
+		Settings.OpenToCategory(settingsCategory:GetID())
+	end
+end
+
 local function Build()
 	frame = CreateFrame("Frame", "PolypodeSuiviFrame", UIParent, "BackdropTemplate")
 	local settings = SuiviSettings()
@@ -2325,12 +2336,7 @@ local function Build()
 	optionsBtn:SetSize(70, 20)
 	optionsBtn:SetPoint("TOPLEFT", 6, -3)
 	optionsBtn:SetText("Options")
-	optionsBtn:SetScript("OnClick", function()
-		if settingsCategory and Settings and Settings.OpenToCategory then
-			frame:Hide()
-			Settings.OpenToCategory(settingsCategory:GetID())
-		end
-	end)
+	optionsBtn:SetScript("OnClick", OpenSuiviOptions)
 	optionsBtn:SetScript("OnEnter", function(self)
 		GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
 		GameTooltip:AddLine("Options")
@@ -2568,13 +2574,19 @@ if P.AddTitleButton then
 	P.AddTitleButton({
 		text = "Suivi",
 		width = 60,
-		onClick = function()
-			P.ToggleSuivi()
+		rightClick = true,
+		onClick = function(_, mouseButton)
+			if mouseButton == "RightButton" then
+				OpenSuiviOptions()
+			else
+				P.ToggleSuivi()
+			end
 		end,
 		tooltip = {
 			"Suivi de l'équipe",
 			"Grande chambre forte, écus, ressources, renommées et runes de pouvoir de chaque membre de "
 				.. "l'équipe sélectionnée (détail au survol d'un personnage).",
+			"Clic droit : options du suivi",
 		},
 		onCreate = function(button)
 			P.ui.suiviButton = button
