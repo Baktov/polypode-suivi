@@ -116,14 +116,23 @@ réinitialisation hebdomadaire, et les quotidiennes chaque jour.
 
 ### Quêtes
 
-Le bouton **Quêtes** (à gauche de **Campagnes**), ou `/poly quetes`, remplace le résumé par les
-**quêtes du leader de l'équipe sélectionnée** (les vôtres si l'équipe n'a pas de leader), reprises
-de l'ancien addon Polypode Quêtes. À droite, trois colonnes **Ne l'ont pas** (rouge), **L'ont**
-(vert) et **Inconnu** (gris : personnage dont le journal n'a pas été reçu — pas de Polypode, pas
-encore vu cette session) citent chacune un ou deux personnages, les connectés d'abord, « +n » pour
-les autres. Les quêtes qui manquent au plus de personnages viennent en premier ; au survol,
-l'infobulle détaille qui l'a et qui ne l'a pas. Avec la case **Tous les personnages**, la
-comparaison porte sur tous les personnages enregistrés.
+Le bouton **Quêtes** (à gauche de **Campagnes**), ou `/poly quetes`, remplace le résumé par
+**toutes les quêtes en cours** chez au moins un des personnages affichés (l'équipe sélectionnée, ou
+tous les personnages avec la case **Tous les personnages** ; le personnage joué est toujours
+compris), reprises de l'ancien addon Polypode Quêtes. À droite, quatre colonnes citent chacune un
+ou deux personnages, les connectés d'abord, « +n » pour les autres :
+
+- **Terminée ou à prendre** (rouge) : la quête n'est pas dans son journal ; il l'a peut-être déjà
+  rendue si son Polypode Suivi ne l'a pas encore dit ;
+- **En cours** (jaune) : la quête est dans son journal ;
+- **Terminée** (vert) : il l'a déjà rendue (chaque Polypode Suivi le vérifie dans le jeu pour son
+  personnage et l'envoie aux autres) ;
+- **Inconnu** (gris) : aucun journal de ce personnage reçu (pas de Polypode, jamais vu).
+
+Une quête reste listée **tant qu'un personnage l'a en cours**, même s'il est déconnecté : les
+journaux sont gardés, et celui d'un personnage n'est mis à jour qu'à sa prochaine connexion. Les
+quêtes encore à prendre chez le plus de personnages viennent en premier ; au survol, l'infobulle
+donne tous les personnages de chaque colonne.
 
 Un **clic sur une quête** l'ouvre dans le journal de quêtes (carte du monde) et ferme la fenêtre.
 Seules les quêtes présentes dans **votre propre journal** peuvent s'ouvrir (limite de WoW) ; pour
@@ -204,6 +213,7 @@ travail de recensement.
 
 ## Version
 
+`1.24.0` : panneau « Quêtes » : toutes les quêtes en cours chez au moins un personnage (le personnage joué compris), gardées tant que l'un d'eux l'a en cours, même déconnecté ; colonnes « Terminée ou à prendre », « En cours », « Terminée » (quêtes rendues, nouvelle section Q) et « Inconnu ».
 `1.23.0` : panneau « Quêtes » (bouton à gauche de « Campagnes », `/poly quetes`) : quêtes du leader avec les personnages qui ne les ont pas, les ont ou sont inconnus ; repris de Polypode Quêtes, désormais obsolète. Nécessite Polypode 0.58.
 `1.22.0` : clic droit sur le bouton « Suivi » : petite fenêtre d'options à côté du bouton (au lieu du panneau de WoW). Nécessite Polypode 0.57.
 `1.21.3` : clic droit sur le bouton « Suivi » (fenêtre Polypode et barre flottante) : options du suivi.

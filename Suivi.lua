@@ -18,12 +18,16 @@ local P = Polypode -- dépendance obligatoire (## Dependencies: Polypode), charg
 -- faits / total, raison d'un blocage). Lu dans la section S.
 
 -- PANNEAU QUÊTES (bouton « Quêtes », à gauche de « Campagnes », option questMode ; repris de
--- l'addon Polypode Quêtes, obsolète) : les quêtes du leader de l'équipe sélectionnée (les siennes
--- sans leader), avec à droite trois colonnes « Ne l'ont pas » (rouge), « L'ont » (vert),
--- « Inconnu » (gris : journal pas reçu de son Polypode), un ou deux noms en exemple ; celles qui
--- manquent au plus de personnages d'abord. Clic : ouvre la quête dans le journal (seulement si elle
--- est dans celui du personnage joué). Journaux échangés par Polypode (QLOG, P.GetCharacterQuests),
--- qui prévient à chaque journal reçu ou modifié (P.RegisterQuestLogCallback, Polypode 0.58.0).
+-- l'addon Polypode Quêtes, obsolète) : toutes les quêtes en cours chez au moins un des personnages
+-- affichés (le personnage joué toujours compris), avec à droite quatre colonnes « Terminée ou à
+-- prendre » (rouge), « En cours » (jaune), « Terminée » (vert), « Inconnu » (gris : journal jamais
+-- reçu), un ou deux noms en exemple ; celles qui restent à prendre chez le plus de personnages
+-- d'abord. Clic : ouvre la quête dans le journal (seulement si elle est dans celui du personnage
+-- joué). Journaux échangés par Polypode (QLOG, P.GetCharacterQuests, prévenu par
+-- P.RegisterQuestLogCallback, Polypode 0.58.0) et gardés ici (PolypodeSuiviQuests) : une quête
+-- reste listée tant qu'un personnage l'a en cours, même déconnecté, jusqu'à son prochain journal.
+-- « Terminée » : section Q, chaque client relève lui-même (C_QuestLog.IsQuestFlaggedCompleted)
+-- lesquelles de ces quêtes son personnage a rendues.
 
 -- Addon compagnon de Polypode, indépendant : bouton « Suivi » dans la barre de titre de la
 -- fenêtre Polypode (P.AddTitleButton) et /poly suivi (P.RegisterSlashCommand). La fenêtre liste
@@ -36,7 +40,8 @@ local P = Polypode -- dépendance obligatoire (## Dependencies: Polypode), charg
 --   F — renommées débloquées de l'extension (C_MajorFactions) ;
 --   P — runes de pouvoir (arbre du résumé de l'extension de Midnight, C_Traits) : u = points non
 --       dépensés, b = 1 si une rune est achetable (même calcul que Blizzard) ;
---   S — campagnes : chapitres faits / chapitres (C_CampaignInfo), liste ns.CAMPAIGNS (Activities.lua).
+--   S — campagnes : chapitres faits / chapitres (C_CampaignInfo), liste ns.CAMPAIGNS (Activities.lua) ;
+--   Q — quêtes rendues, parmi celles en cours chez un personnage connu (panneau Quêtes).
 -- Le personnage joué est lu en direct ; les autres envoient leurs données par le message
 -- SUIVI:token:nom-royaume:section:flag:k=v,k=v,... (flag N = premier fragment, + = suite ;
 -- expéditeur vérifié), à chaque rencontre (P.RegisterPeerCallback) et 3 s après un changement
@@ -69,7 +74,7 @@ local RESOURCES = {
 	{ "c", 1602 }, { "c", 1792 }, { "c", 2123 }, { "c", 2797 },
 }
 
-local SECTIONS = { "V", "C", "R", "F", "P", "A", "M", "W", "S" }
+local SECTIONS = { "V", "C", "R", "F", "P", "A", "M", "W", "S", "Q" }
 
 -- Options par personnage (PolypodeSuiviDB, Options → AddOns → Polypode → Suivi).
 local DEFAULTS = {
@@ -102,6 +107,7 @@ end
 -- [nom-royaume] = { sections = { [section] = { [k] = v } }, at = date, times = { [section] = date } }
 -- (dates = heure serveur). Remplacé à ADDON_LOADED par la table sauvegardée PolypodeSuiviData.
 local received = {}
+local questLogs = {} -- = PolypodeSuiviQuests : [clé] = { ids = { [questID] = true }, at = heure serveur }
 local lastSent = {} -- [section] = dernière chaîne envoyée aux clients connectés
 local sendPending
 local frame, listPanel
@@ -846,8 +852,43 @@ local function UnknownCampaigns()
 	return unknownCampaigns
 end
 
+-- JOURNAUX DE QUÊTES (panneau Quêtes) : journal d'un personnage = celui du jeu pour le personnage
+-- joué, sinon le dernier reçu par Polypode cette session (QLOG), sinon le dernier gardé
+-- (PolypodeSuiviQuests) ; nil si jamais reçu.
+local function QuestLogOf(key)
+	local live = P.GetCharacterQuests and P.GetCharacterQuests(key)
+	if live or key == P.GetCharKey() then
+		return live
+	end
+	return questLogs[key] and questLogs[key].ids
+end
+
+-- Section Q : parmi les quêtes en cours chez un personnage connu (tous les journaux), celles que le
+-- personnage joué a déjà rendues : q<id> = 1.
+local function ReadQuestCompletion()
+	local data = {}
+	if not (C_QuestLog and C_QuestLog.IsQuestFlaggedCompleted) then
+		return data
+	end
+	local keys = {}
+	for key in pairs(P.db.roster or {}) do
+		keys[key] = true
+	end
+	for key in pairs(questLogs) do
+		keys[key] = true
+	end
+	for key in pairs(keys) do
+		for questID in pairs(QuestLogOf(key) or {}) do
+			if C_QuestLog.IsQuestFlaggedCompleted(questID) then
+				data["q" .. questID] = 1
+			end
+		end
+	end
+	return data
+end
+
 local READERS = { V = ReadVault, C = ReadCrests, R = ReadResources, F = ReadFactions, P = ReadRunes,
-	A = ReadActivities, M = ReadMail, W = ReadWeekly, S = ReadCampaigns }
+	A = ReadActivities, M = ReadMail, W = ReadWeekly, S = ReadCampaigns, Q = ReadQuestCompletion }
 
 local function ReadOwn()
 	local sections = {}
@@ -929,10 +970,33 @@ local function KeepCampaignProgress(own)
 	end
 end
 
+-- Garde les journaux de quêtes connus (PolypodeSuiviQuests) : ceux reçus cette session, et celui
+-- du personnage joué (vide gardé seulement après une quête rendue ou abandonnée : à la connexion,
+-- le journal peut ne pas être encore chargé).
+local ownQuestChanged = false
+
+local function StoreQuestLogs()
+	if leavingWorld or not P.GetCharacterQuests then
+		return
+	end
+	local own = P.GetCharKey()
+	for key in pairs(P.db.roster or {}) do
+		local log = P.GetCharacterQuests(key)
+		if log and (key ~= own or next(log) or ownQuestChanged) then
+			local ids = {}
+			for questID in pairs(log) do
+				ids[questID] = true
+			end
+			questLogs[key] = { ids = ids, at = GetServerTime() }
+		end
+	end
+end
+
 local function SendAll(target)
 	if leavingWorld then
 		return
 	end
+	StoreQuestLogs()
 	local own = ReadOwn()
 	KeepCampaignProgress(own)
 	lastOwn = own
@@ -1451,27 +1515,38 @@ end
 -- texts (titres ou noms), ou masquées si texts est nil. Renvoie la première, ou nil. names : texte
 -- d'une ligne d'extension, aligné à gauche sur la colonne « Finie » jusqu'au bord droit (nil =
 -- masqué) ; renvoyé à la place de la première colonne.
+local MAX_COLUMNS = 4 -- quêtes : 4 colonnes ; campagnes : 3
+local COLUMN_WIDTHS = { [3] = CAMPAIGN_COLUMN_WIDTH, [4] = 92 }
+
 local function LayoutCampaignColumns(row, texts, names)
 	if not row.campaignColumns then
 		row.campaignColumns = {}
-		local previous
-		for i = #CAMPAIGN_COLUMNS, 1, -1 do
+		for i = 1, MAX_COLUMNS do
 			local cell = row:CreateFontString(nil, "OVERLAY", "GameFontHighlight")
-			cell:SetWidth(CAMPAIGN_COLUMN_WIDTH)
 			cell:SetJustifyH("LEFT")
 			cell:SetWordWrap(false)
-			if previous then
-				cell:SetPoint("RIGHT", previous, "LEFT", -CAMPAIGN_COLUMN_GAP, 0)
-			else
-				cell:SetPoint("RIGHT", -4, 0)
-			end
 			row.campaignColumns[i] = cell
-			previous = cell
 		end
+	end
+	-- Colonnes utilisées réancrées de droite à gauche (leur nombre change avec le panneau) ; sans
+	-- texts, la disposition des campagnes sert d'ancre aux noms d'une extension.
+	local count = texts and #texts or #CAMPAIGN_COLUMNS
+	local width = COLUMN_WIDTHS[count] or CAMPAIGN_COLUMN_WIDTH
+	local previous
+	for i = count, 1, -1 do
+		local cell = row.campaignColumns[i]
+		cell:ClearAllPoints()
+		cell:SetWidth(width)
+		if previous then
+			cell:SetPoint("RIGHT", previous, "LEFT", -CAMPAIGN_COLUMN_GAP, 0)
+		else
+			cell:SetPoint("RIGHT", -4, 0)
+		end
+		previous = cell
 	end
 	for i, cell in ipairs(row.campaignColumns) do
 		cell:SetText(texts and texts[i] or "")
-		cell:SetShown(texts ~= nil)
+		cell:SetShown(texts ~= nil and i <= count)
 	end
 	if not row.expansionNames then
 		row.expansionNames = row:CreateFontString(nil, "OVERLAY", "GameFontHighlight")
@@ -1520,47 +1595,64 @@ end
 -- PANNEAU QUÊTES --------------------------------------------------------------------------
 
 local QUEST_COLUMNS = { -- colonnes de droite, de gauche à droite
-	{ list = "missing", title = "Ne l'ont pas", color = "|cffff5555" },
-	{ list = "having", title = "L'ont", color = "|cff40ff40" },
+	{ list = "todo", title = "Terminée ou à prendre", color = "|cffff5555" },
+	{ list = "progress", title = "En cours", color = "|cffffd200" },
+	{ list = "done", title = "Terminée", color = "|cff40ff40" },
 	{ list = "unknown", title = "Inconnu", color = "|cff999999" },
 }
 
--- Personnage dont on liste les quêtes : le leader de l'équipe sélectionnée, sinon soi.
-local function QuestReference()
-	local team = P.GetSelectedTeam()
-	return team and P.GetTeamLeader(team) or P.GetCharKey()
-end
-
--- Lignes du panneau pour les personnages keys : { questColumns } puis une ligne par quête de la
--- référence ({ quest, questID, title, missing, having, unknown } : clés des autres personnages),
--- celles qui manquent au plus de personnages d'abord ; et le texte de liste vide.
+-- Lignes du panneau pour les personnages keys (le personnage joué y est ajouté) : { questColumns }
+-- puis une ligne par quête en cours chez au moins l'un d'eux ({ quest, questID, title, todo,
+-- progress, done, unknown } : clés), celles à prendre chez le plus de personnages d'abord ; nil et
+-- le texte de liste vide s'il n'y en a aucune.
 local function BuildQuestItems(keys)
-	local reference = QuestReference()
-	local name = P.GetDisplayName(reference)
-	local quests = P.GetCharacterQuests and P.GetCharacterQuests(reference)
-	if not quests then
-		return {}, "Journal de quêtes de " .. name .. " pas encore reçu."
+	local own = P.GetCharKey()
+	local all, hasOwn = {}, false
+	for _, key in ipairs(keys) do
+		all[#all + 1] = key
+		hasOwn = hasOwn or key == own
+	end
+	if not hasOwn then
+		table.insert(all, 1, own)
+	end
+	-- Journal et quêtes rendues de chacun (section Q ; en direct pour le personnage joué).
+	local logs, completed, quests = {}, {}, {}
+	for _, key in ipairs(all) do
+		logs[key] = QuestLogOf(key)
+		if key ~= own then
+			local sections = DataFor(key)
+			completed[key] = sections and sections.Q
+		end
+		for questID in pairs(logs[key] or {}) do
+			quests[questID] = true
+		end
 	end
 	local items = {}
 	for questID in pairs(quests) do
 		local item = { quest = true, questID = questID, title = QuestTitle(questID) or ("Quête n° " .. questID),
-			missing = {}, having = {}, unknown = {} }
-		for _, key in ipairs(keys) do
-			if key ~= reference then
-				local memberQuests = P.GetCharacterQuests(key)
-				local list = not memberQuests and item.unknown or memberQuests[questID] and item.having
-					or item.missing
-				list[#list + 1] = key
+			todo = {}, progress = {}, done = {}, unknown = {} }
+		for _, key in ipairs(all) do
+			local list
+			if not logs[key] then
+				list = item.unknown
+			elseif logs[key][questID] then
+				list = item.progress
+			elseif key == own and C_QuestLog.IsQuestFlaggedCompleted and C_QuestLog.IsQuestFlaggedCompleted(questID)
+				or completed[key] and completed[key]["q" .. questID] then
+				list = item.done
+			else
+				list = item.todo
 			end
+			list[#list + 1] = key
 		end
 		items[#items + 1] = item
 	end
 	if #items == 0 then
-		return {}, "Aucune quête dans le journal de " .. name .. "."
+		return {}, "Aucune quête en cours chez ces personnages."
 	end
 	table.sort(items, function(a, b)
-		if #a.missing ~= #b.missing then
-			return #a.missing > #b.missing
+		if #a.todo ~= #b.todo then
+			return #a.todo > #b.todo
 		end
 		return a.title < b.title
 	end)
@@ -1582,27 +1674,29 @@ local function InOwnLog(questID)
 	return C_QuestLog.GetLogIndexForQuestID and C_QuestLog.GetLogIndexForQuestID(questID) ~= nil
 end
 
--- Infobulle d'une quête : qui ne l'a pas, qui l'a, qui est inconnu.
+-- Infobulle d'une quête : les personnages de chaque colonne.
 local function QuestTooltip(item)
-	local lines = { item.title, "|cff999999Quête n° " .. item.questID .. " — journal de "
-		.. P.GetDisplayName(QuestReference()) .. "|r" }
+	local lines = { item.title, "|cff999999Quête n° " .. item.questID .. "|r" }
 	if InOwnLog(item.questID) then
 		lines[#lines + 1] = "Clic : ouvrir dans le journal de quêtes"
 	else
 		lines[#lines + 1] = "|cff999999Absente de votre journal (ne s'ouvre pas au clic)|r"
 	end
-	local function Section(title, keys)
+	for _, column in ipairs(QUEST_COLUMNS) do
+		local keys = item[column.list]
 		if #keys > 0 then
 			lines[#lines + 1] = " "
-			lines[#lines + 1] = title
+			lines[#lines + 1] = column.color .. column.title .. " :|r"
 			for _, key in ipairs(keys) do
 				lines[#lines + 1] = "  " .. P.GetDisplayName(key)
 			end
 		end
 	end
-	Section("|cffff5555Ne l'ont pas :|r", item.missing)
-	Section("|cff40ff40L'ont :|r", item.having)
-	Section("|cff999999Inconnu (journal pas reçu de leur Polypode) :|r", item.unknown)
+	if #item.todo > 0 then
+		lines[#lines + 1] = " "
+		lines[#lines + 1] = "|cff999999« Terminée ou à prendre » : pas dans le journal ; rendue ou non, selon "
+			.. "ce que son Polypode Suivi a pu dire.|r"
+	end
 	return lines
 end
 
@@ -2704,8 +2798,7 @@ function P.RefreshSuivi()
 		if settings.questMode then
 			local questEmpty
 			items, questEmpty = BuildQuestItems(keys)
-			header = header:gsub("^Suivi", "Quêtes") .. "  |cff999999· journal de "
-				.. P.GetDisplayName(QuestReference()) .. "|r"
+			header = header:gsub("^Suivi", "Quêtes")
 			emptyText = questEmpty or emptyText
 		elseif settings.campaignMode then
 			items = #keys > 0 and BuildCampaignItems(keys) or {}
@@ -2800,14 +2893,6 @@ if P.RegisterSlashCommand then
 	P.RegisterSlashCommand("quêtes", OpenQuestPanel) -- alias, absent de l'aide
 end
 
--- Journal de quêtes reçu ou modifié (Polypode 0.58.0) : panneau « Quêtes » à jour s'il est affiché.
-if P.RegisterQuestLogCallback then
-	P.RegisterQuestLogCallback(function()
-		if SuiviSettings().questMode then
-			P.RefreshSuivi()
-		end
-	end)
-end
 
 -- Personnage supprimé dans Polypode (Maj + clic dans « Personnages disponibles », ou sur un
 -- autre client) : ses données de suivi sont oubliées ici aussi (Polypode 0.53.0).
@@ -2822,6 +2907,7 @@ if P.RegisterCharacterData then
 		remove = function(key)
 			if key ~= P.GetCharKey() then
 				received[key] = nil
+				questLogs[key] = nil
 				P.RefreshSuivi()
 			end
 		end,
@@ -2915,6 +3001,8 @@ setup:SetScript("OnEvent", function(_, event, addonName)
 	if event == "ADDON_LOADED" and addonName == "Polypode_Suivi" then
 		PolypodeSuiviData = PolypodeSuiviData or {}
 		received = PolypodeSuiviData
+		PolypodeSuiviQuests = PolypodeSuiviQuests or {}
+		questLogs = PolypodeSuiviQuests
 		PolypodeSuiviDB = PolypodeSuiviDB or {}
 		-- 1.2.1 : renommées décochées par défaut ; la 1.1.0 avait enregistré « cochée » partout,
 		-- remise une seule fois à la nouvelle valeur par défaut.
@@ -2945,6 +3033,18 @@ setup:SetScript("OnEvent", function(_, event, addonName)
 end)
 
 -- Changements du personnage joué : envoi différé des sections modifiées, et fenêtre à jour.
+local function ScheduleSend()
+	if sendPending then
+		return
+	end
+	sendPending = true
+	C_Timer.After(SEND_DELAY, function()
+		sendPending = nil
+		SendAll()
+		P.RefreshSuivi()
+	end)
+end
+
 local events = CreateFrame("Frame")
 for _, event in ipairs({
 	"PLAYER_ENTERING_WORLD", "PLAYER_LEAVING_WORLD", "WEEKLY_REWARDS_UPDATE", "CURRENCY_DISPLAY_UPDATE",
@@ -2969,13 +3069,14 @@ events:SetScript("OnEvent", function(_, event)
 	if event == "MAIL_INBOX_UPDATE" then
 		ScanMailbox() -- boîte ouverte : relevé immédiat, envoyé avec le reste
 	end
-	if sendPending then
-		return
+	if event == "QUEST_TURNED_IN" or event == "QUEST_REMOVED" then
+		ownQuestChanged = true -- journal vide possible : il peut être gardé (StoreQuestLogs)
 	end
-	sendPending = true
-	C_Timer.After(SEND_DELAY, function()
-		sendPending = nil
-		SendAll()
-		P.RefreshSuivi()
-	end)
+	ScheduleSend()
 end)
+
+-- Journal de quêtes reçu ou modifié (Polypode 0.58.0) : journaux gardés et quêtes rendues (section
+-- Q) relevés au prochain envoi, panneau « Quêtes » à jour.
+if P.RegisterQuestLogCallback then
+	P.RegisterQuestLogCallback(ScheduleSend)
+end
