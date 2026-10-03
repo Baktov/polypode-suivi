@@ -115,8 +115,10 @@ end
 -- congrégations, domaines de classe...) : le personnage suit celle qui lui est ouverte (voir
 -- Suivi.lua : CampaignVariant). Nom affiché : celui du jeu (traduit), name = repli. Ordre : de la
 -- plus ancienne à la plus récente (la dernière fait la colonne « Campagne »). Les campagnes en
--- cours hors liste sont affichées dans « Autres campagnes ». À METTRE À JOUR à chaque patch qui
--- ajoute une campagne : nouveau relevé, puis consolidation.
+-- cours hors liste sont affichées dans « Autres campagnes ». restricted = campagne qu'une partie
+-- des personnages ne peut clairement pas faire (race, mode de jeu) : affichée, mais pas exigée pour
+-- terminer l'extension (panneau Campagnes) ; le texte est montré dans l'infobulle. À METTRE À JOUR
+-- à chaque patch qui ajoute une campagne : nouveau relevé, puis consolidation.
 local MOP = LE_EXPANSION_MISTS_OF_PANDARIA or 4
 local LEGION = LE_EXPANSION_LEGION or 6
 local BFA = LE_EXPANSION_BATTLE_FOR_AZEROTH or 7
@@ -142,7 +144,8 @@ ns.CAMPAIGNS = {
 	{ expansion = LEGION, patch = "7.1", name = "Insurrection", ids = { 289 } },
 	{ expansion = LEGION, patch = "7.2", name = "Campagne du Déclin de la Légion", ids = { 290 } },
 	{ expansion = LEGION, patch = "7.3", name = "Ombres d'Argus", ids = { 291 } },
-	{ expansion = LEGION, patch = "Remix", name = "Legion Remix", ids = { 303 } },
+	{ expansion = LEGION, patch = "Remix", name = "Legion Remix", ids = { 303 },
+		restricted = "réservée aux personnages de Legion Remix" },
 	-- Battle for Azeroth
 	{ expansion = BFA, patch = "8.0", name = "Battle for Azeroth", ids = { 215, 226 } },
 	{ expansion = BFA, patch = "8.0", name = "Campagne militaire", ids = { 216, 225, 1, 2 } },
@@ -161,7 +164,8 @@ ns.CAMPAIGNS = {
 	{ expansion = SHADOWLANDS, patch = "9.1", name = "Chaînes de domination", ids = { 138 } },
 	{ expansion = SHADOWLANDS, patch = "9.2", name = "Les secrets des Fondateurs", ids = { 158 } },
 	-- Dragonflight
-	{ expansion = DRAGONFLIGHT, patch = "10.0", name = "Dracthyr, éveillez-vous", ids = { 159, 173 } },
+	{ expansion = DRAGONFLIGHT, patch = "10.0", name = "Dracthyr, éveillez-vous", ids = { 159, 173 },
+		restricted = "réservée aux Dracthyrs" },
 	{ expansion = DRAGONFLIGHT, patch = "10.0", name = "L'expédition du Dracaret", ids = { 165 } },
 	{ expansion = DRAGONFLIGHT, patch = "10.0", name = "Rivages de l'Éveil", ids = { 169 } },
 	{ expansion = DRAGONFLIGHT, patch = "10.0", name = "Plaines d'Ohn'ahra", ids = { 166 } },

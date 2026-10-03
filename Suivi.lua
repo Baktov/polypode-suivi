@@ -13,7 +13,8 @@ local P = Polypode -- dépendance obligatoire (## Dependencies: Polypode), charg
 -- les campagnes de ns.CAMPAIGNS par extension (en cours d'abord), avec à droite trois colonnes
 -- « Finie » (vert), « En cours » (jaune), « Pas commencée » (rouge) donnant un ou deux noms en
 -- exemple (connectés d'abord, « +n » pour les autres) ; à droite de chaque extension, les
--- personnages qui en ont fini toutes les campagnes ; infobulle = avancement de chacun (chapitres
+-- personnages qui en ont fini toutes les campagnes (sauf celles marquées restricted, que tous ne
+-- peuvent pas faire) ; infobulle = avancement de chacun (chapitres
 -- faits / total, raison d'un blocage). Lu dans la section S.
 
 -- Addon compagnon de Polypode, indépendant : bouton « Suivi » dans la barre de titre de la
@@ -1349,24 +1350,31 @@ local function BuildCampaignItems(keys)
 	end)
 	local items = { { campaignColumns = true } }
 	for _, group in ipairs(order) do
-		-- Campagnes finies par personnage ; extension terminée = toutes finies.
+		-- Campagnes exigées finies par personnage ; extension terminée = toutes finies. Les
+		-- campagnes restricted (race, mode de jeu) ne sont pas exigées.
+		local required = 0
+		for _, row in ipairs(group.rows) do
+			if not row.campaign.restricted then
+				required = required + 1
+			end
+		end
 		local finished, finishedKeys = {}, {}
 		for _, key in ipairs(keys) do
 			if known[key] then
 				local count = 0
 				for _, row in ipairs(group.rows) do
-					if CampaignState(row.values[key], true) == "done" then
+					if not row.campaign.restricted and CampaignState(row.values[key], true) == "done" then
 						count = count + 1
 					end
 				end
 				finished[key] = count
-				if count == #group.rows then
+				if required > 0 and count == required then
 					finishedKeys[#finishedKeys + 1] = key
 				end
 			end
 		end
 		items[#items + 1] = { campaignHeader = true, expansion = group.expansion, finished = finished,
-			finishedKeys = finishedKeys, total = #group.rows, keys = keys }
+			finishedKeys = finishedKeys, total = required, keys = keys }
 		for _, row in ipairs(group.rows) do
 			items[#items + 1] = row
 		end
@@ -1409,7 +1417,8 @@ end
 -- Infobulle d'une extension : campagnes finies par chaque personnage.
 local function ExpansionTooltip(item)
 	local lines = { ExpansionName(item.expansion) }
-	lines[#lines + 1] = "|cff999999Campagnes finies sur " .. item.total .. "|r"
+	lines[#lines + 1] = "|cff999999Campagnes finies sur " .. item.total
+		.. " (hors campagnes réservées à une race ou un mode de jeu)|r"
 	lines[#lines + 1] = " "
 	for _, key in ipairs(item.keys) do
 		local count = item.finished[key]
@@ -1458,6 +1467,9 @@ local function CampaignTooltip(item)
 	local entry = item.campaign
 	local lines = { CampaignName(item.campaignID, entry) }
 	lines[#lines + 1] = "|cff999999" .. ExpansionName(entry.expansion) .. " — " .. entry.patch .. "|r"
+	if entry.restricted then
+		lines[#lines + 1] = "|cff999999" .. entry.restricted .. " : pas exigée pour terminer l'extension|r"
+	end
 	lines[#lines + 1] = " "
 	for _, key in ipairs(item.keys) do
 		local value = item.values[key]
