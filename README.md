@@ -23,7 +23,8 @@ Nécessite **Polypode 0.51.0** ou plus récent.
 ## Utilisation
 
 Le bouton **Suivi** (barre de titre de la fenêtre Polypode, ou colonne des modules de la barre
-flottante ; **clic droit** : options du suivi) ou `/poly suivi` ouvre une fenêtre
+flottante ; **clic droit** : petite fenêtre des options du suivi, avec un bouton **Toutes les
+options** — Polypode 0.57 ; sinon le panneau d'options) ou `/poly suivi` ouvre une fenêtre
 présentée comme un **tableau sans trait** : une ligne d'en-tête (Personnage, Coffre, Runes, icônes
 des écus, icône du catalyseur, Campagne, Traques, Gouffres, Donjons, Raids), puis une ligne par
 membre de l'équipe sélectionnée (leader en
@@ -186,6 +187,7 @@ travail de recensement.
 
 ## Version
 
+`1.22.0` : clic droit sur le bouton « Suivi » : petite fenêtre d'options à côté du bouton (au lieu du panneau de WoW). Nécessite Polypode 0.57.
 `1.21.3` : clic droit sur le bouton « Suivi » (fenêtre Polypode et barre flottante) : options du suivi.
 `1.21.2` : panneau « Campagnes » : sur la ligne d'une extension, les personnages qui l'ont terminée sont en bleu, alignés à gauche sur la colonne « Finie ».
 `1.21.1` : panneau « Campagnes » : les campagnes réservées à une race ou à un mode de jeu (Dracthyr, Legion Remix) ne sont plus exigées pour terminer une extension.

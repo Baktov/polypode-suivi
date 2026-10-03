@@ -97,6 +97,7 @@ local lastSent = {} -- [section] = dernière chaîne envoyée aux clients connec
 local sendPending
 local frame, listPanel
 local settingsCategory -- catégorie « Suivi » du panneau d'options (BuildSettingsPanel)
+local settingsPopup -- ses options pour la petite fenêtre du clic droit (P.ToggleOptionsPopup)
 
 -- SAISON : extension de la saison affichée (C_SeasonInfo.GetCurrentDisplaySeasonExpansion) et
 -- numéro de saison dans l'extension (C_DelvesUI.GetCurrentDelvesSeasonNumber, 0 hors saison).
@@ -2575,11 +2576,13 @@ if P.AddTitleButton then
 		text = "Suivi",
 		width = 60,
 		rightClick = true,
-		onClick = function(_, mouseButton)
-			if mouseButton == "RightButton" then
-				OpenSuiviOptions()
-			else
+		onClick = function(button, mouseButton)
+			if mouseButton ~= "RightButton" then
 				P.ToggleSuivi()
+			elseif P.ToggleOptionsPopup and settingsPopup then
+				P.ToggleOptionsPopup(button, settingsPopup) -- petite fenêtre (Polypode 0.57.0)
+			else
+				OpenSuiviOptions()
 			end
 		end,
 		tooltip = {
@@ -2648,6 +2651,13 @@ local function BuildSettingsPanel()
 	else
 		category = Settings.RegisterVerticalLayoutCategory("Polypode Suivi")
 	end
+	-- Chaque case est aussi rappelée dans la petite fenêtre du clic droit sur le bouton « Suivi »
+	-- (P.ToggleOptionsPopup, Polypode 0.57.0), avec le même réglage.
+	local popupItems = {}
+	local function AddCheck(setting, tooltip)
+		Settings.CreateCheckbox(category, setting, tooltip)
+		popupItems[#popupItems + 1] = { kind = "check", setting = setting, tooltip = tooltip }
+	end
 	local allSetting = Settings.RegisterProxySetting(category, "POLYPODE_SUIVI_SHOW_ALL",
 		Settings.VarType.Boolean, "Tous les personnages", DEFAULTS.showAll,
 		function()
@@ -2660,7 +2670,7 @@ local function BuildSettingsPanel()
 			SuiviSettings().showAll = value
 			P.RefreshSuivi()
 		end)
-	Settings.CreateCheckbox(category, allSetting,
+	AddCheck(allSetting,
 		"La fenêtre « Suivi » liste tous les personnages dont des informations ont été enregistrées "
 		.. "(avec leur date) au lieu des membres de l'équipe sélectionnée. Même case que dans la barre "
 		.. "de titre de la fenêtre. Toujours cochée en mode solo de Polypode. Réglage propre à ce personnage.")
@@ -2673,7 +2683,7 @@ local function BuildSettingsPanel()
 		function(value)
 			SuiviSettings().showOldCampaigns = value
 		end)
-	Settings.CreateCheckbox(category, campaignSetting,
+	AddCheck(campaignSetting,
 		"Dans l'infobulle de chaque personnage, ajoute aux campagnes de l'extension en cours celles des "
 		.. "extensions précédentes (depuis Battle for Azeroth) : les campagnes commencées mais pas finies, "
 		.. "et le nombre de campagnes terminées par extension. Réglage propre à ce personnage.")
@@ -2686,12 +2696,13 @@ local function BuildSettingsPanel()
 		function(value)
 			SuiviSettings().showFactions = value
 		end)
-	Settings.CreateCheckbox(category, setting,
+	AddCheck(setting,
 		"Dans la fenêtre « Suivi de l'équipe », détaille les renommées de l'extension de chaque "
 		.. "membre dans son infobulle. Inutile avec un seul compte Battle.net : les renommées y sont "
 		.. "communes à tous les personnages. Réglage propre à ce personnage.")
 	Settings.RegisterAddOnCategory(category)
 	settingsCategory = category
+	settingsPopup = { key = "Suivi", title = "Options du suivi", items = popupItems, category = category }
 end
 
 local setup = CreateFrame("Frame")
