@@ -112,6 +112,17 @@ la partage pas avec les autres addons : seules les activités reposant sur une q
 mettre à jour quand un patch change les activités. Les activités sont remises à zéro à la
 réinitialisation hebdomadaire, et les quotidiennes chaque jour.
 
+### Campagnes
+
+Le bouton **Campagnes** (à gauche de **Activités**) remplace le résumé par la **liste de toutes les
+campagnes** suivies, de Mists of Pandaria à Midnight, rangées par extension (l'extension en cours
+d'abord, puis de la plus récente à la plus ancienne), « patch – nom ». À droite de chaque campagne,
+les personnages suivis qui l'ont **finie** (vert), **commencée** (jaune) ou **pas faite** (rouge) ;
+un personnage dont on n'a encore reçu aucune information n'est pas cité. **Au survol** d'une
+campagne : l'avancement de chaque personnage (« 2/7 chapitres », « pas commencée », « inconnu »),
+avec la raison du blocage d'une campagne bloquée. Le bouton **Résumé** revient à l'affichage par
+personnage.
+
 Le bouton **Options** (à gauche de la barre de titre) ouvre directement les options du suivi
 (Options → AddOns → Polypode → Suivi). La case **Tous les personnages** (à sa droite, rappelée
 dans les options)
@@ -170,6 +181,7 @@ travail de recensement.
 
 ## Version
 
+`1.20.0` : panneau « Campagnes » (bouton à gauche de « Activités ») : toutes les campagnes par extension, avec les personnages qui les ont finies (vert), commencées (jaune) ou pas faites (rouge), et l'avancement de chacun en infobulle.
 `1.19.1` : correctif : l'avancement des campagnes d'un personnage était sauvegardé à zéro à la déconnexion (relevé fait pendant la sortie du monde, quand le jeu a déjà vidé ces données). La déconnexion garde le dernier relevé fait en jeu, et l'avancement sauvegardé d'une campagne ne recule plus (relevé trop tôt à la connexion).
 `1.19.0` : outil de l'auteur : bouton « Nouveau » quand le jeu contient une campagne absente de la liste.
 `1.18.0` : liste des campagnes reconstruite d'après un relevé du jeu (Mists of Pandaria à Midnight, variantes regroupées), chapitres comptés par suite de quêtes, raison du blocage d'une campagne.

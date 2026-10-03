@@ -9,6 +9,11 @@ local P = Polypode -- dépendance obligatoire (## Dependencies: Polypode), charg
 -- état par activité (q<id> / p<id> : 2 faite, 1 en cours ; c<id> : nombre de quêtes faites),
 -- remise à zéro à la réinitialisation hebdomadaire (et quotidienne pour les activités daily).
 
+-- PANNEAU CAMPAGNES (bouton « Campagnes », à gauche de « Activités », option campaignMode) : toutes
+-- les campagnes de ns.CAMPAIGNS par extension (en cours d'abord), avec à droite de chaque ligne les
+-- personnages qui l'ont finie (vert), commencée (jaune) ou pas faite (rouge) ; infobulle =
+-- avancement de chacun (chapitres faits / total, raison d'un blocage). Lu dans la section S.
+
 -- Addon compagnon de Polypode, indépendant : bouton « Suivi » dans la barre de titre de la
 -- fenêtre Polypode (P.AddTitleButton) et /poly suivi (P.RegisterSlashCommand). La fenêtre liste
 -- les membres de l'équipe sélectionnée (leader en tête) avec un résumé par ligne ; le détail
@@ -59,13 +64,14 @@ local SECTIONS = { "V", "C", "R", "F", "P", "A", "M", "W", "S" }
 local DEFAULTS = {
 	showAll = false, -- tous les personnages sauvegardés au lieu de l'équipe sélectionnée
 	activityMode = false, -- panneau « Activités » au lieu du résumé
+	campaignMode = false, -- panneau « Campagnes » au lieu du résumé (exclusif avec activityMode)
 	showOldCampaigns = false, -- campagnes des extensions précédentes dans l'infobulle
 	showFactions = false, -- renommées dans l'infobulle (inutile avec un seul compte Battle.net :
 	-- elles y sont communes à tous les personnages)
 	width = 620, height = 340, -- taille de la fenêtre (poignée de redimensionnement)
 	sortDesc = false, -- tri : ordre inverse (sortColumn : "name", id de colonne, ou nil = sans tri)
 }
-local MIN_WIDTH, MIN_HEIGHT = 480, 200
+local MIN_WIDTH, MIN_HEIGHT = 560, 200 -- barre de titre : Options, case, Campagnes, Activités
 
 local function SuiviSettings()
 	return PolypodeSuiviDB or DEFAULTS
@@ -1243,6 +1249,120 @@ local function ActivityTooltip(item)
 	return lines
 end
 
+-- PANNEAU CAMPAGNES ------------------------------------------------------------------------
+
+-- État d'une campagne pour un personnage, d'après sa valeur de la section S : "done", "started",
+-- "none" (pas faite : valeur absente, ou aucun chapitre), ou nil si on n'a aucune donnée de lui.
+local function CampaignState(value, known)
+	if not known then
+		return nil
+	end
+	local done, total = tostring(value or ""):match("^(%d+)/(%d+)")
+	done, total = tonumber(done), tonumber(total)
+	if done and total and done >= total then
+		return "done"
+	elseif done and done > 0 then
+		return "started"
+	end
+	return "none"
+end
+
+local CAMPAIGN_COLORS = { done = "|cff40ff40", started = "|cffffd200", none = "|cffff4040" }
+
+-- Lignes du panneau : un en-tête par extension (en cours d'abord, puis de la plus récente à la plus
+-- ancienne), puis toutes ses campagnes dans l'ordre de ns.CAMPAIGNS ; values[clé] = valeur de la
+-- section S du personnage (false : personnage connu sans cette campagne), known[clé] = données reçues.
+local function BuildCampaignItems(keys)
+	local known = {}
+	local campaignsOf = {}
+	for _, key in ipairs(keys) do
+		local sections = DataFor(key)
+		known[key] = sections ~= nil
+		campaignsOf[key] = sections and sections.S
+	end
+	local current = GetClientDisplayExpansionLevel and GetClientDisplayExpansionLevel()
+	local groups, order = {}, {}
+	for _, campaign in ipairs((KnownCampaigns())) do
+		local entry = campaign.entry
+		local group = groups[entry.expansion]
+		if not group then
+			group = { expansion = entry.expansion, rows = {} }
+			groups[entry.expansion] = group
+			order[#order + 1] = group
+		end
+		local values, shownID = {}, nil
+		for _, key in ipairs(keys) do
+			local id, value = CampaignValue(campaignsOf[key], entry)
+			values[key] = value or false
+			shownID = shownID or id
+		end
+		group.rows[#group.rows + 1] = { campaign = entry, campaignID = shownID or entry.ids[1], values = values,
+			known = known, keys = keys }
+	end
+	table.sort(order, function(a, b)
+		if (a.expansion == current) ~= (b.expansion == current) then
+			return a.expansion == current
+		end
+		return a.expansion > b.expansion
+	end)
+	local items = {}
+	for _, group in ipairs(order) do
+		items[#items + 1] = { campaignHeader = true, expansion = group.expansion }
+		for _, row in ipairs(group.rows) do
+			items[#items + 1] = row
+		end
+	end
+	return items
+end
+
+local function ExpansionName(expansion)
+	return _G["EXPANSION_NAME" .. tostring(expansion)] or ("Extension " .. tostring(expansion))
+end
+
+-- Texte de gauche d'une campagne : « patch – nom ».
+local function CampaignTitle(item)
+	return item.campaign.patch .. " – " .. CampaignName(item.campaignID, item.campaign)
+end
+
+-- Texte de droite : personnages qui l'ont finie (vert), commencée (jaune), pas faite (rouge) ;
+-- ceux dont on n'a aucune donnée ne sont pas cités (infobulle : « inconnu »).
+local function CampaignRightText(item)
+	local parts = {}
+	for _, key in ipairs(item.keys) do
+		local state = CampaignState(item.values[key], item.known[key])
+		if state then
+			parts[#parts + 1] = CAMPAIGN_COLORS[state] .. ShortName(key) .. "|r"
+		end
+	end
+	return table.concat(parts, ", ")
+end
+
+-- Infobulle : avancement de chaque personnage (chapitres faits / total) et raison d'un blocage.
+local function CampaignTooltip(item)
+	local entry = item.campaign
+	local lines = { CampaignName(item.campaignID, entry) }
+	lines[#lines + 1] = "|cff999999" .. ExpansionName(entry.expansion) .. " — " .. entry.patch .. "|r"
+	lines[#lines + 1] = " "
+	for _, key in ipairs(item.keys) do
+		local value = item.values[key]
+		local state = CampaignState(value, item.known[key])
+		local status
+		if not state then
+			status = "|cff999999inconnu (pas d'infos)|r"
+		elseif state == "none" and not value then
+			status = CAMPAIGN_COLORS.none .. "pas commencée|r"
+		else
+			status = CAMPAIGN_COLORS[state] .. tostring(value):match("^(%d+/%d+)") .. " chapitres|r"
+		end
+		lines[#lines + 1] = P.GetDisplayName(key) .. " : " .. status
+		local failure = state ~= "done" and CampaignFailure(value)
+		if failure then
+			lines[#lines + 1] = "    |cff999999" .. failure .. "|r"
+		end
+	end
+	return lines
+end
+
 -- FENÊTRE ---------------------------------------------------------------------------------
 
 local function Icon(fileID)
@@ -1979,6 +2099,7 @@ local function Build()
 	activityBtn:SetPoint("RIGHT", closeBtn, "LEFT", -4, 0)
 	activityBtn:SetScript("OnClick", function()
 		SuiviSettings().activityMode = not SuiviSettings().activityMode
+		SuiviSettings().campaignMode = false
 		P.RefreshSuivi()
 	end)
 	activityBtn:SetScript("OnEnter", function(self)
@@ -1994,12 +2115,36 @@ local function Build()
 	frame.activityButton = activityBtn
 	P.ui.suiviActivityButton = activityBtn
 
-	-- Bouton « Nouveau » (auteur seulement, à gauche de « Activités ») : affiché s'il existe des
+	-- Bouton « Campagnes » / « Résumé » (à gauche de « Activités ») : panneau des campagnes
+	-- (option campaignMode, exclusive avec activityMode).
+	local campaignBtn = CreateFrame("Button", nil, frame, "UIPanelButtonTemplate")
+	campaignBtn:SetSize(84, 20)
+	campaignBtn:SetPoint("RIGHT", activityBtn, "LEFT", -4, 0)
+	campaignBtn:SetScript("OnClick", function()
+		SuiviSettings().campaignMode = not SuiviSettings().campaignMode
+		SuiviSettings().activityMode = false
+		P.RefreshSuivi()
+	end)
+	campaignBtn:SetScript("OnEnter", function(self)
+		GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
+		GameTooltip:AddLine(SuiviSettings().campaignMode and "Résumé" or "Campagnes")
+		GameTooltip:AddLine(SuiviSettings().campaignMode
+			and "Revient au résumé par personnage (coffre, écus, ressources, runes)."
+			or "Affiche toutes les campagnes, par extension, avec à droite de chacune les personnages "
+				.. "qui l'ont finie (vert), commencée (jaune) ou pas faite (rouge). Survol d'une "
+				.. "campagne : avancement de chacun.", 1, 1, 1, true)
+		GameTooltip:Show()
+	end)
+	campaignBtn:SetScript("OnLeave", GameTooltip_Hide)
+	frame.campaignButton = campaignBtn
+	P.ui.suiviCampaignButton = campaignBtn
+
+	-- Bouton « Nouveau » (auteur seulement, à gauche de « Campagnes ») : affiché s'il existe des
 	-- campagnes inconnues (UnknownCampaigns), clignotant rouge tant que le relevé n'est pas fait ;
 	-- clic = relevé des campagnes (ScanCampaigns), puis /reload pour écrire le fichier.
 	local scanBtn = CreateFrame("Button", nil, frame, "UIPanelButtonTemplate")
 	scanBtn:SetSize(76, 20)
-	scanBtn:SetPoint("RIGHT", activityBtn, "LEFT", -4, 0)
+	scanBtn:SetPoint("RIGHT", campaignBtn, "LEFT", -4, 0)
 	scanBtn:SetText("Nouveau")
 	local flash = scanBtn:CreateTexture(nil, "OVERLAY")
 	flash:SetAllPoints()
@@ -2103,7 +2248,11 @@ local function Build()
 	frame.resizeGrip = grip
 	-- Une liste pour les deux panneaux : membres (résumé) ou en-têtes et lignes d'activités.
 	P.CreateScrollList(listPanel, function(data)
-		if data.activityHeader then
+		if data.campaignHeader then
+			return "|cffffd200" .. ExpansionName(data.expansion) .. "|r"
+		elseif data.campaign then
+			return "  " .. CampaignTitle(data)
+		elseif data.activityHeader then
 			return "|cffffd200" .. CategoryTitle(data.category) .. "|r"
 		elseif data.activity then
 			return "  " .. EntryIcon(data) .. " " .. EntryTitle(data.activity)
@@ -2119,8 +2268,10 @@ local function Build()
 			end
 		end,
 		tooltip = function(data)
-			if data.columnHeader then
-				return nil -- pas d'infobulle sur la ligne d'en-tête
+			if data.columnHeader or data.campaignHeader then
+				return nil -- pas d'infobulle sur une ligne d'en-tête
+			elseif data.campaign then
+				return CampaignTooltip(data)
 			elseif data.activityHeader then
 				return { CategoryTitle(data.category) }
 			elseif data.activity then
@@ -2128,7 +2279,8 @@ local function Build()
 			end
 			return MemberTooltip(data)
 		end,
-		-- Texte de droite des activités (personnages) ; colonnes du tableau pour le résumé.
+		-- Texte de droite des activités et des campagnes (personnages) ; colonnes du tableau pour le
+		-- résumé.
 		decorate = function(row, data)
 			local firstCell = LayoutCells(row, data)
 			if not row.rightText then
@@ -2138,8 +2290,8 @@ local function Build()
 				row.rightText:SetJustifyH("RIGHT")
 				row.rightText:SetWordWrap(false)
 			end
-			if data.activity then
-				row.rightText:SetText(ActivityRightText(data))
+			if data.activity or data.campaign then
+				row.rightText:SetText(data.campaign and CampaignRightText(data) or ActivityRightText(data))
 				row.rightText:Show()
 				row.text:SetPoint("RIGHT", row.rightText, "LEFT", -6, 0)
 			elseif firstCell then
@@ -2161,6 +2313,7 @@ local function Build()
 	if P.SkinButton then
 		P.SkinButton(optionsBtn)
 		P.SkinButton(activityBtn)
+		P.SkinButton(campaignBtn)
 		P.SkinButton(scanBtn)
 	end
 	if P.SkinCheckBox then -- Polypode 0.53.3
@@ -2200,20 +2353,25 @@ function P.RefreshSuivi()
 		scanBtn:Hide()
 	end
 	local items, header, emptyText = BuildItems()
-	if SuiviSettings().activityMode then
-		frame.activityButton:SetText("Résumé")
+	local settings = SuiviSettings()
+	frame.activityButton:SetText(settings.activityMode and "Résumé" or "Activités")
+	frame.campaignButton:SetText(settings.campaignMode and "Résumé" or "Campagnes")
+	if settings.activityMode or settings.campaignMode then
 		local keys = {}
 		for i, item in ipairs(items) do
 			keys[i] = item.key
 		end
-		items = #keys > 0 and BuildActivityItems(keys) or {}
-		header = header:gsub("^Suivi", "Activités")
-		emptyText = #keys > 0 and "Aucune activité à afficher." or emptyText
-	else
-		frame.activityButton:SetText("Activités")
-		if #items > 0 then
-			items = BuildMemberTable(items)
+		if settings.campaignMode then
+			items = #keys > 0 and BuildCampaignItems(keys) or {}
+			header = header:gsub("^Suivi", "Campagnes")
+			emptyText = #keys > 0 and "Aucune campagne connue." or emptyText
+		else
+			items = #keys > 0 and BuildActivityItems(keys) or {}
+			header = header:gsub("^Suivi", "Activités")
+			emptyText = #keys > 0 and "Aucune activité à afficher." or emptyText
 		end
+	elseif #items > 0 then
+		items = BuildMemberTable(items)
 	end
 	-- Saison en cours, et avertissement si les listes reprises de Plumber ne la couvrent pas.
 	local season = SeasonText()
