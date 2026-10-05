@@ -9,8 +9,8 @@ local P = Polypode
 --     dans Polypode, P.GetCharacterAccount ; ordre et nombre réglés dans les options), à gauche
 --     les métiers (option) et le niveau (« niveau / ilvl » au niveau maximum). Trois blocs :
 --     Solo, Multi 2/3, Multi 4/5/+.
---   Matrice (Retail seulement) — races en lignes, classes en colonnes (combinaisons impossibles en
---     gris, RACES), chaque personnage dans sa case ; en bas, des lignes libres (libellé et texte
+--   Matrice — races en lignes, classes en colonnes (combinaisons impossibles en gris, RACES sur
+--     Retail, FOREVER_RACES sur WoW Forever), chaque personnage dans sa case ; en bas, des lignes libres (libellé et texte
 --     par classe) qu'on ajoute, renomme et supprime.
 -- Personnage au niveau maximum : case en rouge. Données : section G de Suivi (classe, race,
 -- niveau, ilvl, métiers), repli sur le roster de Polypode (classe, niveau).
@@ -88,6 +88,42 @@ local RACES = {
 	{ "Goblin", "Gobelin", "H", "xxxxxx--xx-x-" },
 	{ "Vulpera", "Vulpérin", "H", "xxxxxx--xx-x-" },
 }
+
+-- WoW Forever (contenu Vanilla) : neuf classes, dix races ; combinaisons dans l'ordre de
+-- FOREVER_CLASSES (tableaux de l'utilisateur). Les deux races Éolides n'ont pas de fichier connu
+-- (absent du code de Blizzard) : reconnues par leur nom traduit (RaceKey), d'où la clé « ? ».
+local FOREVER_CLASSES = { "WARRIOR", "HUNTER", "MAGE", "ROGUE", "PRIEST", "WARLOCK", "PALADIN", "DRUID", "SHAMAN" }
+local FOREVER_RACES = {
+	{ "Human", "Humain", "A", "xxxxxxx--" },
+	{ "Dwarf", "Nain", "A", "xx-xx-x-x" },
+	{ "NightElf", "Elfe de la nuit", "A", "xx-xx--x-" },
+	{ "Gnome", "Gnome", "A", "x-xxxx---" },
+	{ "?eolide-ordre", "Éolide de l'Ordre suprême", "A", "xxxx---x-" },
+	{ "Orc", "Orc", "H", "xxxx-x--x" },
+	{ "Tauren", "Tauren", "H", "xx-----xx" },
+	{ "Troll", "Troll", "H", "xxxxxx--x" },
+	{ "Scourge", "Mort-vivant", "H", "x-xxxxx--" },
+	{ "?eolide-sculpte", "Éolide des Sculpte-vents", "H", "xx-x---xx" },
+}
+
+-- Classes et races de la matrice selon le jeu.
+local MATRIX_CLASSES, MATRIX_RACES = CLASSES, RACES
+if not IS_RETAIL then
+	MATRIX_CLASSES = {}
+	for _, file in ipairs(FOREVER_CLASSES) do
+		for _, class in ipairs(CLASSES) do
+			if class[1] == file then
+				MATRIX_CLASSES[#MATRIX_CLASSES + 1] = class
+			end
+		end
+	end
+	MATRIX_RACES = FOREVER_RACES
+end
+
+-- Nom de race comparable : minuscules, sans espaces, tirets ni apostrophes.
+local function NormalizeRaceName(name)
+	return (name:gsub("’", "'"):lower():gsub("[%s%-']", ""))
+end
 
 local frame, scroll, canvas, editor
 local cells = {} -- cases réutilisées
@@ -628,7 +664,7 @@ end
 
 local function ClassHeaderRows()
 	local armorRow, classRow = { [1] = { bg = BG_HEADER } }, { [1] = { bg = BG_HEADER } }
-	for i, class in ipairs(CLASSES) do
+	for i, class in ipairs(MATRIX_CLASSES) do
 		armorRow[i + 1] = { text = class[2], bg = ARMOR_BG[class[2]] }
 		classRow[i + 1] = { text = ClassName(class[1]), bg = BG_HEADER }
 	end
@@ -660,18 +696,23 @@ end
 local function BuildMatrixGrid()
 	local infos = CharacterInfos()
 	local columns = { { width = RACE_WIDTH } }
-	for i = 1, #CLASSES do
+	for i = 1, #MATRIX_CLASSES do
 		columns[i + 1] = {}
 	end
-	-- [race][classe] = { clés } ; races inconnues de RACES ajoutées après, personnages sans race
-	-- connue sur une dernière ligne.
+	-- [race][classe] = { clés } ; races inconnues de MATRIX_RACES ajoutées après, personnages sans
+	-- race connue sur une dernière ligne. Race au fichier inconnu : reconnue par son nom traduit.
 	local byRace, raceNames, unknownRaces = {}, {}, {}
-	local known = {}
-	for _, race in ipairs(RACES) do
+	local known, byName = {}, {}
+	for _, race in ipairs(MATRIX_RACES) do
 		known[race[1]] = true
+		byName[NormalizeRaceName(race[2])] = race[1]
 	end
 	for key, info in pairs(infos) do
-		local race = info.race or "?"
+		local race = info.race
+		if race and not known[race] and info.raceName then
+			race = byName[NormalizeRaceName(info.raceName)] or race
+		end
+		race = race or "?"
 		byRace[race] = byRace[race] or {}
 		local class = info.class or "?"
 		byRace[race][class] = byRace[race][class] or {}
@@ -681,21 +722,21 @@ local function BuildMatrixGrid()
 		end
 		if race ~= "?" and not known[race] then
 			known[race] = true
-			unknownRaces[#unknownRaces + 1] = { race, info.raceName or race, "N", string.rep("x", #CLASSES) }
+			unknownRaces[#unknownRaces + 1] = { race, info.raceName or race, "N", string.rep("x", #MATRIX_CLASSES) }
 		end
 	end
 	table.sort(unknownRaces, function(a, b)
 		return a[2] < b[2]
 	end)
 	local raceList = {}
-	for _, race in ipairs(RACES) do
+	for _, race in ipairs(MATRIX_RACES) do
 		raceList[#raceList + 1] = race
 	end
 	for _, race in ipairs(unknownRaces) do
 		raceList[#raceList + 1] = race
 	end
 	if byRace["?"] then
-		raceList[#raceList + 1] = { "?", "Race inconnue", nil, string.rep("x", #CLASSES) }
+		raceList[#raceList + 1] = { "?", "Race inconnue", nil, string.rep("x", #MATRIX_CLASSES) }
 	end
 
 	local armorRow, classRow = ClassHeaderRows()
@@ -713,7 +754,7 @@ local function BuildMatrixGrid()
 			end or nil,
 		} }
 		local chars = byRace[raceFile] or {}
-		for i, class in ipairs(CLASSES) do
+		for i, class in ipairs(MATRIX_CLASSES) do
 			local keys = chars[class[1]]
 			if keys then
 				SortKeys(keys, infos)
@@ -754,7 +795,7 @@ local function BuildMatrixGrid()
 				end
 			end,
 		} }
-		for i, class in ipairs(CLASSES) do
+		for i, class in ipairs(MATRIX_CLASSES) do
 			local text = free.cells and free.cells[class[1]] or ""
 			rowCells[i + 1] = {
 				text = text,
@@ -916,10 +957,10 @@ local function Render(grid)
 	frame.emptyText:SetText(grid.empty or "")
 end
 
--- Onglet affiché (PolypodeSuiviDB.gridTab : "accounts" / "matrix" ; Matrice : Retail seulement).
+-- Onglet affiché (PolypodeSuiviDB.gridTab : "accounts" / "matrix").
 local function CurrentTab()
 	local tab = WindowSettings().gridTab
-	if tab == "matrix" and IS_RETAIL then
+	if tab == "matrix" then
 		return "matrix"
 	end
 	return "accounts"
@@ -1054,9 +1095,6 @@ local function Build()
 			SetTab("matrix")
 		end)
 	matrixTab:SetPoint("LEFT", accountsTab, "RIGHT", 4, 0)
-	if not IS_RETAIL then
-		matrixTab:Hide() -- WoW Forever : races et classes de Retail
-	end
 	frame.accountsTab, frame.matrixTab = accountsTab, matrixTab
 
 	local optionsBtn = TabButton("Options", 70, "Ouvre les options de la grille (Options > AddOns > Polypode > "

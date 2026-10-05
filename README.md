@@ -176,12 +176,14 @@ Maj + molette : défilement horizontal si la grille est plus large que la fenêt
   **Solo** (regroupés par métiers), **Multi 2/3**, **Multi 4/5/+**. À gauche : **Métier 1** et
   **Métier 2** (masquables) et le **niveau** — « 90 / 308 » au niveau maximum, avec le niveau
   d'objet (le plus bas de l'équipe) ; les niveaux de chacun si ceux d'une équipe diffèrent.
-- **Matrice** (Retail seulement) : les **races** en lignes (bleu Alliance, vert neutre, rouge
+- **Matrice** : les **races** en lignes (bleu Alliance, vert neutre, rouge
   Horde), les **classes** en colonnes (armure en en-tête), chaque personnage dans sa case ; une
   combinaison race / classe impossible est **grise**. En bas, des **lignes libres** : « + Ajouter
   une ligne », clic sur le libellé pour le renommer (clic droit : supprimer), clic sur une case
   pour y écrire un texte (Entrée pour valider, Échap pour annuler). Ces lignes sont communes à tous
-  vos personnages.
+  vos personnages. Sur **WoW Forever**, la matrice suit les races et classes de Forever (neuf
+  classes ; Humain, Nain, Elfe de la nuit, Gnome, Éolide de l'Ordre suprême, Orc, Tauren, Troll,
+  Mort-vivant, Éolide des Sculpte-vents) et leurs combinaisons.
 
 La race, le niveau d'objet et les métiers d'un personnage sont connus après sa prochaine connexion
 avec cette version (avant : classe et niveau du roster, ligne « Race inconnue » de la matrice).
@@ -253,6 +255,7 @@ travail de recensement.
 
 ## Version
 
+`2.3.0` : onglet Matrice de la Grille aussi sur WoW Forever, avec ses races, classes et combinaisons (Éolides reconnues par leur nom).
 `2.2.0` : fenêtre « Grille » (bouton à droite de « Tous les personnages ») : onglets Comptes (personnages et équipes par compte WoW, métiers, niveau / ilvl) et Matrice (race × classe, lignes libres) ; niveau maximum en rouge ; options « Grille » communes aux personnages et synchronisées.
 `2.1.0` : WoW Forever : suivi de l'Héritage (points gagnés, dépensés par arbre, à dépenser, défis) en colonnes et en infobulle.
 `2.0.2` : WoW Forever : colonnes du résumé, détail Retail de l'infobulle, saison et options des campagnes / renommées masqués.
