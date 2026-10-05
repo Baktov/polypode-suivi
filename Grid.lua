@@ -346,37 +346,98 @@ local function ClassName(classFile)
 	return classFile or "?"
 end
 
+-- Noms de race traduits (normalisés) → fichier de race : table du jeu (C_CreatureInfo.GetRaceInfo,
+-- construite une fois) et correspondances apprises des sections G de Suivi (rn → r : formes
+-- féminines comprises). Sert à placer les personnages dont seule la race traduite est connue
+-- (Polypode Data).
+local gameRaceFiles
+
+local function RaceFilesByName(gSections)
+	if not gameRaceFiles then
+		gameRaceFiles = {}
+		if C_CreatureInfo and C_CreatureInfo.GetRaceInfo then
+			for raceID = 1, 150 do
+				local ok, info = pcall(C_CreatureInfo.GetRaceInfo, raceID)
+				if ok and info and info.raceName and info.clientFileString then
+					gameRaceFiles[NormalizeRaceName(info.raceName)] = info.clientFileString
+				end
+			end
+		end
+	end
+	local byName = {}
+	for name, file in pairs(gameRaceFiles) do
+		byName[name] = file
+	end
+	for _, g in pairs(gSections) do
+		if g.rn and g.r and g.r ~= "" then
+			byName[NormalizeRaceName(g.rn)] = g.r
+		end
+	end
+	return byName
+end
+
+-- Section d'un personnage gardée par Polypode Data (P.GetCharacterData, Data 2.1.0), ou {}.
+local function DataSection(key, section)
+	return P.GetCharacterData and P.GetCharacterData(key, section) or {}
+end
+
+-- Nom d'un métier de Polypode Data (« skillLine/niveau/max/icône/nom »), ou nil.
+local function DataProfessionName(value)
+	local name = value and value:match("([^/]*)$")
+	return name and name ~= "" and name or nil
+end
+
 -- Personnages du roster : [clé] = { key, name, class, race, raceName, level, ilvl, profs, account,
--- max } (section G de Suivi, sinon roster de Polypode).
+-- max }. Sources, de la plus sûre à la moins sûre : section G de Suivi, sections I (identité) et T
+-- (métiers) de Polypode Data, roster de Polypode (classe, niveau). Niveau : le plus haut connu.
 local function CharacterInfos()
 	local infos = {}
 	local own = P.GetCharKey()
 	local received = ns.GetReceived and ns.GetReceived() or {}
 	local maxLevel = MaxLevel()
-	for key, entry in pairs(P.GetRoster and P.GetRoster() or {}) do
-		local g
+	local roster = P.GetRoster and P.GetRoster() or {}
+	local gSections = {}
+	for key in pairs(roster) do
 		if key == own and ns.ReadGrid then
-			g = ns.ReadGrid()
+			gSections[key] = ns.ReadGrid()
 		else
-			g = received[key] and received[key].sections and received[key].sections.G
+			gSections[key] = received[key] and received[key].sections and received[key].sections.G or {}
 		end
-		g = g or {}
-		local level = tonumber(g.l) or tonumber(entry.level)
+	end
+	local raceFiles = RaceFilesByName(gSections)
+	for key, entry in pairs(roster) do
+		local g, identity = gSections[key], DataSection(key, "I")
+		local level
+		local levels = { g.l, identity.l, entry.level } -- trous possibles : pas d'ipairs
+		for i = 1, 3 do
+			local value = tonumber(levels[i])
+			if value and value > 0 and (not level or value > level) then
+				level = value
+			end
+		end
 		local profs = {}
-		for _, name in ipairs({ g.m1, g.m2 }) do
+		local names = { g.m1, g.m2 }
+		if not (g.m1 or g.m2) then
+			local trades = DataSection(key, "T")
+			names = { DataProfessionName(trades.p1), DataProfessionName(trades.p2) }
+		end
+		for _, name in pairs(names) do
 			if name and name ~= "" then
 				profs[#profs + 1] = name
 			end
 		end
 		table.sort(profs)
+		local raceName = g.rn or (identity.r ~= "" and identity.r or nil)
+		local race = (g.r and g.r ~= "") and g.r or (raceName and raceFiles[NormalizeRaceName(raceName)]) or nil
+		local class = (g.c and g.c ~= "") and g.c or (identity.c and identity.c ~= "" and identity.c) or entry.class
 		infos[key] = {
 			key = key,
 			name = P.GetDisplayName and P.GetDisplayName(key) or key:match("^[^-]+"),
-			class = (g.c and g.c ~= "") and g.c or entry.class,
-			race = (g.r and g.r ~= "") and g.r or nil,
-			raceName = g.rn,
+			class = class,
+			race = race,
+			raceName = raceName,
 			level = level,
-			ilvl = tonumber(g.i),
+			ilvl = tonumber(g.i) or tonumber(identity.i),
 			profs = profs,
 			account = P.GetCharacterAccount and P.GetCharacterAccount(key),
 			max = level ~= nil and maxLevel ~= nil and level >= maxLevel,
@@ -417,9 +478,9 @@ local function CharacterTooltip(info, team)
 	if team then
 		GameTooltip:AddDoubleLine("Équipe", team, 0.6, 0.6, 0.6, 1, 1, 1)
 	end
-	if not info.race then
-		GameTooltip:AddLine("Race, ilvl et métiers connus après sa prochaine connexion (avec Polypode Suivi à jour).",
-			0.6, 0.6, 0.6, true)
+	if not (info.race or info.raceName) then
+		GameTooltip:AddLine("Race, ilvl et métiers connus après sa prochaine connexion (avec Polypode Suivi à jour, "
+			.. "ou Polypode Data).", 0.6, 0.6, 0.6, true)
 	end
 end
 
@@ -701,7 +762,7 @@ local function BuildMatrixGrid()
 	end
 	-- [race][classe] = { clés } ; races inconnues de MATRIX_RACES ajoutées après, personnages sans
 	-- race connue sur une dernière ligne. Race au fichier inconnu : reconnue par son nom traduit.
-	local byRace, raceNames, unknownRaces = {}, {}, {}
+	local byRace, unknownRaces = {}, {}
 	local known, byName = {}, {}
 	for _, race in ipairs(MATRIX_RACES) do
 		known[race[1]] = true
@@ -709,17 +770,14 @@ local function BuildMatrixGrid()
 	end
 	for key, info in pairs(infos) do
 		local race = info.race
-		if race and not known[race] and info.raceName then
-			race = byName[NormalizeRaceName(info.raceName)] or race
+		if (not race or not known[race]) and info.raceName then
+			race = byName[NormalizeRaceName(info.raceName)] or race or info.raceName
 		end
 		race = race or "?"
 		byRace[race] = byRace[race] or {}
 		local class = info.class or "?"
 		byRace[race][class] = byRace[race][class] or {}
 		table.insert(byRace[race][class], key)
-		if info.raceName then
-			raceNames[race] = info.raceName
-		end
 		if race ~= "?" and not known[race] then
 			known[race] = true
 			unknownRaces[#unknownRaces + 1] = { race, info.raceName or race, "N", string.rep("x", #MATRIX_CLASSES) }
@@ -744,13 +802,13 @@ local function BuildMatrixGrid()
 	for _, race in ipairs(raceList) do
 		local raceFile = race[1]
 		local rowCells = { [1] = {
-			text = raceNames[raceFile] or race[2],
+			text = race[2], -- nom de la table (les noms relevés peuvent être au féminin)
 			bg = race[3] and FACTION_BG[race[3]] or BG_HEADER,
 			justify = "LEFT",
 			tooltip = raceFile == "?" and function()
 				GameTooltip:AddLine("Race inconnue")
 				GameTooltip:AddLine("Personnages dont la race sera connue à leur prochaine connexion (avec "
-					.. "Polypode Suivi à jour).", 1, 1, 1, true)
+					.. "Polypode Suivi à jour, ou Polypode Data).", 1, 1, 1, true)
 			end or nil,
 		} }
 		local chars = byRace[raceFile] or {}

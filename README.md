@@ -185,8 +185,10 @@ Maj + molette : défilement horizontal si la grille est plus large que la fenêt
   classes ; Humain, Nain, Elfe de la nuit, Gnome, Éolide de l'Ordre suprême, Orc, Tauren, Troll,
   Mort-vivant, Éolide des Sculpte-vents) et leurs combinaisons.
 
-La race, le niveau d'objet et les métiers d'un personnage sont connus après sa prochaine connexion
-avec cette version (avant : classe et niveau du roster, ligne « Race inconnue » de la matrice).
+La race, le niveau d'objet et les métiers d'un personnage sont relevés par Polypode Suivi (à sa
+prochaine connexion avec cette version) ; en attendant, ceux déjà relevés par **Polypode Data**
+(2.1 ou plus, s'il est installé) sont utilisés. Sans l'un ni l'autre : classe et niveau du roster,
+ligne « Race inconnue » de la matrice.
 
 ---
 
@@ -255,6 +257,7 @@ travail de recensement.
 
 ## Version
 
+`2.4.0` : Grille : race, niveau, niveau d'objet et métiers repris de Polypode Data (2.1.0, `P.GetCharacterData`) quand Suivi ne les a pas encore relevés ; race reconnue par son nom traduit (table du jeu et formes féminines apprises).
 `2.3.1` : Grille : barre de défilement skinnée (EllesmereUI / ElvUI) ; bouton Options à gauche, onglets Comptes et Matrice à droite.
 `2.3.0` : onglet Matrice de la Grille aussi sur WoW Forever, avec ses races, classes et combinaisons (Éolides reconnues par leur nom).
 `2.2.0` : fenêtre « Grille » (bouton à droite de « Tous les personnages ») : onglets Comptes (personnages et équipes par compte WoW, métiers, niveau / ilvl) et Matrice (race × classe, lignes libres) ; niveau maximum en rouge ; options « Grille » communes aux personnages et synchronisées.
