@@ -84,7 +84,7 @@ local RESOURCES = {
 	{ "c", 1602 }, { "c", 1792 }, { "c", 2123 }, { "c", 2797 },
 }
 
-local SECTIONS = { "V", "C", "R", "F", "P", "A", "M", "W", "S", "Q", "H" }
+local SECTIONS = { "V", "C", "R", "F", "P", "A", "M", "W", "S", "Q", "H", "G" }
 
 -- Options par personnage (PolypodeSuiviDB, Options → AddOns → Polypode → Suivi).
 local DEFAULTS = {
@@ -98,7 +98,7 @@ local DEFAULTS = {
 	width = 620, height = 340, -- taille de la fenêtre (poignée de redimensionnement)
 	sortDesc = false, -- tri : ordre inverse (sortColumn : "name", id de colonne, ou nil = sans tri)
 }
-local MIN_WIDTH, MIN_HEIGHT = 640, 200 -- barre de titre : Options, case, Quêtes, Campagnes, Activités
+local MIN_WIDTH, MIN_HEIGHT = 760, 200 -- barre de titre : Options, case, Grille, titre, Quêtes, Campagnes, Activités
 
 -- Retail (interface >= 100000) : les panneaux « Activités » et « Campagnes » (Midnight, campagnes
 -- de Mists of Pandaria à Midnight) n'existent pas sur WoW Forever (16001) : boutons masqués.
@@ -973,9 +973,36 @@ local function ReadQuestCompletion()
 	return data
 end
 
+-- GRILLE (section G, fenêtre « Grille », Grid.lua) : c = classe (fichier), r = race (fichier),
+-- rn = nom traduit de la race, l = niveau, i = niveau d'objet équipé, m1 / m2 = métiers
+-- principaux (noms traduits).
+local function CleanText(text)
+	return text and (text:gsub("[,=|]", "")) or nil
+end
+
+local function ReadGrid()
+	local data = {}
+	local _, classFile = UnitClass("player")
+	local raceName, raceFile = UnitRace("player")
+	data.c, data.r, data.rn = classFile, raceFile, CleanText(raceName)
+	data.l = UnitLevel("player")
+	if GetAverageItemLevel then
+		local _, equipped = GetAverageItemLevel()
+		if equipped and equipped > 0 then
+			data.i = math.floor(equipped)
+		end
+	end
+	if GetProfessions and GetProfessionInfo then
+		local prof1, prof2 = GetProfessions()
+		data.m1 = prof1 and CleanText((GetProfessionInfo(prof1)))
+		data.m2 = prof2 and CleanText((GetProfessionInfo(prof2)))
+	end
+	return data
+end
+
 local READERS = { V = ReadVault, C = ReadCrests, R = ReadResources, F = ReadFactions, P = ReadRunes,
 	A = ReadActivities, M = ReadMail, W = ReadWeekly, S = ReadCampaigns, Q = ReadQuestCompletion,
-	H = ReadLegacy }
+	H = ReadLegacy, G = ReadGrid }
 
 local function ReadOwn()
 	local sections = {}
@@ -1203,6 +1230,14 @@ local function DataFor(key)
 		end
 	end
 	return copy or sections, entry.at, vaultReset
+end
+
+-- Pour la fenêtre « Grille » (Grid.lua) : section G du personnage joué lue en direct, et données
+-- gardées des autres (table remplacée à ADDON_LOADED, d'où la fonction).
+ns.ReadGrid = ReadGrid
+ns.ShowTooltip = ShowTooltip
+function ns.GetReceived()
+	return received
 end
 
 -- PANNEAU ACTIVITÉS -------------------------------------------------------------------------
@@ -2785,6 +2820,27 @@ local function Build()
 	allCheck:SetMotionScriptsWhileDisabled(true) -- infobulle aussi grisée (mode solo)
 	frame.allCheck = allCheck
 
+	-- Bouton « Grille », à droite de la case « Tous les personnages » (à gauche du titre) : ouvre
+	-- la fenêtre de la grille (Grid.lua), personnages par compte et par race / classe.
+	local gridBtn = CreateFrame("Button", nil, frame, "UIPanelButtonTemplate")
+	gridBtn:SetSize(60, 20)
+	gridBtn:SetText("Grille")
+	gridBtn:SetScript("OnClick", function()
+		if ns.ToggleGrid then
+			ns.ToggleGrid()
+		end
+	end)
+	gridBtn:SetScript("OnEnter", function(self)
+		GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
+		GameTooltip:AddLine("Grille")
+		GameTooltip:AddLine("Ouvre la grille des personnages : par compte (onglet Comptes) et par race et "
+			.. "classe (onglet Matrice).", 1, 1, 1, true)
+		ShowTooltip()
+	end)
+	gridBtn:SetScript("OnLeave", GameTooltip_Hide)
+	frame.gridButton = gridBtn
+	P.ui.suiviGridButton = gridBtn
+
 	listPanel = P.CreatePanel(frame, "")
 	listPanel:SetPoint("TOPLEFT", 12, -36)
 	listPanel:SetPoint("BOTTOMRIGHT", -12, 12)
@@ -2911,6 +2967,7 @@ local function Build()
 		P.SkinButton(campaignBtn)
 		P.SkinButton(questBtn)
 		P.SkinButton(scanBtn)
+		P.SkinButton(gridBtn)
 	end
 	-- Bouton « Résumé » (panneau affiché) mis en avant par un voile bleu doux, posé après le skin
 	-- pour rester visible avec EllesmereUI / ElvUI ; affiché par P.RefreshSuivi.
@@ -2929,11 +2986,17 @@ local function Build()
 	if allText then
 		allText:ClearAllPoints()
 		allText:SetPoint("LEFT", allCheck, "RIGHT", 5, 0)
+		gridBtn:SetPoint("LEFT", allText, "RIGHT", 10, 0)
+	else
+		gridBtn:SetPoint("LEFT", allCheck, "RIGHT", 130, 0)
 	end
 end
 
 -- Remplit la liste, si la fenêtre est ouverte.
 function P.RefreshSuivi()
+	if ns.RefreshGrid then
+		ns.RefreshGrid() -- fenêtre « Grille », si elle est ouverte
+	end
 	if not frame or not frame:IsShown() then
 		return
 	end
@@ -3172,6 +3235,9 @@ local function BuildSettingsPanel()
 	Settings.RegisterAddOnCategory(category)
 	settingsCategory = category
 	settingsPopup = { key = "Suivi", title = "Options du suivi", items = popupItems, category = category }
+	if ns.BuildGridSettings then
+		ns.BuildGridSettings(category) -- sous-catégorie « Grille » (Grid.lua)
+	end
 end
 
 local setup = CreateFrame("Frame")
@@ -3235,6 +3301,7 @@ for _, event in ipairs({
 	"UPDATE_PENDING_MAIL", "MAIL_INBOX_UPDATE", "MAIL_CLOSED", -- courrier
 	"CHALLENGE_MODE_COMPLETED", "ENCOUNTER_END", -- semaine (clés, boss)
 	"ACHIEVEMENT_EARNED", -- défis d'Héritage (WoW Forever)
+	"PLAYER_LEVEL_UP", "PLAYER_EQUIPMENT_CHANGED", "SKILL_LINES_CHANGED", -- grille (niveau, ilvl, métiers)
 }) do
 	if not (C_EventUtils and C_EventUtils.IsEventValid) or C_EventUtils.IsEventValid(event) then
 		pcall(events.RegisterEvent, events, event)

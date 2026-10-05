@@ -161,6 +161,31 @@ dans les options)
 affiche à la place **tous les personnages dont des informations ont été enregistrées**, par
 ordre alphabétique, avec la date de leurs informations (« il y a 2 h », « du 24/09 à 21:10 »).
 
+### Grille
+
+Le bouton **Grille** (à droite de la case **Tous les personnages**) ouvre une fenêtre à part,
+redimensionnable, qui place **tous les personnages du roster** dans une grille, avec deux onglets.
+Un personnage au **niveau maximum** a sa case en **rouge** ; au survol d'une case : compte, niveau,
+niveau d'objet, classe, race, métiers et équipe de chaque personnage. Molette : défilement ;
+Maj + molette : défilement horizontal si la grille est plus large que la fenêtre.
+
+- **Comptes** : une colonne par **compte WoW** (nommé dans Polypode ; nombre et ordre des colonnes
+  dans les options, colonne **Autres** pour les personnages sans compte ou d'un compte sans
+  colonne). Une ligne par personnage seul, ou par **équipe** de Polypode (2 personnages et plus ;
+  un personnage membre de plusieurs équipes est placé dans la plus grande), en trois blocs :
+  **Solo** (regroupés par métiers), **Multi 2/3**, **Multi 4/5/+**. À gauche : **Métier 1** et
+  **Métier 2** (masquables) et le **niveau** — « 90 / 308 » au niveau maximum, avec le niveau
+  d'objet (le plus bas de l'équipe) ; les niveaux de chacun si ceux d'une équipe diffèrent.
+- **Matrice** (Retail seulement) : les **races** en lignes (bleu Alliance, vert neutre, rouge
+  Horde), les **classes** en colonnes (armure en en-tête), chaque personnage dans sa case ; une
+  combinaison race / classe impossible est **grise**. En bas, des **lignes libres** : « + Ajouter
+  une ligne », clic sur le libellé pour le renommer (clic droit : supprimer), clic sur une case
+  pour y écrire un texte (Entrée pour valider, Échap pour annuler). Ces lignes sont communes à tous
+  vos personnages.
+
+La race, le niveau d'objet et les métiers d'un personnage sont connus après sa prochaine connexion
+avec cette version (avant : classe et niveau du roster, ligne « Race inconnue » de la matrice).
+
 ---
 
 ## Fonctionnement
@@ -204,6 +229,15 @@ Dans **Options → AddOns → Polypode → Suivi** (réglage propre à chaque pe
 | Campagnes des extensions précédentes | Non | Ajoute à l'infobulle de chaque membre les campagnes des extensions précédentes (depuis Mists of Pandaria) : celles commencées mais pas finies, et le nombre de campagnes terminées par extension |
 | Afficher les renommées | Non | Détaille les renommées de l'extension dans l'infobulle de chaque membre. Inutile avec un seul compte Battle.net : les renommées y sont communes à tous les personnages |
 
+Dans **Options → AddOns → Polypode → Suivi → Grille** (réglages **communs à tous vos
+personnages**, transmis aux clients connectés ; aussi le bouton **Options** de la fenêtre Grille) :
+
+| Option | Défaut | Effet |
+|---|---|---|
+| Afficher les métiers | Oui | Colonnes Métier 1 et Métier 2 de l'onglet Comptes |
+| Nombre de colonnes de comptes | Tous les comptes (10 au plus) | Nombre de colonnes de comptes de l'onglet Comptes (1 à 10) |
+| Colonne 1 à 10 | Automatique | Compte de chaque colonne ; « Automatique » prend le premier compte pas encore placé, par ordre alphabétique. Grisées au-delà du nombre de colonnes |
+
 ---
 
 ## Crédits
@@ -219,6 +253,7 @@ travail de recensement.
 
 ## Version
 
+`2.2.0` : fenêtre « Grille » (bouton à droite de « Tous les personnages ») : onglets Comptes (personnages et équipes par compte WoW, métiers, niveau / ilvl) et Matrice (race × classe, lignes libres) ; niveau maximum en rouge ; options « Grille » communes aux personnages et synchronisées.
 `2.1.0` : WoW Forever : suivi de l'Héritage (points gagnés, dépensés par arbre, à dépenser, défis) en colonnes et en infobulle.
 `2.0.2` : WoW Forever : colonnes du résumé, détail Retail de l'infobulle, saison et options des campagnes / renommées masqués.
 `2.0.1` : WoW Forever : boutons et panneaux « Activités » et « Campagnes » masqués (propres à Retail).
