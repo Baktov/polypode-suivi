@@ -255,6 +255,7 @@ travail de recensement.
 
 ## Version
 
+`2.3.1` : Grille : barre de défilement skinnée (EllesmereUI / ElvUI) ; bouton Options à gauche, onglets Comptes et Matrice à droite.
 `2.3.0` : onglet Matrice de la Grille aussi sur WoW Forever, avec ses races, classes et combinaisons (Éolides reconnues par leur nom).
 `2.2.0` : fenêtre « Grille » (bouton à droite de « Tous les personnages ») : onglets Comptes (personnages et équipes par compte WoW, métiers, niveau / ilvl) et Matrice (race × classe, lignes libres) ; niveau maximum en rouge ; options « Grille » communes aux personnages et synchronisées.
 `2.1.0` : WoW Forever : suivi de l'Héritage (points gagnés, dépensés par arbre, à dépenser, défis) en colonnes et en infobulle.

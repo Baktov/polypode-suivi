@@ -1083,23 +1083,25 @@ local function Build()
 	closeBtn:SetPoint("TOPRIGHT", -4, -4)
 	frame.CloseButton = closeBtn
 
-	-- Onglets, à gauche de la barre de titre ; l'onglet affiché porte un voile bleu.
+	-- Bouton Options à gauche de la barre de titre (comme dans les fenêtres de Polypode).
+	local optionsBtn = TabButton("Options", 70, "Ouvre les options de la grille (Options > AddOns > Polypode > "
+		.. "Suivi > Grille).", OpenGridOptions)
+	optionsBtn:SetPoint("TOPLEFT", 6, -3)
+
+	-- Onglets, à droite de la barre de titre (Matrice contre la croix) ; l'onglet affiché porte un
+	-- voile bleu.
+	local matrixTab = TabButton("Matrice", 80, "Personnages par race et par classe (combinaisons impossibles "
+		.. "en gris), et lignes libres en bas.", function()
+			SetTab("matrix")
+		end)
+	matrixTab:SetPoint("RIGHT", closeBtn, "LEFT", -4, 0)
 	local accountsTab = TabButton("Comptes", 80, "Personnages par compte WoW : seuls, puis par équipe de "
 		.. "Polypode (une ligne par équipe). Colonnes réglées dans Options > Polypode > Suivi > Grille.",
 		function()
 			SetTab("accounts")
 		end)
-	accountsTab:SetPoint("TOPLEFT", 6, -3)
-	local matrixTab = TabButton("Matrice", 80, "Personnages par race et par classe (combinaisons impossibles "
-		.. "en gris), et lignes libres en bas.", function()
-			SetTab("matrix")
-		end)
-	matrixTab:SetPoint("LEFT", accountsTab, "RIGHT", 4, 0)
+	accountsTab:SetPoint("RIGHT", matrixTab, "LEFT", -4, 0)
 	frame.accountsTab, frame.matrixTab = accountsTab, matrixTab
-
-	local optionsBtn = TabButton("Options", 70, "Ouvre les options de la grille (Options > AddOns > Polypode > "
-		.. "Suivi > Grille).", OpenGridOptions)
-	optionsBtn:SetPoint("RIGHT", closeBtn, "LEFT", -4, 0)
 
 	local panel = P.CreatePanel(frame, "")
 	panel:SetPoint("TOPLEFT", 12, -36)
@@ -1107,20 +1109,33 @@ local function Build()
 	panel.header:SetText("Rouge : niveau maximum. Survol : détail ; Maj + molette : défilement horizontal.")
 	panel.header:SetFontObject("GameFontDisableSmall")
 
-	scroll = CreateFrame("ScrollFrame", nil, panel, "UIPanelScrollFrameTemplate")
+	-- Zone défilante : ScrollFrame piloté par une MinimalScrollBar (la barre des listes de Polypode,
+	-- skinnée par P.SkinScrollBar pour EllesmereUI / ElvUI), affichée seulement si la grille déborde.
+	scroll = CreateFrame("ScrollFrame", nil, panel)
 	scroll:SetPoint("TOPLEFT", 8, -26)
-	scroll:SetPoint("BOTTOMRIGHT", -28, 8)
+	scroll:SetPoint("BOTTOMRIGHT", -22, 8)
 	canvas = CreateFrame("Frame", nil, scroll)
 	canvas:SetSize(1, 1)
 	scroll:SetScrollChild(canvas)
-	-- Molette : vertical ; Maj + molette : horizontal (grille plus large que la fenêtre).
+	scroll:EnableMouseWheel(true)
+	local scrollBar = CreateFrame("EventFrame", nil, panel, "MinimalScrollBar")
+	scrollBar:SetPoint("TOPLEFT", scroll, "TOPRIGHT", 6, 0)
+	scrollBar:SetPoint("BOTTOMLEFT", scroll, "BOTTOMRIGHT", 6, 0)
+	ScrollUtil.InitScrollFrameWithScrollBar(scroll, scrollBar)
+	scroll:HookScript("OnScrollRangeChanged", function(self)
+		scrollBar:SetShown(self:GetVerticalScrollRange() > 0)
+	end)
+	scrollBar:Hide()
+	if P.SkinScrollBar then
+		P.SkinScrollBar(scrollBar)
+	end
+	-- Molette : vertical (par la barre) ; Maj + molette : horizontal (grille plus large que la fenêtre).
 	scroll:SetScript("OnMouseWheel", function(self, delta)
 		if IsShiftKeyDown() then
 			local maxX = math.max(0, canvas:GetWidth() - self:GetWidth())
 			self:SetHorizontalScroll(math.min(maxX, math.max(0, self:GetHorizontalScroll() - delta * 60)))
 		else
-			local maxY = self:GetVerticalScrollRange()
-			self:SetVerticalScroll(math.min(maxY, math.max(0, self:GetVerticalScroll() - delta * 40)))
+			scrollBar:ScrollStepInDirection(-delta)
 		end
 	end)
 
