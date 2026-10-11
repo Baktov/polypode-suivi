@@ -16,7 +16,8 @@ end
 -- PANNEAU ACTIVITÉS (bouton « Activités » en haut à droite, option activityMode) : les activités
 -- de Midnight (ns.ACTIVITIES, Activities.lua, liste reprise de Plumber) par catégorie, avec à
 -- droite de chaque ligne les personnages qui l'ont faite (vert) ou commencée (jaune) ; clic sur une
--- catégorie : la replier ou la déplier, bouton « Tout replier » / « Tout déplier » comme pour les
+-- catégorie : la replier ou la déplier (à droite : en bleu, les personnages qui en ont fait toutes
+-- les activités affichées ; infobulle : n/total par personnage), bouton « Tout replier » / « Tout déplier » comme pour les
 -- campagnes (option collapsedCategories). Section A :
 -- état par activité (q<id> / p<id> : 2 faite, 1 en cours ; c<id> : nombre de quêtes faites),
 -- remise à zéro à la réinitialisation hebdomadaire (et quotidienne pour les activités daily).
@@ -1284,15 +1285,20 @@ end
 
 -- Icône (texte) d'une activité : coche si tous les personnages connus l'ont terminée, sinon
 -- l'atlas de son type de quête (répétable par défaut, comme les séries).
+-- Vrai si l'état (section A) d'une activité est « faite » : toutes les quêtes d'un compte, ou 2.
+local function EntryDone(entry, state)
+	local total = entry.count and #entry.count
+	return state ~= nil and ((total and state >= total) or (not total and state == 2))
+end
+
 local function EntryIcon(item)
 	local entry = item.activity
-	local total = entry.count and #entry.count
 	local known, complete = 0, 0
 	for _, key in ipairs(item.keys) do
 		local state = item.states[key]
 		if state then
 			known = known + 1
-			if (total and state >= total) or (not total and state == 2) then
+			if EntryDone(entry, state) then
 				complete = complete + 1
 			end
 		end
@@ -1407,9 +1413,26 @@ local function BuildActivityItems(keys)
 			end
 		end
 		if #rows > 0 then
+			-- Activités listées faites par personnage (connu) ; catégorie finie = toutes faites.
+			local finished, finishedKeys = {}, {}
+			for _, key in ipairs(keys) do
+				if DataFor(key) then
+					local count = 0
+					for _, row in ipairs(rows) do
+						if EntryDone(row.activity, row.states[key]) then
+							count = count + 1
+						end
+					end
+					finished[key] = count
+					if count == #rows then
+						finishedKeys[#finishedKeys + 1] = key
+					end
+				end
+			end
 			local collapseKey = CategoryKey(category)
 			local collapsed = CollapsedSet("collapsedCategories")[collapseKey] == true
-			items[#items + 1] = { activityHeader = true, category = category,
+			items[#items + 1] = { activityHeader = true, category = category, keys = keys, total = #rows,
+				finished = finished, finishedKeys = finishedKeys,
 				collapseSet = "collapsedCategories", collapseKey = collapseKey, collapsed = collapsed }
 			if not collapsed then -- catégorie repliée : en-tête seul
 				for _, row in ipairs(rows) do
@@ -1647,6 +1670,28 @@ end
 -- toutes les campagnes.
 local function ExpansionNamesText(item)
 	return NameList(item.finishedKeys, EXPANSION_DONE_COLOR)
+end
+
+-- Infobulle d'une catégorie d'activités : activités listées faites par chaque personnage.
+local function CategoryTooltip(item)
+	local lines = { CategoryTitle(item.category) }
+	lines[#lines + 1] = "|cff999999Activités faites sur les " .. item.total .. " affichées|r"
+	lines[#lines + 1] = item.collapsed and "Clic : déplier (afficher ses activités)"
+		or "Clic : replier (ne garder que cette ligne)"
+	lines[#lines + 1] = " "
+	for _, key in ipairs(item.keys) do
+		local count = item.finished[key]
+		local status
+		if not count then
+			status = "|cff999999inconnu (pas d'infos)|r"
+		else
+			local color = (count >= item.total and CAMPAIGN_COLORS.done) or (count > 0 and CAMPAIGN_COLORS.started)
+				or CAMPAIGN_COLORS.none
+			status = color .. count .. "/" .. item.total .. "|r"
+		end
+		lines[#lines + 1] = P.GetDisplayName(key) .. " : " .. status
+	end
+	return lines
 end
 
 -- Infobulle d'une extension : campagnes finies par chaque personnage.
@@ -2946,8 +2991,7 @@ local function Build()
 			elseif data.campaign then
 				return CampaignTooltip(data)
 			elseif data.activityHeader then
-				return { CategoryTitle(data.category), data.collapsed and "Clic : déplier (afficher ses activités)"
-					or "Clic : replier (ne garder que cette ligne)" }
+				return CategoryTooltip(data)
 			elseif data.activity then
 				return ActivityTooltip(data)
 			end
@@ -2986,8 +3030,10 @@ local function Build()
 			if firstColumn then
 				row.rightText:Hide()
 				row.text:SetPoint("RIGHT", firstColumn, "LEFT", -6, 0)
-			elseif data.activity then
-				row.rightText:SetText(ActivityRightText(data))
+			elseif data.activity or (data.activityHeader and #data.finishedKeys > 0) then
+				-- Catégorie : personnages qui en ont fait toutes les activités, en bleu.
+				row.rightText:SetText(data.activity and ActivityRightText(data)
+					or NameList(data.finishedKeys, EXPANSION_DONE_COLOR))
 				row.rightText:Show()
 				row.text:SetPoint("RIGHT", row.rightText, "LEFT", -6, 0)
 			elseif firstCell then

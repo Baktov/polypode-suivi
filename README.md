@@ -106,7 +106,9 @@ quêtes (bonus de renom, traque du monde), « nom n/total ». Les activités hab
 hebdomadaires) sont toujours listées ; les autres (quotidiennes, boss, avis de recherche...)
 apparaissent dès qu'elles sont actives pour le personnage joué, ou qu'un personnage suivi les a
 faites ou commencées. L'infobulle donne l'état de
-chaque personnage. Comme pour les campagnes, un **clic sur une catégorie** la **replie** (ne reste que
+chaque personnage. Sur la ligne de chaque **catégorie**, à droite et en **bleu**, les personnages
+qui en ont fait **toutes les activités affichées** (au survol : activités faites par chacun,
+« 3/5 »). Comme pour les campagnes, un **clic sur une catégorie** la **replie** (ne reste que
 son nom, précédé de « + ») ou la déplie, et le bouton **Tout replier** / **Tout déplier**, à droite de
 l'en-tête du panneau, agit sur toutes ; l'état est gardé d'une session à l'autre. Le bouton **Résumé** (à la place du bouton du panneau affiché, sur un fond bleu doux) revient à l'affichage par personnage.
 
@@ -264,6 +266,7 @@ travail de recensement.
 
 ## Version
 
+`2.7.0` : panneau « Activités » : sur la ligne de chaque catégorie, en bleu, les personnages qui en ont fait toutes les activités affichées ; au survol, le nombre fait par chacun.
 `2.6.0` : panneau « Activités » : catégories repliables d'un clic et bouton « Tout replier » / « Tout déplier », comme le panneau « Campagnes » ; état gardé.
 `2.5.1` : titre de la fenêtre « Suivi complet » quand « Tous les personnages » est cochée (« Suivi de l'équipe » sinon).
 `2.5.0` : panneau « Campagnes » : clic sur une extension pour la replier (ne restent que son nom et les personnages qui l'ont finie) ou la déplier ; bouton « Tout replier » / « Tout déplier » à droite de l'en-tête ; état gardé.
