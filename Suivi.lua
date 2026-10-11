@@ -15,7 +15,9 @@ end
 
 -- PANNEAU ACTIVITÉS (bouton « Activités » en haut à droite, option activityMode) : les activités
 -- de Midnight (ns.ACTIVITIES, Activities.lua, liste reprise de Plumber) par catégorie, avec à
--- droite de chaque ligne les personnages qui l'ont faite (vert) ou commencée (jaune). Section A :
+-- droite de chaque ligne les personnages qui l'ont faite (vert) ou commencée (jaune) ; clic sur une
+-- catégorie : la replier ou la déplier, bouton « Tout replier » / « Tout déplier » comme pour les
+-- campagnes (option collapsedCategories). Section A :
 -- état par activité (q<id> / p<id> : 2 faite, 1 en cours ; c<id> : nombre de quêtes faites),
 -- remise à zéro à la réinitialisation hebdomadaire (et quotidienne pour les activités daily).
 
@@ -99,7 +101,8 @@ local DEFAULTS = {
 	-- elles y sont communes à tous les personnages)
 	width = 620, height = 340, -- taille de la fenêtre (poignée de redimensionnement)
 	sortDesc = false, -- tri : ordre inverse (sortColumn : "name", id de colonne, ou nil = sans tri)
-	-- collapsedExpansions = { [extension] = true } : extensions repliées du panneau « Campagnes »
+	-- collapsedExpansions = { [extension] = true } : extensions repliées du panneau « Campagnes » ;
+	-- collapsedCategories = { [CategoryKey] = true } : catégories repliées du panneau « Activités »
 }
 local MIN_WIDTH, MIN_HEIGHT = 760, 200 -- barre de titre : Options, case, Grille, titre, Quêtes, Campagnes, Activités
 
@@ -1344,6 +1347,21 @@ end
 
 -- Lignes du panneau : en-tête par catégorie, puis ses activités (celles marquées always, ou que
 -- l'un des personnages suivis a faite ou commencée), avec l'état de chaque personnage.
+-- Lignes repliées des panneaux (clic sur un en-tête) : option name de SuiviSettings,
+-- « collapsedExpansions » (Campagnes, { [extension] = true }) ou « collapsedCategories »
+-- (Activités, { [CategoryKey] = true }). Un en-tête repliable porte collapseSet (ce nom),
+-- collapseKey et collapsed.
+local function CollapsedSet(name)
+	local settings = SuiviSettings()
+	settings[name] = settings[name] or {}
+	return settings[name]
+end
+
+-- Clé stable d'une catégorie d'activités (nom de repli, ou carte de la catégorie dynamique).
+local function CategoryKey(category)
+	return category.name or ("map" .. tostring(category.map))
+end
+
 local function BuildActivityItems(keys)
 	local items = {}
 
@@ -1389,9 +1407,14 @@ local function BuildActivityItems(keys)
 			end
 		end
 		if #rows > 0 then
-			items[#items + 1] = { activityHeader = true, category = category }
-			for _, row in ipairs(rows) do
-				items[#items + 1] = row
+			local collapseKey = CategoryKey(category)
+			local collapsed = CollapsedSet("collapsedCategories")[collapseKey] == true
+			items[#items + 1] = { activityHeader = true, category = category,
+				collapseSet = "collapsedCategories", collapseKey = collapseKey, collapsed = collapsed }
+			if not collapsed then -- catégorie repliée : en-tête seul
+				for _, row in ipairs(rows) do
+					items[#items + 1] = row
+				end
 			end
 		end
 	end
@@ -1512,13 +1535,6 @@ local function NameList(keys, color, limit)
 	return text
 end
 
--- Extensions repliées du panneau Campagnes (clic sur leur ligne) : { [extension] = true }.
-local function CollapsedExpansions()
-	local settings = SuiviSettings()
-	settings.collapsedExpansions = settings.collapsedExpansions or {}
-	return settings.collapsedExpansions
-end
-
 -- Lignes du panneau : un en-tête par extension (en cours d'abord, puis de la plus récente à la plus
 -- ancienne), puis toutes ses campagnes dans l'ordre de ns.CAMPAIGNS ; values[clé] = valeur de la
 -- section S du personnage (false : personnage connu sans cette campagne), known[clé] = données reçues.
@@ -1580,9 +1596,10 @@ local function BuildCampaignItems(keys)
 				end
 			end
 		end
-		local collapsed = CollapsedExpansions()[group.expansion] == true
+		local collapsed = CollapsedSet("collapsedExpansions")[group.expansion] == true
 		items[#items + 1] = { campaignHeader = true, expansion = group.expansion, finished = finished,
-			finishedKeys = finishedKeys, total = required, keys = keys, collapsed = collapsed }
+			finishedKeys = finishedKeys, total = required, keys = keys,
+			collapseSet = "collapsedExpansions", collapseKey = group.expansion, collapsed = collapsed }
 		-- Personnages qui ont fini l'extension : déjà cités en bleu sur l'en-tête, pas répétés
 		-- dans les colonnes de ses campagnes (l'infobulle les garde).
 		local extensionDone = {}
@@ -2899,7 +2916,8 @@ local function Build()
 		elseif data.campaign then
 			return "  " .. CampaignTitle(data)
 		elseif data.activityHeader then
-			return "|cffffd200" .. CategoryTitle(data.category) .. "|r"
+			return "|cff999999" .. (data.collapsed and "+" or "-") .. "|r |cffffd200"
+				.. CategoryTitle(data.category) .. "|r"
 		elseif data.activity then
 			return "  " .. EntryIcon(data) .. " " .. EntryTitle(data.activity)
 				.. (data.activity.daily and " |cff999999(quotidienne)|r" or "")
@@ -2913,9 +2931,8 @@ local function Build()
 				SetSort("name")
 			elseif data.quest then
 				OpenInQuestLog(data)
-			elseif data.campaignHeader then
-				local collapsed = CollapsedExpansions()
-				collapsed[data.expansion] = not data.collapsed or nil
+			elseif data.collapseSet then -- en-tête d'extension ou de catégorie : replier / déplier
+				CollapsedSet(data.collapseSet)[data.collapseKey] = not data.collapsed or nil
 				P.RefreshSuivi()
 			end
 		end,
@@ -2929,7 +2946,8 @@ local function Build()
 			elseif data.campaign then
 				return CampaignTooltip(data)
 			elseif data.activityHeader then
-				return { CategoryTitle(data.category) }
+				return { CategoryTitle(data.category), data.collapsed and "Clic : déplier (afficher ses activités)"
+					or "Clic : replier (ne garder que cette ligne)" }
 			elseif data.activity then
 				return ActivityTooltip(data)
 			end
@@ -2982,25 +3000,32 @@ local function Build()
 		end,
 	})
 
-	-- Bouton « Tout replier » / « Tout déplier » (panneau Campagnes), à droite de l'en-tête du
-	-- panneau ; affiché et nommé par P.RefreshSuivi (frame.campaignExpansions : extensions listées).
+	-- Bouton « Tout replier » / « Tout déplier » (panneaux Campagnes et Activités), à droite de
+	-- l'en-tête du panneau ; affiché et nommé par P.RefreshSuivi (frame.collapseHeaders : en-têtes
+	-- repliables listés, frame.collapseNoun : « extension » ou « catégorie »).
 	local collapseBtn = CreateFrame("Button", nil, listPanel, "UIPanelButtonTemplate")
 	collapseBtn:SetSize(96, 18)
 	collapseBtn:SetPoint("TOPRIGHT", -6, -4)
 	collapseBtn:SetScript("OnClick", function(self)
-		local collapsed = CollapsedExpansions()
-		for _, expansion in ipairs(frame.campaignExpansions or {}) do
-			collapsed[expansion] = self.collapseAll or nil
+		for _, item in ipairs(frame.collapseHeaders or {}) do
+			CollapsedSet(item.collapseSet)[item.collapseKey] = self.collapseAll or nil
 		end
 		P.RefreshSuivi()
 	end)
 	collapseBtn:SetScript("OnEnter", function(self)
 		GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
 		GameTooltip:AddLine(self:GetText())
-		GameTooltip:AddLine(self.collapseAll
-			and "Replie toutes les extensions : ne restent que leur nom et les personnages qui les ont finies."
-			or "Déplie toutes les extensions : leurs campagnes sont de nouveau affichées.", 1, 1, 1, true)
-		GameTooltip:AddLine("Clic sur une extension : la replier ou la déplier seule.", 0.6, 0.6, 0.6, true)
+		local noun = frame.collapseNoun or "extension"
+		if noun == "extension" then
+			GameTooltip:AddLine(self.collapseAll
+				and "Replie toutes les extensions : ne restent que leur nom et les personnages qui les ont finies."
+				or "Déplie toutes les extensions : leurs campagnes sont de nouveau affichées.", 1, 1, 1, true)
+		else
+			GameTooltip:AddLine(self.collapseAll
+				and "Replie toutes les catégories : ne restent que leur nom."
+				or "Déplie toutes les catégories : leurs activités sont de nouveau affichées.", 1, 1, 1, true)
+		end
+		GameTooltip:AddLine("Clic sur une " .. noun .. " : la replier ou la déplier seule.", 0.6, 0.6, 0.6, true)
 		ShowTooltip()
 	end)
 	collapseBtn:SetScript("OnLeave", GameTooltip_Hide)
@@ -3117,25 +3142,26 @@ function P.RefreshSuivi()
 	if IS_RETAIL and ListsOutdated() then
 		header = header .. "  |cffff8000· listes à mettre à jour|r"
 	end
-	-- Panneau Campagnes : bouton « Tout replier » (une extension dépliée) ou « Tout déplier »,
-	-- l'en-tête s'arrêtant à sa gauche.
+	-- Panneaux Campagnes et Activités : bouton « Tout replier » (un en-tête déplié) ou « Tout
+	-- déplier », l'en-tête du panneau s'arrêtant à sa gauche.
 	local collapseBtn = frame.collapseButton
-	local expansions, anyOpen = {}, false
-	if settings.campaignMode then
+	local headers, anyOpen = {}, false
+	if settings.campaignMode or settings.activityMode then
 		for _, item in ipairs(items) do
-			if item.campaignHeader then
-				expansions[#expansions + 1] = item.expansion
+			if item.collapseSet then
+				headers[#headers + 1] = item
 				anyOpen = anyOpen or not item.collapsed
 			end
 		end
 	end
-	frame.campaignExpansions = expansions
+	frame.collapseHeaders = headers
+	frame.collapseNoun = settings.campaignMode and "extension" or "catégorie"
 	collapseBtn.collapseAll = anyOpen
 	collapseBtn:SetText(anyOpen and "Tout replier" or "Tout déplier")
-	collapseBtn:SetShown(#expansions > 0)
+	collapseBtn:SetShown(#headers > 0)
 	listPanel.header:ClearAllPoints()
 	listPanel.header:SetPoint("TOPLEFT", 10, -8)
-	if #expansions > 0 then
+	if #headers > 0 then
 		listPanel.header:SetPoint("RIGHT", collapseBtn, "LEFT", -6, 0)
 	else
 		listPanel.header:SetPoint("RIGHT", -10, 0)
