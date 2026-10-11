@@ -2822,6 +2822,7 @@ local function Build()
 	end)
 	questBtn:SetScript("OnLeave", GameTooltip_Hide)
 	frame.questButton = questBtn
+	frame.questAnchor = IS_RETAIL and campaignBtn or closeBtn -- place de « Nouveau » sans « Quêtes »
 	P.ui.suiviQuestButton = questBtn
 
 	-- Bouton « Nouveau » (auteur seulement, à gauche de « Quêtes ») : affiché s'il existe des
@@ -3125,6 +3126,15 @@ function P.RefreshSuivi()
 		return
 	end
 	frame.allCheck:SetChecked(ShowAll()) -- peut avoir changé dans les options
+	-- « Tous les personnages » : pas de panneau Quêtes (quêtes du leader de l'équipe) ; bouton
+	-- masqué, « Nouveau » prend sa place, panneau refermé s'il était affiché.
+	local questShown = not ShowAll()
+	frame.questButton:SetShown(questShown)
+	frame.scanButton:ClearAllPoints()
+	frame.scanButton:SetPoint("RIGHT", questShown and frame.questButton or frame.questAnchor, "LEFT", -4, 0)
+	if not questShown then
+		SuiviSettings().questMode = false
+	end
 	-- Titre : « Suivi complet » avec « Tous les personnages » (option ou mode solo).
 	frame.TitleText:SetText(ShowAll() and "Suivi complet" or "Suivi de l'équipe")
 	frame.allCheck:SetEnabled(not IsSolo()) -- imposée (grisée) en mode solo
@@ -3219,6 +3229,10 @@ end
 
 -- Ouvre la fenêtre sur le panneau « Quêtes » (/poly quetes, ancienne commande de Polypode Quêtes).
 local function OpenQuestPanel()
+	if ShowAll() then
+		UIErrorsFrame:AddMessage("Panneau « Quêtes » indisponible avec « Tous les personnages » cochée.", 1, 0.1, 0.1)
+		return
+	end
 	local settings = SuiviSettings()
 	for _, mode in ipairs(PANEL_MODES) do
 		settings[mode] = false

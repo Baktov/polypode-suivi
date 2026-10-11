@@ -120,7 +120,7 @@ réinitialisation hebdomadaire, et les quotidiennes chaque jour.
 
 ### Quêtes
 
-Le bouton **Quêtes** (à gauche de **Campagnes**), ou `/poly quetes`, remplace le résumé par
+Le bouton **Quêtes** (à gauche de **Campagnes** ; masqué quand **Tous les personnages** est cochée), ou `/poly quetes`, remplace le résumé par
 **toutes les quêtes en cours** chez au moins un des personnages affichés (l'équipe sélectionnée, ou
 tous les personnages avec la case **Tous les personnages** ; le personnage joué est toujours
 compris), reprises de l'ancien addon Polypode Quêtes. À droite, quatre colonnes citent chacune un
@@ -266,6 +266,7 @@ travail de recensement.
 
 ## Version
 
+`2.7.1` : bouton « Quêtes » masqué (et panneau refermé, `/poly quetes` refusé) quand « Tous les personnages » est cochée.
 `2.7.0` : panneau « Activités » : sur la ligne de chaque catégorie, en bleu, les personnages qui en ont fait toutes les activités affichées ; au survol, le nombre fait par chacun.
 `2.6.0` : panneau « Activités » : catégories repliables d'un clic et bouton « Tout replier » / « Tout déplier », comme le panneau « Campagnes » ; état gardé.
 `2.5.1` : titre de la fenêtre « Suivi complet » quand « Tous les personnages » est cochée (« Suivi de l'équipe » sinon).
