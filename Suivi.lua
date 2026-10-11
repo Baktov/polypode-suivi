@@ -24,7 +24,9 @@ end
 -- « Finie » (vert), « En cours » (jaune), « Pas commencée » (rouge) donnant un ou deux noms en
 -- exemple (connectés d'abord, « +n » pour les autres) ; à droite de chaque extension, les
 -- personnages qui en ont fini toutes les campagnes (sauf celles marquées restricted, que tous ne
--- peuvent pas faire), qui ne sont alors plus cités sur les lignes de ses campagnes ; infobulle = avancement de chacun (chapitres
+-- peuvent pas faire), qui ne sont alors plus cités sur les lignes de ses campagnes ; clic sur une
+-- extension : la replier (en-tête seul) ou la déplier, bouton « Tout replier » / « Tout déplier » à
+-- droite de l'en-tête du panneau (option collapsedExpansions) ; infobulle = avancement de chacun (chapitres
 -- faits / total, raison d'un blocage). Lu dans la section S.
 
 -- PANNEAU QUÊTES (bouton « Quêtes », à gauche de « Campagnes », option questMode ; repris de
@@ -97,6 +99,7 @@ local DEFAULTS = {
 	-- elles y sont communes à tous les personnages)
 	width = 620, height = 340, -- taille de la fenêtre (poignée de redimensionnement)
 	sortDesc = false, -- tri : ordre inverse (sortColumn : "name", id de colonne, ou nil = sans tri)
+	-- collapsedExpansions = { [extension] = true } : extensions repliées du panneau « Campagnes »
 }
 local MIN_WIDTH, MIN_HEIGHT = 760, 200 -- barre de titre : Options, case, Grille, titre, Quêtes, Campagnes, Activités
 
@@ -1509,6 +1512,13 @@ local function NameList(keys, color, limit)
 	return text
 end
 
+-- Extensions repliées du panneau Campagnes (clic sur leur ligne) : { [extension] = true }.
+local function CollapsedExpansions()
+	local settings = SuiviSettings()
+	settings.collapsedExpansions = settings.collapsedExpansions or {}
+	return settings.collapsedExpansions
+end
+
 -- Lignes du panneau : un en-tête par extension (en cours d'abord, puis de la plus récente à la plus
 -- ancienne), puis toutes ses campagnes dans l'ordre de ns.CAMPAIGNS ; values[clé] = valeur de la
 -- section S du personnage (false : personnage connu sans cette campagne), known[clé] = données reçues.
@@ -1570,8 +1580,9 @@ local function BuildCampaignItems(keys)
 				end
 			end
 		end
+		local collapsed = CollapsedExpansions()[group.expansion] == true
 		items[#items + 1] = { campaignHeader = true, expansion = group.expansion, finished = finished,
-			finishedKeys = finishedKeys, total = required, keys = keys }
+			finishedKeys = finishedKeys, total = required, keys = keys, collapsed = collapsed }
 		-- Personnages qui ont fini l'extension : déjà cités en bleu sur l'en-tête, pas répétés
 		-- dans les colonnes de ses campagnes (l'infobulle les garde).
 		local extensionDone = {}
@@ -1580,7 +1591,9 @@ local function BuildCampaignItems(keys)
 		end
 		for _, row in ipairs(group.rows) do
 			row.extensionDone = extensionDone
-			items[#items + 1] = row
+			if not collapsed then -- extension repliée : en-tête seul (titre et personnages en bleu)
+				items[#items + 1] = row
+			end
 		end
 	end
 	return items
@@ -1624,6 +1637,8 @@ local function ExpansionTooltip(item)
 	local lines = { ExpansionName(item.expansion) }
 	lines[#lines + 1] = "|cff999999Campagnes finies sur " .. item.total
 		.. " (hors campagnes réservées à une race ou un mode de jeu)|r"
+	lines[#lines + 1] = item.collapsed and "Clic : déplier (afficher ses campagnes)"
+		or "Clic : replier (ne garder que cette ligne)"
 	lines[#lines + 1] = " "
 	for _, key in ipairs(item.keys) do
 		local count = item.finished[key]
@@ -2879,7 +2894,8 @@ local function Build()
 		elseif data.campaignColumns then
 			return "|cff999999Campagne|r"
 		elseif data.campaignHeader then
-			return "|cffffd200" .. ExpansionName(data.expansion) .. "|r"
+			return "|cff999999" .. (data.collapsed and "+" or "-") .. "|r |cffffd200"
+				.. ExpansionName(data.expansion) .. "|r"
 		elseif data.campaign then
 			return "  " .. CampaignTitle(data)
 		elseif data.activityHeader then
@@ -2897,6 +2913,10 @@ local function Build()
 				SetSort("name")
 			elseif data.quest then
 				OpenInQuestLog(data)
+			elseif data.campaignHeader then
+				local collapsed = CollapsedExpansions()
+				collapsed[data.expansion] = not data.collapsed or nil
+				P.RefreshSuivi()
 			end
 		end,
 		tooltip = function(data)
@@ -2962,6 +2982,31 @@ local function Build()
 		end,
 	})
 
+	-- Bouton « Tout replier » / « Tout déplier » (panneau Campagnes), à droite de l'en-tête du
+	-- panneau ; affiché et nommé par P.RefreshSuivi (frame.campaignExpansions : extensions listées).
+	local collapseBtn = CreateFrame("Button", nil, listPanel, "UIPanelButtonTemplate")
+	collapseBtn:SetSize(96, 18)
+	collapseBtn:SetPoint("TOPRIGHT", -6, -4)
+	collapseBtn:SetScript("OnClick", function(self)
+		local collapsed = CollapsedExpansions()
+		for _, expansion in ipairs(frame.campaignExpansions or {}) do
+			collapsed[expansion] = self.collapseAll or nil
+		end
+		P.RefreshSuivi()
+	end)
+	collapseBtn:SetScript("OnEnter", function(self)
+		GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
+		GameTooltip:AddLine(self:GetText())
+		GameTooltip:AddLine(self.collapseAll
+			and "Replie toutes les extensions : ne restent que leur nom et les personnages qui les ont finies."
+			or "Déplie toutes les extensions : leurs campagnes sont de nouveau affichées.", 1, 1, 1, true)
+		GameTooltip:AddLine("Clic sur une extension : la replier ou la déplier seule.", 0.6, 0.6, 0.6, true)
+		ShowTooltip()
+	end)
+	collapseBtn:SetScript("OnLeave", GameTooltip_Hide)
+	collapseBtn:Hide()
+	frame.collapseButton = collapseBtn
+
 	P.ui.suiviFrame = frame
 	P.ui.suiviPanel = listPanel
 	P.ui.suiviAllCheck = allCheck
@@ -2975,6 +3020,7 @@ local function Build()
 		P.SkinButton(questBtn)
 		P.SkinButton(scanBtn)
 		P.SkinButton(gridBtn)
+		P.SkinButton(collapseBtn)
 	end
 	-- Bouton « Résumé » (panneau affiché) mis en avant par un voile bleu doux, posé après le skin
 	-- pour rester visible avec EllesmereUI / ElvUI ; affiché par P.RefreshSuivi.
@@ -3068,6 +3114,29 @@ function P.RefreshSuivi()
 	end
 	if IS_RETAIL and ListsOutdated() then
 		header = header .. "  |cffff8000· listes à mettre à jour|r"
+	end
+	-- Panneau Campagnes : bouton « Tout replier » (une extension dépliée) ou « Tout déplier »,
+	-- l'en-tête s'arrêtant à sa gauche.
+	local collapseBtn = frame.collapseButton
+	local expansions, anyOpen = {}, false
+	if settings.campaignMode then
+		for _, item in ipairs(items) do
+			if item.campaignHeader then
+				expansions[#expansions + 1] = item.expansion
+				anyOpen = anyOpen or not item.collapsed
+			end
+		end
+	end
+	frame.campaignExpansions = expansions
+	collapseBtn.collapseAll = anyOpen
+	collapseBtn:SetText(anyOpen and "Tout replier" or "Tout déplier")
+	collapseBtn:SetShown(#expansions > 0)
+	listPanel.header:ClearAllPoints()
+	listPanel.header:SetPoint("TOPLEFT", 10, -8)
+	if #expansions > 0 then
+		listPanel.header:SetPoint("RIGHT", collapseBtn, "LEFT", -6, 0)
+	else
+		listPanel.header:SetPoint("RIGHT", -10, 0)
 	end
 	listPanel.header:SetText(header)
 	listPanel.emptyText:SetText(emptyText)

@@ -154,7 +154,10 @@ de chaque campagne les montre toujours). Les campagnes qu'une partie des personn
 réservée aux Dracthyrs ; « Legion Remix », réservée aux personnages de Remix) restent listées mais
 ne sont **pas exigées** pour terminer l'extension (leur infobulle le précise). **Au survol** d'une campagne : l'avancement de chaque personnage
 (« 2/7 chapitres », « pas commencée », « inconnu »), avec la raison du blocage d'une campagne
-bloquée. Le bouton **Résumé** revient à l'affichage par personnage.
+bloquée. Un **clic sur une extension** la **replie** (ne restent que son nom, précédé de « + », et les
+personnages qui l'ont finie) ou la déplie ; le bouton **Tout replier** / **Tout déplier**, à droite
+de l'en-tête du panneau, agit sur toutes les extensions. Les extensions repliées le restent d'une
+session à l'autre. Le bouton **Résumé** revient à l'affichage par personnage.
 
 Le bouton **Options** (à gauche de la barre de titre) ouvre directement les options du suivi
 (Options → AddOns → Polypode → Suivi). La case **Tous les personnages** (à sa droite, rappelée
@@ -258,6 +261,7 @@ travail de recensement.
 
 ## Version
 
+`2.5.0` : panneau « Campagnes » : clic sur une extension pour la replier (ne restent que son nom et les personnages qui l'ont finie) ou la déplier ; bouton « Tout replier » / « Tout déplier » à droite de l'en-tête ; état gardé.
 `2.4.1` : panneau « Campagnes » : un personnage qui a fini une extension (en bleu sur son en-tête) n'est plus cité dans les colonnes de ses campagnes ; infobulles inchangées.
 `2.4.0` : Grille : race, niveau, niveau d'objet et métiers repris de Polypode Data (2.1.0, `P.GetCharacterData`) quand Suivi ne les a pas encore relevés ; race reconnue par son nom traduit (table du jeu et formes féminines apprises).
 `2.3.1` : Grille : barre de défilement skinnée (EllesmereUI / ElvUI) ; bouton Options à gauche, onglets Comptes et Matrice à droite.
