@@ -24,7 +24,7 @@ end
 -- « Finie » (vert), « En cours » (jaune), « Pas commencée » (rouge) donnant un ou deux noms en
 -- exemple (connectés d'abord, « +n » pour les autres) ; à droite de chaque extension, les
 -- personnages qui en ont fini toutes les campagnes (sauf celles marquées restricted, que tous ne
--- peuvent pas faire) ; infobulle = avancement de chacun (chapitres
+-- peuvent pas faire), qui ne sont alors plus cités sur les lignes de ses campagnes ; infobulle = avancement de chacun (chapitres
 -- faits / total, raison d'un blocage). Lu dans la section S.
 
 -- PANNEAU QUÊTES (bouton « Quêtes », à gauche de « Campagnes », option questMode ; repris de
@@ -1572,7 +1572,14 @@ local function BuildCampaignItems(keys)
 		end
 		items[#items + 1] = { campaignHeader = true, expansion = group.expansion, finished = finished,
 			finishedKeys = finishedKeys, total = required, keys = keys }
+		-- Personnages qui ont fini l'extension : déjà cités en bleu sur l'en-tête, pas répétés
+		-- dans les colonnes de ses campagnes (l'infobulle les garde).
+		local extensionDone = {}
+		for _, key in ipairs(finishedKeys) do
+			extensionDone[key] = true
+		end
 		for _, row in ipairs(group.rows) do
+			row.extensionDone = extensionDone
 			items[#items + 1] = row
 		end
 	end
@@ -1590,12 +1597,12 @@ end
 
 -- Texte de chaque colonne de droite d'une campagne : un ou deux noms des personnages dans cet
 -- état, connectés d'abord ; ceux dont on n'a aucune donnée ne sont pas cités (infobulle :
--- « inconnu »).
+-- « inconnu »), ni ceux qui ont fini l'extension (en bleu sur son en-tête).
 local function CampaignColumnTexts(item)
 	local byState = { done = {}, started = {}, none = {} }
 	for _, key in ipairs(item.keys) do
 		local state = CampaignState(item.values[key], item.known[key])
-		if state then
+		if state and not (item.extensionDone and item.extensionDone[key]) then
 			table.insert(byState[state], key)
 		end
 	end

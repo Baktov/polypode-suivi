@@ -149,7 +149,8 @@ d'abord, puis de la plus récente à la plus ancienne), « patch – nom ». À 
 personnages en exemple, les **connectés d'abord**, puis « +n » pour les autres ; un personnage dont
 on n'a encore reçu aucune information n'est pas cité. Sur la ligne de chaque **extension**, en **bleu** et
 alignés sur la colonne « Finie », les personnages qui en ont **fini toutes les campagnes** (au survol : campagnes finies par chacun,
-« 5/10 »). Les campagnes qu'une partie des personnages ne peut pas faire (« Dracthyr, éveillez-vous »,
+« 5/10 ») ; ils ne sont alors **plus cités** dans les colonnes des campagnes de cette extension (l'infobulle
+de chaque campagne les montre toujours). Les campagnes qu'une partie des personnages ne peut pas faire (« Dracthyr, éveillez-vous »,
 réservée aux Dracthyrs ; « Legion Remix », réservée aux personnages de Remix) restent listées mais
 ne sont **pas exigées** pour terminer l'extension (leur infobulle le précise). **Au survol** d'une campagne : l'avancement de chaque personnage
 (« 2/7 chapitres », « pas commencée », « inconnu »), avec la raison du blocage d'une campagne
@@ -257,6 +258,7 @@ travail de recensement.
 
 ## Version
 
+`2.4.1` : panneau « Campagnes » : un personnage qui a fini une extension (en bleu sur son en-tête) n'est plus cité dans les colonnes de ses campagnes ; infobulles inchangées.
 `2.4.0` : Grille : race, niveau, niveau d'objet et métiers repris de Polypode Data (2.1.0, `P.GetCharacterData`) quand Suivi ne les a pas encore relevés ; race reconnue par son nom traduit (table du jeu et formes féminines apprises).
 `2.3.1` : Grille : barre de défilement skinnée (EllesmereUI / ElvUI) ; bouton Options à gauche, onglets Comptes et Matrice à droite.
 `2.3.0` : onglet Matrice de la Grille aussi sur WoW Forever, avec ses races, classes et combinaisons (Éolides reconnues par leur nom).
