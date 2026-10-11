@@ -3284,6 +3284,26 @@ if P.AddTitleButton then
 			P.ui.suiviButton = button
 		end,
 	})
+	-- Bouton « Grille » aussi dans la barre de titre de Polypode, à droite de la case « Solo » et à
+	-- gauche du titre (spec.left, Polypode 2.5.0 ; avant : avec les autres, à droite) : même fenêtre
+	-- que le bouton « Grille » de Suivi (ns.ToggleGrid, Grid.lua chargé après ce fichier).
+	P.AddTitleButton({
+		text = "Grille",
+		width = 60,
+		left = true,
+		onClick = function()
+			if ns.ToggleGrid then
+				ns.ToggleGrid()
+			end
+		end,
+		tooltip = {
+			"Grille des personnages",
+			"Personnages par compte (onglet Comptes) et par race et classe (onglet Matrice).",
+		},
+		onCreate = function(button)
+			P.ui.suiviGridTitleButton = button
+		end,
+	})
 end
 
 if P.RegisterSlashCommand then
@@ -3295,7 +3315,12 @@ if P.RegisterSlashCommand then
 			P.ToggleSuivi()
 		end
 	end, "suivi de l'équipe (coffre, écus, ressources, renommées, runes)")
-	P.RegisterSlashCommand("quetes", OpenQuestPanel, "quêtes du leader manquantes chez les membres de l'équipe")
+	P.RegisterSlashCommand("grille", function()
+		if ns.ToggleGrid then
+			ns.ToggleGrid()
+		end
+	end, "grille des personnages (par compte, par race et classe)")
+	P.RegisterSlashCommand("quetes", OpenQuestPanel,"quêtes du leader manquantes chez les membres de l'équipe")
 	P.RegisterSlashCommand("quêtes", OpenQuestPanel) -- alias, absent de l'aide
 end
 

@@ -172,7 +172,8 @@ le titre de la fenêtre devient alors **Suivi complet**.
 
 ### Grille
 
-Le bouton **Grille** (à droite de la case **Tous les personnages**) ouvre une fenêtre à part,
+Le bouton **Grille** (à droite de la case **Tous les personnages**, et aussi dans la barre de titre de
+Polypode, à droite de la case **Solo** ; ou `/poly grille`) ouvre une fenêtre à part,
 redimensionnable, qui place **tous les personnages du roster** dans une grille, avec deux onglets.
 Un personnage au **niveau maximum** a sa case en **rouge** ; au survol d'une case : compte, niveau,
 niveau d'objet, classe, race, métiers et équipe de chaque personnage. Molette : défilement ;
@@ -266,6 +267,7 @@ travail de recensement.
 
 ## Version
 
+`2.8.0` : bouton « Grille » aussi dans la barre de titre de Polypode, à droite de la case « Solo » et à gauche du titre (Polypode 2.5.0), et commande `/poly grille`.
 `2.7.1` : bouton « Quêtes » masqué (et panneau refermé, `/poly quetes` refusé) quand « Tous les personnages » est cochée.
 `2.7.0` : panneau « Activités » : sur la ligne de chaque catégorie, en bleu, les personnages qui en ont fait toutes les activités affichées ; au survol, le nombre fait par chacun.
 `2.6.0` : panneau « Activités » : catégories repliables d'un clic et bouton « Tout replier » / « Tout déplier », comme le panneau « Campagnes » ; état gardé.
