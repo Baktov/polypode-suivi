@@ -163,7 +163,8 @@ Le bouton **Options** (à gauche de la barre de titre) ouvre directement les opt
 (Options → AddOns → Polypode → Suivi). La case **Tous les personnages** (à sa droite, rappelée
 dans les options)
 affiche à la place **tous les personnages dont des informations ont été enregistrées**, par
-ordre alphabétique, avec la date de leurs informations (« il y a 2 h », « du 24/09 à 21:10 »).
+ordre alphabétique, avec la date de leurs informations (« il y a 2 h », « du 24/09 à 21:10 ») ;
+le titre de la fenêtre devient alors **Suivi complet**.
 
 ### Grille
 
@@ -261,6 +262,7 @@ travail de recensement.
 
 ## Version
 
+`2.5.1` : titre de la fenêtre « Suivi complet » quand « Tous les personnages » est cochée (« Suivi de l'équipe » sinon).
 `2.5.0` : panneau « Campagnes » : clic sur une extension pour la replier (ne restent que son nom et les personnages qui l'ont finie) ou la déplier ; bouton « Tout replier » / « Tout déplier » à droite de l'en-tête ; état gardé.
 `2.4.1` : panneau « Campagnes » : un personnage qui a fini une extension (en bleu sur son en-tête) n'est plus cité dans les colonnes de ses campagnes ; infobulles inchangées.
 `2.4.0` : Grille : race, niveau, niveau d'objet et métiers repris de Polypode Data (2.1.0, `P.GetCharacterData`) quand Suivi ne les a pas encore relevés ; race reconnue par son nom traduit (table du jeu et formes féminines apprises).

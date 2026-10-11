@@ -3054,6 +3054,8 @@ function P.RefreshSuivi()
 		return
 	end
 	frame.allCheck:SetChecked(ShowAll()) -- peut avoir changé dans les options
+	-- Titre : « Suivi complet » avec « Tous les personnages » (option ou mode solo).
+	frame.TitleText:SetText(ShowAll() and "Suivi complet" or "Suivi de l'équipe")
 	frame.allCheck:SetEnabled(not IsSolo()) -- imposée (grisée) en mode solo
 	local allText = frame.allCheck.Text or frame.allCheck.text
 	if allText then
