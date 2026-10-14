@@ -945,6 +945,21 @@ local function UnknownCampaigns()
 	return unknownCampaigns
 end
 
+-- Relevé déjà écrit (session précédente, après /reload) : PolypodeSuiviScan fait sur ce build et
+-- contenant toutes les campagnes inconnues. Reste la consolidation hors ligne (Activities.lua).
+local function ScanWritten()
+	local scan = PolypodeSuiviScan
+	if type(scan) ~= "table" or type(scan.campaigns) ~= "table" or scan.build ~= select(2, GetBuildInfo()) then
+		return false
+	end
+	for _, campaign in ipairs(UnknownCampaigns()) do
+		if not scan.campaigns[campaign.id] then
+			return false
+		end
+	end
+	return true
+end
+
 -- JOURNAUX DE QUÊTES (panneau Quêtes) : journal d'un personnage = celui du jeu pour le personnage
 -- joué, sinon le dernier reçu par Polypode cette session (QLOG), sinon le dernier gardé
 -- (PolypodeSuiviQuests) ; nil si jamais reçu.
@@ -2849,11 +2864,14 @@ local function Build()
 	end)
 	scanBtn:SetScript("OnEnter", function(self)
 		GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
-		GameTooltip:AddLine(scanDone and "Relevé fait" or "Nouvelles campagnes")
+		local written = not scanDone and ScanWritten()
+		GameTooltip:AddLine((scanDone or written) and "Relevé fait" or "Nouvelles campagnes")
 		for _, campaign in ipairs(UnknownCampaigns()) do
 			GameTooltip:AddLine(campaign.name .. " |cff999999(n° " .. campaign.id .. ")|r", 1, 1, 1)
 		end
-		GameTooltip:AddLine(scanDone and "Faites /reload pour écrire le fichier, puis consolidez la liste."
+		GameTooltip:AddLine((scanDone and "Faites /reload pour écrire le fichier, puis consolidez la liste.")
+			or (written and "Relevé écrit : reste à consolider la liste (Activities.lua) ; le bouton disparaît "
+				.. "avec la version qui la contient. Clic : refaire le relevé.")
 			or "Clic : relevé des campagnes du jeu (puis /reload), pour les ajouter à la liste.", 0.6, 0.6, 0.6, true)
 		ShowTooltip()
 	end)
@@ -3142,12 +3160,14 @@ function P.RefreshSuivi()
 	if allText then
 		allText:SetFontObject(IsSolo() and "GameFontDisableSmall" or "GameFontHighlightSmall")
 	end
-	-- Bouton « Nouveau » : campagnes inconnues (auteur seulement), clignotant jusqu'au relevé.
+	-- Bouton « Nouveau » : campagnes inconnues (auteur seulement), clignotant jusqu'au relevé
+	-- (fait cette session, ou déjà écrit : ScanWritten), « Relevé » ensuite jusqu'à la consolidation.
 	local scanBtn = frame.scanButton
 	if IS_RETAIL and IsOwner() and #UnknownCampaigns() > 0 then
-		scanBtn:SetText(scanDone and "Relevé" or "Nouveau")
-		scanBtn.flash:SetShown(not scanDone)
-		if scanDone then
+		local done = scanDone or ScanWritten()
+		scanBtn:SetText(done and "Relevé" or "Nouveau")
+		scanBtn.flash:SetShown(not done)
+		if done then
 			scanBtn.pulse:Stop()
 		elseif not scanBtn.pulse:IsPlaying() then
 			scanBtn.pulse:Play()

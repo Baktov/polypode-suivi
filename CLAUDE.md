@@ -49,7 +49,9 @@ Retail (120000) et WoW Forever (16001) avec tests d'existence des API (lectures 
   `SCAN_MAX_ID` = 1500 : champs de `CampaignInfo`, état, raison de blocage, chapitres avec
   `complete`) ; bouton « Nouveau » (`frame.scanButton`, à gauche de « Activités », fond rouge
   clignotant) si `UnknownCampaigns()` (cherchées une fois par session) trouve une campagne hors
-  des deux listes ; clic = relevé.
+  des deux listes ; clic = relevé. Après le `/reload`, `ScanWritten()` (relevé du build en cours
+  contenant toutes les inconnues) : bouton « Relevé » sans clignotement jusqu'à la consolidation —
+  le bouton ne disparaît qu'avec la version d'`Activities.lua` qui classe les nouveaux identifiants.
 - **Mise à jour après un patch** : relevé (bouton ou commande) puis `/reload` ; lire
   `WTF/Account/<compte>/SavedVariables/Polypode_Suivi.lua` (les comptes partagent ce fichier par
   lien), classer chaque nouvel identifiant dans `ns.CAMPAIGNS` (extension / patch d'après la

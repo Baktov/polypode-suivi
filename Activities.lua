@@ -205,6 +205,7 @@ ns.CAMPAIGNS = {
 	{ expansion = MIDNIGHT, patch = "12.0.7", name = "L'Omnium de Haut-Soleil", ids = { 381 } },
 	{ expansion = MIDNIGHT, patch = "12.1", name = "L'appel du Vide", ids = { 333 } },
 	{ expansion = MIDNIGHT, patch = "12.1", name = "La malédiction d'Ula'tek", ids = { 324, 332 } },
+	{ expansion = MIDNIGHT, patch = "12.1.5", name = "La Promesse de demain", ids = { 349 } },
 }
 
 -- Campagnes du relevé écartées à la consolidation (rattrapage, tests, « passer l'introduction »,

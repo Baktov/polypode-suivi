@@ -267,6 +267,7 @@ travail de recensement.
 
 ## Version
 
+`2.8.1` : campagne « La Promesse de demain » (patch 12.1.5) ajoutée à la liste.
 `2.8.0` : bouton « Grille » aussi dans la barre de titre de Polypode, à droite de la case « Solo » et à gauche du titre (Polypode 2.5.0), et commande `/poly grille`.
 `2.7.1` : bouton « Quêtes » masqué (et panneau refermé, `/poly quetes` refusé) quand « Tous les personnages » est cochée.
 `2.7.0` : panneau « Activités » : sur la ligne de chaque catégorie, en bleu, les personnages qui en ont fait toutes les activités affichées ; au survol, le nombre fait par chacun.
