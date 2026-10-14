@@ -960,6 +960,62 @@ local function ScanWritten()
 	return true
 end
 
+-- Demande à copier pour Claude après le relevé : fenêtre avec le texte sélectionné (Ctrl+C), remis
+-- tel quel si on le modifie. Avant le /reload (relevé de cette session), elle le rappelle.
+local SCAN_PROMPT_POPUP = "POLYPODE_SUIVI_SCAN_PROMPT"
+
+local function ScanPromptText()
+	local version, build = GetBuildInfo()
+	local ids = {}
+	for _, campaign in ipairs(UnknownCampaigns()) do
+		ids[#ids + 1] = campaign.id .. " (" .. campaign.name .. ")"
+	end
+	return string.format("Polypode Suivi : relevé des campagnes fait sur le patch %s (build %s). "
+		.. "Nouvelles campagnes : %s. Consolide la liste des campagnes (Activities.lua) d'après "
+		.. "PolypodeSuiviScan, puis version, commit et push.", version, build, table.concat(ids, ", "))
+end
+
+local function ScanPromptEditBox(popup)
+	return popup.GetEditBox and popup:GetEditBox() or popup.editBox
+end
+
+StaticPopupDialogs[SCAN_PROMPT_POPUP] = {
+	text = "%s",
+	button1 = "Fermer",
+	hasEditBox = true,
+	editBoxWidth = 360,
+	maxLetters = 0,
+	OnShow = function(self)
+		local editBox = ScanPromptEditBox(self)
+		editBox:SetText(ScanPromptText())
+		editBox:HighlightText()
+		editBox:SetFocus()
+	end,
+	EditBoxOnTextChanged = function(editBox)
+		local text = ScanPromptText()
+		if editBox:GetText() ~= text then
+			editBox:SetText(text)
+			editBox:HighlightText()
+		end
+	end,
+	EditBoxOnEnterPressed = function(editBox)
+		editBox:GetParent():Hide()
+	end,
+	EditBoxOnEscapePressed = function(editBox)
+		editBox:GetParent():Hide()
+	end,
+	timeout = 0,
+	whileDead = true,
+	hideOnEscape = true,
+	preferredIndex = 3,
+}
+
+local function ShowScanPrompt()
+	StaticPopup_Show(SCAN_PROMPT_POPUP, scanDone
+		and "Relevé fait. Faites /reload, puis copiez (Ctrl+C) cette demande pour Claude :"
+		or "Copiez (Ctrl+C) cette demande pour Claude :")
+end
+
 -- JOURNAUX DE QUÊTES (panneau Quêtes) : journal d'un personnage = celui du jeu pour le personnage
 -- joué, sinon le dernier reçu par Polypode cette session (QLOG), sinon le dernier gardé
 -- (PolypodeSuiviQuests) ; nil si jamais reçu.
@@ -2857,10 +2913,15 @@ local function Build()
 	fade:SetToAlpha(1)
 	fade:SetDuration(0.6)
 	scanBtn.flash, scanBtn.pulse = flash, pulse
+	-- Relevé fait : le clic montre la demande à copier pour Claude (ShowScanPrompt) ; avant, il
+	-- lance le relevé, puis montre aussitôt la demande (à donner après le /reload).
 	scanBtn:SetScript("OnClick", function()
-		ScanCampaigns()
-		scanDone = true
-		P.RefreshSuivi()
+		if not (scanDone or ScanWritten()) then
+			ScanCampaigns()
+			scanDone = true
+			P.RefreshSuivi()
+		end
+		ShowScanPrompt()
 	end)
 	scanBtn:SetScript("OnEnter", function(self)
 		GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
@@ -2869,9 +2930,10 @@ local function Build()
 		for _, campaign in ipairs(UnknownCampaigns()) do
 			GameTooltip:AddLine(campaign.name .. " |cff999999(n° " .. campaign.id .. ")|r", 1, 1, 1)
 		end
-		GameTooltip:AddLine((scanDone and "Faites /reload pour écrire le fichier, puis consolidez la liste.")
-			or (written and "Relevé écrit : reste à consolider la liste (Activities.lua) ; le bouton disparaît "
-				.. "avec la version qui la contient. Clic : refaire le relevé.")
+		GameTooltip:AddLine((scanDone and "Faites /reload pour écrire le fichier, puis demandez la mise à jour "
+				.. "de la liste à Claude. Clic : texte de la demande, à copier.")
+			or (written and "Reste à demander la mise à jour de la liste à Claude ; le bouton disparaît avec "
+				.. "la version qui la contient. Clic : texte de la demande, à copier.")
 			or "Clic : relevé des campagnes du jeu (puis /reload), pour les ajouter à la liste.", 0.6, 0.6, 0.6, true)
 		ShowTooltip()
 	end)

@@ -52,6 +52,10 @@ Retail (120000) et WoW Forever (16001) avec tests d'existence des API (lectures 
   des deux listes ; clic = relevé. Après le `/reload`, `ScanWritten()` (relevé du build en cours
   contenant toutes les inconnues) : bouton « Relevé » sans clignotement jusqu'à la consolidation —
   le bouton ne disparaît qu'avec la version d'`Activities.lua` qui classe les nouveaux identifiants.
+  Relevé fait (session ou écrit), le clic ouvre `ShowScanPrompt` : fenêtre `StaticPopup`
+  `POLYPODE_SUIVI_SCAN_PROMPT` avec la demande à copier pour Claude (`ScanPromptText` : patch,
+  build, identifiants et noms des inconnues), texte sélectionné et non modifiable ; le relevé ne
+  se refait plus au clic (`/poly suivi scan` reste possible).
 - **Mise à jour après un patch** : relevé (bouton ou commande) puis `/reload` ; lire
   `WTF/Account/<compte>/SavedVariables/Polypode_Suivi.lua` (les comptes partagent ce fichier par
   lien), classer chaque nouvel identifiant dans `ns.CAMPAIGNS` (extension / patch d'après la
