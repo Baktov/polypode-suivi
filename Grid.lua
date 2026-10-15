@@ -7,7 +7,7 @@ local P = Polypode
 --   Comptes — une ligne par personnage seul ou par équipe de Polypode (2 membres et plus, chaque
 --     personnage dans une seule équipe : la plus grande), une colonne par compte WoW (nom donné
 --     dans Polypode, P.GetCharacterAccount ; ordre et nombre réglés dans les options), à gauche
---     les métiers (option) et le niveau (« niveau / ilvl » au niveau maximum). Trois blocs :
+--     les métiers (option ; nom de l'équipe pour une ligne d'équipe) et le niveau (« niveau / ilvl » au niveau maximum). Trois blocs :
 --     Solo, Multi 2/3, Multi 4/5/+.
 --   Matrice — races en lignes, classes en colonnes (combinaisons impossibles en gris, RACES sur
 --     Retail, FOREVER_RACES sur WoW Forever), chaque personnage dans sa case ; en bas, des lignes libres (libellé et texte
@@ -680,15 +680,18 @@ local function BuildAccountsGrid()
 			local lastProfs
 			for _, row in ipairs(section.rows) do
 				local cellsOfRow = {}
-				if showProfs then
+				if showProfs and row.team then
+					-- Multi : nom de l'équipe sur les deux colonnes des métiers.
+					cellsOfRow[1] = { text = row.team, span = 2, justify = "LEFT" }
+				elseif showProfs then
 					local p1, p2 = DistinctText(row.keys, infos, 1), DistinctText(row.keys, infos, 2)
 					-- Solo : métiers écrits sur la première ligne de chaque groupe seulement.
 					local profs = p1 .. "\1" .. p2
-					if #row.keys > 1 or profs ~= lastProfs then
+					if profs ~= lastProfs then
 						cellsOfRow[1] = { text = p1 }
 						cellsOfRow[2] = { text = p2 }
 					end
-					lastProfs = #row.keys == 1 and profs or nil
+					lastProfs = profs
 				end
 				local levelText, allMax = LevelText(row.keys, infos)
 				cellsOfRow[showProfs and 3 or 1] = {

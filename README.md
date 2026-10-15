@@ -184,7 +184,7 @@ Maj + molette : défilement horizontal si la grille est plus large que la fenêt
   colonne). Une ligne par personnage seul, ou par **équipe** de Polypode (2 personnages et plus ;
   un personnage membre de plusieurs équipes est placé dans la plus grande), en trois blocs :
   **Solo** (regroupés par métiers), **Multi 2/3**, **Multi 4/5/+**. À gauche : **Métier 1** et
-  **Métier 2** (masquables) et le **niveau** — « 90 / 308 » au niveau maximum, avec le niveau
+  **Métier 2** (masquables ; pour une équipe, une seule case à son **nom**) et le **niveau** — « 90 / 308 » au niveau maximum, avec le niveau
   d'objet (le plus bas de l'équipe) ; les niveaux de chacun si ceux d'une équipe diffèrent.
 - **Matrice** : les **races** en lignes (bleu Alliance, vert neutre, rouge
   Horde), les **classes** en colonnes (armure en en-tête), chaque personnage dans sa case ; une
@@ -248,7 +248,7 @@ personnages**, transmis aux clients connectés ; aussi le bouton **Options** de 
 
 | Option | Défaut | Effet |
 |---|---|---|
-| Afficher les métiers | Oui | Colonnes Métier 1 et Métier 2 de l'onglet Comptes |
+| Afficher les métiers | Oui | Colonnes Métier 1 et Métier 2 de l'onglet Comptes (nom de l'équipe dans les blocs Multi) |
 | Nombre de colonnes de comptes | Tous les comptes (10 au plus) | Nombre de colonnes de comptes de l'onglet Comptes (1 à 10) |
 | Colonne 1 à 10 | Automatique | Compte de chaque colonne ; « Automatique » prend le premier compte pas encore placé, par ordre alphabétique. Grisées au-delà du nombre de colonnes |
 
@@ -267,6 +267,7 @@ travail de recensement.
 
 ## Version
 
+`2.9.0` : Grille, onglet Comptes : dans les blocs Multi 2/3 et Multi 4/5/+, le nom de l'équipe remplace les métiers (une case sur les deux colonnes).
 `2.8.2` : bouton de relevé des campagnes (auteur) : une fois le relevé fait, un clic montre la demande à copier pour faire mettre à jour la liste.
 `2.8.1` : campagne « La Promesse de demain » (patch 12.1.5) ajoutée à la liste.
 `2.8.0` : bouton « Grille » aussi dans la barre de titre de Polypode, à droite de la case « Solo » et à gauche du titre (Polypode 2.5.0), et commande `/poly grille`.
