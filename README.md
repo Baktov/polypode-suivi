@@ -170,9 +170,16 @@ affiche à la place **tous les personnages dont des informations ont été enreg
 ordre alphabétique, avec la date de leurs informations (« il y a 2 h », « du 24/09 à 21:10 ») ;
 le titre de la fenêtre devient alors **Suivi complet**.
 
+À droite de la case, la liste **Joués depuis** (rappelée dans les options) ne garde que les
+personnages joués depuis **1 jour**, **1 semaine**, **1 mois** ou **1 an** (date de leurs dernières
+informations reçues), ou **Tous** (par défaut). Elle vaut pour l'équipe comme pour **Tous les
+personnages** et pour tous les panneaux ; le personnage joué est toujours affiché, et l'en-tête de la
+liste indique le filtre (« joués depuis 1 semaine : 4/12 »). Le titre de la fenêtre est à droite du
+bouton **Grille**.
+
 ### Grille
 
-Le bouton **Grille** (à droite de la case **Tous les personnages**, et aussi dans la barre de titre de
+Le bouton **Grille** (à droite de la liste **Joués depuis**, et aussi dans la barre de titre de
 Polypode, à droite de la case **Solo** ; ou `/poly grille`) ouvre une fenêtre à part,
 redimensionnable, qui place **tous les personnages du roster** dans une grille, avec deux onglets.
 Un personnage au **niveau maximum** a sa case en **rouge** ; au survol d'une case : compte, niveau,
@@ -240,6 +247,7 @@ Dans **Options → AddOns → Polypode → Suivi** (réglage propre à chaque pe
 | Option | Défaut | Effet |
 |---|---|---|
 | Tous les personnages | Non | La fenêtre liste tous les personnages dont des informations ont été enregistrées au lieu de l'équipe sélectionnée (même case que dans la barre de titre de la fenêtre). Toujours cochée (et grisée) en **mode solo** de Polypode |
+| Personnages joués depuis | Tous | 1 jour, 1 semaine, 1 mois, 1 an ou Tous : ne montre que les personnages joués dans cette durée (même liste que dans la barre de titre) ; le personnage joué est toujours affiché |
 | Campagnes des extensions précédentes | Non | Ajoute à l'infobulle de chaque membre les campagnes des extensions précédentes (depuis Mists of Pandaria) : celles commencées mais pas finies, et le nombre de campagnes terminées par extension |
 | Afficher les renommées | Non | Détaille les renommées de l'extension dans l'infobulle de chaque membre. Inutile avec un seul compte Battle.net : les renommées y sont communes à tous les personnages |
 
@@ -267,6 +275,7 @@ travail de recensement.
 
 ## Version
 
+`2.10.0` : liste « Joués depuis » (1 jour, 1 semaine, 1 mois, 1 an, Tous) à droite de « Tous les personnages » et dans les options : seuls les personnages joués dans la durée choisie sont affichés ; titre de la fenêtre à droite de « Grille ».
 `2.9.1` : correction d'un gel du jeu (parfois plusieurs minutes) à l'ouverture de la fenêtre, surtout sur le panneau Activités : relevé du personnage joué gardé 1 s au lieu d'être refait pour chaque ligne, quêtes de Lune-d'Argent demandées au serveur au plus une fois par minute, fenêtre rafraîchie une seule fois par rafale de titres reçus.
 `2.9.0` : Grille, onglet Comptes : dans les blocs Multi 2/3 et Multi 4/5/+, le nom de l'équipe remplace les métiers (une case sur les deux colonnes).
 `2.8.2` : bouton de relevé des campagnes (auteur) : une fois le relevé fait, un clic montre la demande à copier pour faire mettre à jour la liste.

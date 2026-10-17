@@ -94,6 +94,7 @@ local SECTIONS = { "V", "C", "R", "F", "P", "A", "M", "W", "S", "Q", "H", "G" }
 -- Options par personnage (PolypodeSuiviDB, Options → AddOns → Polypode → Suivi).
 local DEFAULTS = {
 	showAll = false, -- tous les personnages sauvegardés au lieu de l'équipe sélectionnée
+	playedSince = "all", -- seulement les personnages joués depuis (PLAYED_CHOICES) ; "all" = tous
 	activityMode = false, -- panneau « Activités » au lieu du résumé
 	campaignMode = false, -- panneau « Campagnes » au lieu du résumé
 	questMode = false, -- panneau « Quêtes » au lieu du résumé (les trois panneaux s'excluent)
@@ -105,7 +106,7 @@ local DEFAULTS = {
 	-- collapsedExpansions = { [extension] = true } : extensions repliées du panneau « Campagnes » ;
 	-- collapsedCategories = { [CategoryKey] = true } : catégories repliées du panneau « Activités »
 }
-local MIN_WIDTH, MIN_HEIGHT = 760, 200 -- barre de titre : Options, case, Grille, titre, Quêtes, Campagnes, Activités
+local MIN_WIDTH, MIN_HEIGHT = 960, 200 -- barre de titre : Options, case, joués depuis, Grille, titre, Quêtes, Campagnes, Activités
 
 -- Retail (interface >= 100000) : les panneaux « Activités » et « Campagnes » (Midnight, campagnes
 -- de Mists of Pandaria à Midnight) n'existent pas sur WoW Forever (16001) : boutons masqués.
@@ -128,6 +129,42 @@ end
 -- [nom-royaume] = { sections = { [section] = { [k] = v } }, at = date, times = { [section] = date } }
 -- (dates = heure serveur). Remplacé à ADDON_LOADED par la table sauvegardée PolypodeSuiviData.
 local received = {}
+
+-- « Joués depuis » (option playedSince) : un personnage est retenu si ses dernières informations
+-- (received[clé].at, envoyées par son client pendant qu'il est connecté) sont plus récentes que la
+-- durée choisie ; le personnage joué l'est toujours, un personnage sans informations ne l'est
+-- qu'avec « Tous ». { valeur, libellé, secondes (nil = tous) }.
+-- (Fonctions rangées dans ns : le fichier frôle la limite de 200 variables locales de Lua.)
+local PLAYED_CHOICES = {
+	{ "day", "1 jour", 86400 }, { "week", "1 semaine", 7 * 86400 }, { "month", "1 mois", 30 * 86400 },
+	{ "year", "1 an", 365 * 86400 }, { "all", "Tous" },
+}
+
+function ns.PlayedChoice()
+	local value = SuiviSettings().playedSince
+	for _, choice in ipairs(PLAYED_CHOICES) do
+		if choice[1] == value then
+			return choice
+		end
+	end
+	return PLAYED_CHOICES[#PLAYED_CHOICES]
+end
+
+-- Garde les éléments { key } dont le personnage a été joué dans la durée choisie.
+function ns.FilterPlayed(items)
+	local limit = ns.PlayedChoice()[3]
+	if not limit then
+		return items
+	end
+	local now, own, kept = GetServerTime(), P.GetCharKey(), {}
+	for _, item in ipairs(items) do
+		local entry = received[item.key]
+		if item.key == own or (entry and entry.at and now - entry.at <= limit) then
+			kept[#kept + 1] = item
+		end
+	end
+	return kept
+end
 local questLogs = {} -- = PolypodeSuiviQuests : [clé] = { ids = { [questID] = true }, at = heure serveur }
 local lastSent = {} -- [section] = dernière chaîne envoyée aux clients connectés
 local sendPending
@@ -445,8 +482,15 @@ end
 -- Renvoie { [questID] = true }.
 -- Demande des lignes de quêtes de la carte au serveur : au plus une par minute (chaque demande
 -- déclenche des rafales de QUEST_DATA_LOAD_RESULT ; à chaque relevé, elle faisait boucler la fenêtre).
-local QUEST_LINES_REQUEST_INTERVAL = 60 -- secondes
-local lastQuestLinesRequest
+-- État de session des garde-fous de performance (une seule table : limite de 200 variables locales).
+local throttle = {
+	questLinesInterval = 60, -- secondes entre deux demandes des lignes de quêtes
+	questLinesAt = nil, -- GetTime() de la dernière demande
+	ownDuration = 1, -- secondes de validité du relevé du personnage joué
+	own = nil, ownAt = nil, -- relevé gardé et son GetTime()
+	titleDelay = 0.5, -- secondes avant le rafraîchissement d'une rafale de titres
+	titlePending = false,
+}
 
 local function DynamicQuestIDs()
 	local ids = {}
@@ -454,8 +498,8 @@ local function DynamicQuestIDs()
 	if map and C_QuestLine and C_QuestLine.GetAvailableQuestLines then
 		local now = GetTime()
 		if C_QuestLine.RequestQuestLinesForMap
-			and (not lastQuestLinesRequest or now - lastQuestLinesRequest >= QUEST_LINES_REQUEST_INTERVAL) then
-			lastQuestLinesRequest = now
+			and (not throttle.questLinesAt or now - throttle.questLinesAt >= throttle.questLinesInterval) then
+			throttle.questLinesAt = now
 			C_QuestLine.RequestQuestLinesForMap(map)
 		end
 		local sources = { C_QuestLine.GetAvailableQuestLines(map) or {} }
@@ -1103,19 +1147,16 @@ end
 -- chaque panneau (des centaines de fois par rafraîchissement du panneau Activités), et un relevé
 -- complet relit tout le jeu. Oublié à chaque événement suivi (InvalidateOwn), remplacé par celui
 -- de SendAll.
-local OWN_CACHE_DURATION = 1 -- secondes
-local ownCache, ownCacheAt
-
 local function OwnSections()
 	local now = GetTime()
-	if not ownCache or now - ownCacheAt >= OWN_CACHE_DURATION then
-		ownCache, ownCacheAt = ReadOwn(), now
+	if not throttle.own or now - throttle.ownAt >= throttle.ownDuration then
+		throttle.own, throttle.ownAt = ReadOwn(), now
 	end
-	return ownCache
+	return throttle.own
 end
 
 local function InvalidateOwn()
-	ownCache = nil
+	throttle.own = nil
 end
 
 -- SYNCHRO ---------------------------------------------------------------------------------
@@ -1219,7 +1260,7 @@ local function SendAll(target)
 	local own = ReadOwn()
 	KeepCampaignProgress(own)
 	lastOwn = own
-	ownCache, ownCacheAt = own, GetTime() -- relevé frais : l'affichage qui suit le reprend
+	throttle.own, throttle.ownAt = own, GetTime() -- relevé frais : l'affichage qui suit le reprend
 	StoreOwn(own)
 	local token = P.GetTeamToken and P.GetTeamToken()
 	if not token or not P.WhisperOnline then
@@ -2750,8 +2791,9 @@ local function MemberTooltip(item)
 end
 
 -- Membres de l'équipe sélectionnée (leader en tête), ou tous les personnages sauvegardés encore
--- dans le roster (option showAll) ; texte d'en-tête et de liste vide.
+-- dans le roster (option showAll), filtrés par « Joués depuis » ; texte d'en-tête et de liste vide.
 local function BuildItems()
+	local items, header, emptyText
 	if ShowAll() then
 		local set = { [P.GetCharKey()] = true }
 		for key in pairs(received) do
@@ -2759,17 +2801,26 @@ local function BuildItems()
 				set[key] = true
 			end
 		end
-		return P.SortedKeyItems(set), "Suivi : tous les personnages", "Aucune information enregistrée."
+		items, header, emptyText = P.SortedKeyItems(set), "Suivi : tous les personnages", "Aucune information enregistrée."
+	else
+		local team = P.GetSelectedTeam()
+		if not team then
+			return {}, "Suivi de l'équipe", "Sélectionnez une équipe."
+		end
+		local leader = P.GetTeamLeader(team)
+		items = P.SortedKeyItems(P.GetTeamMembers(team) or {}, function(key)
+			return key == leader
+		end)
+		header, emptyText = "Suivi de l'équipe « " .. team .. " »", "Aucun personnage dans l'équipe."
 	end
-	local team = P.GetSelectedTeam()
-	if not team then
-		return {}, "Suivi de l'équipe", "Sélectionnez une équipe."
+	local choice = ns.PlayedChoice()
+	if choice[3] then
+		local total = #items
+		items = ns.FilterPlayed(items)
+		header = header .. " |cff999999(joués depuis " .. choice[2] .. " : " .. #items .. "/" .. total .. ")|r"
+		emptyText = "Aucun personnage joué depuis " .. choice[2] .. "."
 	end
-	local leader = P.GetTeamLeader(team)
-	local items = P.SortedKeyItems(P.GetTeamMembers(team) or {}, function(key)
-		return key == leader
-	end)
-	return items, "Suivi de l'équipe « " .. team .. " »", "Aucun personnage dans l'équipe."
+	return items, header, emptyText
 end
 
 -- Panneaux « Activités », « Campagnes », « Quêtes » : un seul à la fois ; le bouton du panneau
@@ -3015,6 +3066,35 @@ local function Build()
 	allCheck:SetMotionScriptsWhileDisabled(true) -- infobulle aussi grisée (mode solo)
 	frame.allCheck = allCheck
 
+	-- « Joués depuis » + liste (option playedSince, aussi dans le panneau d'options), à droite de
+	-- la case : ne montre que les personnages joués dans la durée choisie.
+	local playedLabel = frame:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
+	playedLabel:SetText("Joués depuis")
+	local playedDropdown = CreateFrame("DropdownButton", nil, frame, "WowStyle1DropdownTemplate")
+	playedDropdown:SetWidth(100)
+	playedDropdown:SetPoint("LEFT", playedLabel, "RIGHT", 6, 0)
+	playedDropdown:SetupMenu(function(_, root)
+		for _, choice in ipairs(PLAYED_CHOICES) do
+			root:CreateRadio(choice[2], function()
+				return ns.PlayedChoice()[1] == choice[1]
+			end, function()
+				SuiviSettings().playedSince = choice[1]
+				P.RefreshSuivi()
+			end)
+		end
+	end)
+	playedDropdown:SetScript("OnEnter", function(self)
+		GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
+		GameTooltip:AddLine("Joués depuis")
+		GameTooltip:AddLine("Ne montre que les personnages joués depuis 1 jour, 1 semaine, 1 mois ou 1 an "
+			.. "(date de leurs dernières informations reçues), ou tous. Le personnage joué est toujours "
+			.. "affiché. Vaut pour l'équipe comme pour « Tous les personnages ».", 1, 1, 1, true)
+		ShowTooltip()
+	end)
+	playedDropdown:SetScript("OnLeave", GameTooltip_Hide)
+	frame.playedDropdown = playedDropdown
+	P.ui.suiviPlayedDropdown = playedDropdown
+
 	-- Bouton « Grille », à droite de la case « Tous les personnages » (à gauche du titre) : ouvre
 	-- la fenêtre de la grille (Grid.lua), personnages par compte et par race / classe.
 	local gridBtn = CreateFrame("Button", nil, frame, "UIPanelButtonTemplate")
@@ -3217,14 +3297,23 @@ local function Build()
 	if P.SkinCheckBox then -- Polypode 0.53.3
 		P.SkinCheckBox(allCheck)
 	end
-	-- Libellé écarté de la case (après le skin : EllesmereUI le collait à son cadre).
+	if P.SkinDropdown then
+		P.SkinDropdown(playedDropdown)
+	end
+	-- Libellé écarté de la case (après le skin : EllesmereUI le collait à son cadre), puis
+	-- « Joués depuis » et sa liste, puis « Grille ».
 	if allText then
 		allText:ClearAllPoints()
 		allText:SetPoint("LEFT", allCheck, "RIGHT", 5, 0)
-		gridBtn:SetPoint("LEFT", allText, "RIGHT", 10, 0)
+		playedLabel:SetPoint("LEFT", allText, "RIGHT", 14, 0)
 	else
-		gridBtn:SetPoint("LEFT", allCheck, "RIGHT", 130, 0)
+		playedLabel:SetPoint("LEFT", allCheck, "RIGHT", 130, 0)
 	end
+	gridBtn:SetPoint("LEFT", playedDropdown, "RIGHT", 10, 0)
+	-- Titre à droite de « Grille » (après le skin, qui le recentre) : centré, il passait sous les
+	-- contrôles de gauche depuis l'ajout de « Joués depuis ».
+	title:ClearAllPoints()
+	title:SetPoint("LEFT", gridBtn, "RIGHT", 14, 0)
 end
 
 -- Remplit la liste, si la fenêtre est ouverte.
@@ -3236,6 +3325,7 @@ function P.RefreshSuivi()
 		return
 	end
 	frame.allCheck:SetChecked(ShowAll()) -- peut avoir changé dans les options
+	frame.playedDropdown:GenerateMenu() -- choix affiché (« Joués depuis » a pu changer dans les options)
 	-- « Tous les personnages » : pas de panneau Quêtes (quêtes du leader de l'équipe) ; bouton
 	-- masqué, « Nouveau » prend sa place, panneau refermé s'il était affiché.
 	local questShown = not ShowAll()
@@ -3506,6 +3596,34 @@ local function BuildSettingsPanel()
 		.. "(avec leur date) au lieu des membres de l'équipe sélectionnée. Même case que dans la barre "
 		.. "de titre de la fenêtre. Toujours cochée en mode solo de Polypode. Réglage propre à ce personnage.")
 
+	-- « Joués depuis » : liste du panneau et de la petite fenêtre, même réglage que la barre de titre.
+	local playedSetting = Settings.RegisterProxySetting(category, "POLYPODE_SUIVI_PLAYED_SINCE",
+		Settings.VarType.String, "Personnages joués depuis", DEFAULTS.playedSince,
+		function()
+			return ns.PlayedChoice()[1]
+		end,
+		function(value)
+			SuiviSettings().playedSince = value
+			P.RefreshSuivi()
+		end)
+	local playedValues = {}
+	for _, choice in ipairs(PLAYED_CHOICES) do
+		playedValues[#playedValues + 1] = { choice[1], choice[2] }
+	end
+	local playedTooltip = "N'affiche que les personnages joués depuis 1 jour, 1 semaine, 1 mois ou 1 an "
+		.. "(date de leurs dernières informations reçues), ou tous. Le personnage joué est toujours affiché. "
+		.. "Vaut pour l'équipe comme pour « Tous les personnages ». Même liste que dans la barre de titre "
+		.. "de la fenêtre. Réglage propre à ce personnage."
+	Settings.CreateDropdown(category, playedSetting, function()
+		local container = Settings.CreateControlTextContainer()
+		for _, value in ipairs(playedValues) do
+			container:Add(value[1], value[2])
+		end
+		return container:GetData()
+	end, playedTooltip)
+	popupItems[#popupItems + 1] = { kind = "dropdown", setting = playedSetting, values = playedValues,
+		tooltip = playedTooltip }
+
 	if IS_RETAIL then -- campagnes et renommées : propres à Retail
 		local campaignSetting = Settings.RegisterProxySetting(category, "POLYPODE_SUIVI_SHOW_OLD_CAMPAIGNS",
 			Settings.VarType.Boolean, "Campagnes des extensions précédentes", DEFAULTS.showOldCampaigns,
@@ -3544,16 +3662,13 @@ end
 -- Titres d'activités reçus du serveur : un seul rafraîchissement pour une rafale de réponses.
 -- QUEST_DATA_LOAD_RESULT arrive pour toute quête chargée par n'importe quel addon : seules celles
 -- dont ce panneau a demandé le titre comptent.
-local TITLE_REFRESH_DELAY = 0.5 -- secondes
-local titleRefreshPending = false
-
 local function OnQuestDataLoaded(questID)
-	if titleRefreshPending or not (questID and titleRequested[questID]) or not (frame and frame:IsShown()) then
+	if throttle.titlePending or not (questID and titleRequested[questID]) or not (frame and frame:IsShown()) then
 		return
 	end
-	titleRefreshPending = true
-	C_Timer.After(TITLE_REFRESH_DELAY, function()
-		titleRefreshPending = false
+	throttle.titlePending = true
+	C_Timer.After(throttle.titleDelay, function()
+		throttle.titlePending = false
 		P.RefreshSuivi()
 	end)
 end
