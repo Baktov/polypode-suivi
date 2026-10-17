@@ -267,6 +267,7 @@ travail de recensement.
 
 ## Version
 
+`2.9.1` : correction d'un gel du jeu (parfois plusieurs minutes) à l'ouverture de la fenêtre, surtout sur le panneau Activités : relevé du personnage joué gardé 1 s au lieu d'être refait pour chaque ligne, quêtes de Lune-d'Argent demandées au serveur au plus une fois par minute, fenêtre rafraîchie une seule fois par rafale de titres reçus.
 `2.9.0` : Grille, onglet Comptes : dans les blocs Multi 2/3 et Multi 4/5/+, le nom de l'équipe remplace les métiers (une case sur les deux colonnes).
 `2.8.2` : bouton de relevé des campagnes (auteur) : une fois le relevé fait, un clic montre la demande à copier pour faire mettre à jour la liste.
 `2.8.1` : campagne « La Promesse de demain » (patch 12.1.5) ajoutée à la liste.

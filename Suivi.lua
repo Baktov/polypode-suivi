@@ -443,11 +443,19 @@ end
 -- ou de ns.MAP_QUESTS en cours (ou always), ou vues cette semaine (PolypodeSuiviDB.dynamicSeen :
 -- une quête faite disparaît de la carte mais doit rester suivie jusqu'à la réinitialisation).
 -- Renvoie { [questID] = true }.
+-- Demande des lignes de quêtes de la carte au serveur : au plus une par minute (chaque demande
+-- déclenche des rafales de QUEST_DATA_LOAD_RESULT ; à chaque relevé, elle faisait boucler la fenêtre).
+local QUEST_LINES_REQUEST_INTERVAL = 60 -- secondes
+local lastQuestLinesRequest
+
 local function DynamicQuestIDs()
 	local ids = {}
 	local map = ns.DYNAMIC_MAP
 	if map and C_QuestLine and C_QuestLine.GetAvailableQuestLines then
-		if C_QuestLine.RequestQuestLinesForMap then
+		local now = GetTime()
+		if C_QuestLine.RequestQuestLinesForMap
+			and (not lastQuestLinesRequest or now - lastQuestLinesRequest >= QUEST_LINES_REQUEST_INTERVAL) then
+			lastQuestLinesRequest = now
 			C_QuestLine.RequestQuestLinesForMap(map)
 		end
 		local sources = { C_QuestLine.GetAvailableQuestLines(map) or {} }
@@ -1091,6 +1099,25 @@ local function ReadOwn()
 	return sections
 end
 
+-- Relevé du personnage joué pour l'affichage, gardé 1 s : DataFor est appelé pour chaque ligne de
+-- chaque panneau (des centaines de fois par rafraîchissement du panneau Activités), et un relevé
+-- complet relit tout le jeu. Oublié à chaque événement suivi (InvalidateOwn), remplacé par celui
+-- de SendAll.
+local OWN_CACHE_DURATION = 1 -- secondes
+local ownCache, ownCacheAt
+
+local function OwnSections()
+	local now = GetTime()
+	if not ownCache or now - ownCacheAt >= OWN_CACHE_DURATION then
+		ownCache, ownCacheAt = ReadOwn(), now
+	end
+	return ownCache
+end
+
+local function InvalidateOwn()
+	ownCache = nil
+end
+
 -- SYNCHRO ---------------------------------------------------------------------------------
 
 local function SectionItems(data)
@@ -1192,6 +1219,7 @@ local function SendAll(target)
 	local own = ReadOwn()
 	KeepCampaignProgress(own)
 	lastOwn = own
+	ownCache, ownCacheAt = own, GetTime() -- relevé frais : l'affichage qui suit le reprend
 	StoreOwn(own)
 	local token = P.GetTeamToken and P.GetTeamToken()
 	if not token or not P.WhisperOnline then
@@ -1252,7 +1280,7 @@ end
 -- joué est lu en direct ; nil si rien n'est connu de lui.
 local function DataFor(key)
 	if key == P.GetCharKey() then
-		return ReadOwn(), GetServerTime(), false
+		return OwnSections(), GetServerTime(), false
 	end
 	local entry = received[key]
 	if not entry then
@@ -1456,12 +1484,14 @@ local function BuildActivityItems(keys)
 				end
 			end
 		end
-		local entries = {}
+		local entries, titles = {}, {}
 		for questID in pairs(questIDs) do
-			entries[#entries + 1] = { q = questID, always = true }
+			local entry = { q = questID, always = true }
+			entries[#entries + 1] = entry
+			titles[entry] = EntryTitle(entry) -- une fois par quête, pas à chaque comparaison du tri
 		end
 		table.sort(entries, function(a, b)
-			return EntryTitle(a) < EntryTitle(b)
+			return titles[a] < titles[b]
 		end)
 		categories[1] = { map = ns.DYNAMIC_MAP, entries = entries }
 	end
@@ -3511,6 +3541,23 @@ local function BuildSettingsPanel()
 	end
 end
 
+-- Titres d'activités reçus du serveur : un seul rafraîchissement pour une rafale de réponses.
+-- QUEST_DATA_LOAD_RESULT arrive pour toute quête chargée par n'importe quel addon : seules celles
+-- dont ce panneau a demandé le titre comptent.
+local TITLE_REFRESH_DELAY = 0.5 -- secondes
+local titleRefreshPending = false
+
+local function OnQuestDataLoaded(questID)
+	if titleRefreshPending or not (questID and titleRequested[questID]) or not (frame and frame:IsShown()) then
+		return
+	end
+	titleRefreshPending = true
+	C_Timer.After(TITLE_REFRESH_DELAY, function()
+		titleRefreshPending = false
+		P.RefreshSuivi()
+	end)
+end
+
 local setup = CreateFrame("Frame")
 setup:RegisterEvent("ADDON_LOADED")
 setup:RegisterEvent("PLAYER_LOGIN")
@@ -3542,7 +3589,8 @@ setup:SetScript("OnEvent", function(_, event, addonName)
 			C_MythicPlus.RequestMapInfo()
 		end
 	elseif event == "QUEST_DATA_LOAD_RESULT" then
-		P.RefreshSuivi()
+		OnQuestDataLoaded(addonName) -- 1er argument : identifiant de la quête
+
 	elseif event == "PLAYER_LOGOUT" then
 		-- Pas de relecture ici (données du jeu déjà vidées) : le dernier relevé fait en jeu.
 		if lastOwn then
@@ -3579,6 +3627,7 @@ for _, event in ipairs({
 	end
 end
 events:SetScript("OnEvent", function(_, event)
+	InvalidateOwn() -- le personnage joué a changé : prochain affichage relu en direct
 	if event == "PLAYER_LEAVING_WORLD" then
 		leavingWorld = true -- sortie du monde : plus de relevé (données du jeu en cours de vidage)
 		return
