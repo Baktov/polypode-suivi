@@ -106,7 +106,7 @@ local DEFAULTS = {
 	-- collapsedExpansions = { [extension] = true } : extensions repliées du panneau « Campagnes » ;
 	-- collapsedCategories = { [CategoryKey] = true } : catégories repliées du panneau « Activités »
 }
-local MIN_WIDTH, MIN_HEIGHT = 960, 200 -- barre de titre : Options, case, joués depuis, Grille, titre, Quêtes, Campagnes, Activités
+local MIN_WIDTH, MIN_HEIGHT = 980, 200 -- barre de titre : Options, case, joués depuis, titre, Grille, Nouveau, Quêtes, Campagnes, Activités
 
 -- Retail (interface >= 100000) : les panneaux « Activités » et « Campagnes » (Midnight, campagnes
 -- de Mists of Pandaria à Midnight) n'existent pas sur WoW Forever (16001) : boutons masqués.
@@ -3095,8 +3095,8 @@ local function Build()
 	frame.playedDropdown = playedDropdown
 	P.ui.suiviPlayedDropdown = playedDropdown
 
-	-- Bouton « Grille », à droite de la case « Tous les personnages » (à gauche du titre) : ouvre
-	-- la fenêtre de la grille (Grid.lua), personnages par compte et par race / classe.
+	-- Bouton « Grille », à droite du titre, contre les boutons de droite (ancré par P.RefreshSuivi) :
+	-- ouvre la fenêtre de la grille (Grid.lua), personnages par compte et par race / classe.
 	local gridBtn = CreateFrame("Button", nil, frame, "UIPanelButtonTemplate")
 	gridBtn:SetSize(60, 20)
 	gridBtn:SetText("Grille")
@@ -3309,11 +3309,11 @@ local function Build()
 	else
 		playedLabel:SetPoint("LEFT", allCheck, "RIGHT", 130, 0)
 	end
-	gridBtn:SetPoint("LEFT", playedDropdown, "RIGHT", 10, 0)
-	-- Titre à droite de « Grille » (après le skin, qui le recentre) : centré, il passait sous les
-	-- contrôles de gauche depuis l'ajout de « Joués depuis ».
+	-- Titre à droite de « Joués depuis » (après le skin, qui le recentre) : centré, il passait sous
+	-- les contrôles de gauche. « Grille » est à droite du titre, contre les boutons de droite
+	-- (ancré par P.RefreshSuivi : le premier d'entre eux varie).
 	title:ClearAllPoints()
-	title:SetPoint("LEFT", gridBtn, "RIGHT", 14, 0)
+	title:SetPoint("LEFT", playedDropdown, "RIGHT", 14, 0)
 end
 
 -- Remplit la liste, si la fenêtre est ouverte.
@@ -3359,6 +3359,11 @@ function P.RefreshSuivi()
 		scanBtn.pulse:Stop()
 		scanBtn:Hide()
 	end
+	-- « Grille » à gauche du premier bouton de droite affiché : « Nouveau », sinon « Quêtes », sinon
+	-- la place de « Quêtes » (« Campagnes », ou la croix sur WoW Forever).
+	frame.gridButton:ClearAllPoints()
+	frame.gridButton:SetPoint("RIGHT", scanBtn:IsShown() and scanBtn
+		or (questShown and frame.questButton or frame.questAnchor), "LEFT", -4, 0)
 	local items, header, emptyText = BuildItems()
 	local settings = SuiviSettings()
 	if not IS_RETAIL then -- panneaux absents de WoW Forever (boutons masqués)

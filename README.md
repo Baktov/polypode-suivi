@@ -174,12 +174,11 @@ le titre de la fenêtre devient alors **Suivi complet**.
 personnages joués depuis **1 jour**, **1 semaine**, **1 mois** ou **1 an** (date de leurs dernières
 informations reçues), ou **Tous** (par défaut). Elle vaut pour l'équipe comme pour **Tous les
 personnages** et pour tous les panneaux ; le personnage joué est toujours affiché, et l'en-tête de la
-liste indique le filtre (« joués depuis 1 semaine : 4/12 »). Le titre de la fenêtre est à droite du
-bouton **Grille**.
+liste indique le filtre (« joués depuis 1 semaine : 4/12 »). Le titre de la fenêtre suit la liste.
 
 ### Grille
 
-Le bouton **Grille** (à droite de la liste **Joués depuis**, et aussi dans la barre de titre de
+Le bouton **Grille** (à droite du titre, à gauche de **Quêtes** / **Campagnes**, et aussi dans la barre de titre de
 Polypode, à droite de la case **Solo** ; ou `/poly grille`) ouvre une fenêtre à part,
 redimensionnable, qui place **tous les personnages du roster** dans une grille, avec deux onglets.
 Un personnage au **niveau maximum** a sa case en **rouge** ; au survol d'une case : compte, niveau,
@@ -275,6 +274,7 @@ travail de recensement.
 
 ## Version
 
+`2.10.1` : bouton « Grille » à droite du titre, contre les boutons de droite ; titre à droite de « Joués depuis ».
 `2.10.0` : liste « Joués depuis » (1 jour, 1 semaine, 1 mois, 1 an, Tous) à droite de « Tous les personnages » et dans les options : seuls les personnages joués dans la durée choisie sont affichés ; titre de la fenêtre à droite de « Grille ».
 `2.9.1` : correction d'un gel du jeu (parfois plusieurs minutes) à l'ouverture de la fenêtre, surtout sur le panneau Activités : relevé du personnage joué gardé 1 s au lieu d'être refait pour chaque ligne, quêtes de Lune-d'Argent demandées au serveur au plus une fois par minute, fenêtre rafraîchie une seule fois par rafale de titres reçus.
 `2.9.0` : Grille, onglet Comptes : dans les blocs Multi 2/3 et Multi 4/5/+, le nom de l'équipe remplace les métiers (une case sur les deux colonnes).
