@@ -180,7 +180,7 @@ horizontal scrolling if the grid is wider than the window.
   in the options, **Others** column for characters with no account or of an account with no
   column; an account with no character shown has no column). Three **collapsible** blocks (click
   their title, with their count): **Solo**, where each account lists its characters outside teams
-  from highest to lowest level; **Multi 2/3** and **Multi 4/5/+**, one row per Polypode **team**
+  from highest to lowest level, then item level; **Multi 2/3** and **Multi 4/5/+**, one row per Polypode **team**
   (2 characters and more; a character member of several teams is placed in the largest one),
   its name on the left. Each cell: the **icons of both professions** (can be hidden in the
   options; name on hover), the name in class color on a class-tinted background, and on the right

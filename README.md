@@ -196,7 +196,7 @@ Maj + molette : défilement horizontal si la grille est plus large que la fenêt
   dans les options, colonne **Autres** pour les personnages sans compte ou d'un compte sans
   colonne ; un compte sans personnage affiché n'a pas de colonne). Trois blocs **repliables**
   (clic sur leur titre, avec leur nombre) : **Solo**, où chaque compte liste ses personnages hors
-  équipe du plus haut au plus bas niveau ; **Multi 2/3** et **Multi 4/5/+**, une ligne par
+  équipe du plus haut au plus bas niveau, puis niveau d'objet ; **Multi 2/3** et **Multi 4/5/+**, une ligne par
   **équipe** de Polypode (2 personnages et plus ; un personnage membre de plusieurs équipes est
   placé dans la plus grande), son nom à gauche. Chaque case : les **icônes des deux métiers**
   (masquables dans les options ; nom au survol), le nom en couleur de classe sur un fond teinté
@@ -305,6 +305,7 @@ other language).*
 
 ## Version
 
+`2.13.1` : Grille : personnages triés par niveau puis par niveau d'objet.
 `2.13.0` : onglet Comptes compact : personnages seuls empilés par compte (triés par niveau), niveau dans la case (niveau d'objet doré au niveau maximum, coin doré), icônes des métiers, colonnes de largeur fixe et comptes vides masqués, un seul en-tête, blocs repliables, bas niveaux (10 ou moins, hors équipes) masqués sauf case « Bas niveaux ».
 `2.12.1` : Matrice : combinaisons race / classe impossibles barrées d'un fin trait en diagonale, avec infobulle.
 `2.12.0` : Matrice plus compacte et lisible : une ligne par race (personnage le plus haut et « +n »), icônes de classes et de races, classes groupées par armure, races par faction, seulement les races jouées (case « Toutes les races »), couleurs adoucies (coin doré au niveau maximum), lignes libres repliables ; races au féminin (Kultirassienne, Pandarène...) rangées avec leur race (fichier de race de Polypode Data 2.4).

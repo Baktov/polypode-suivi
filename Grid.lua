@@ -537,6 +537,7 @@ local function CharacterInfos()
 	return infos
 end
 
+-- Tri des personnages : niveau maximum d'abord, puis niveau, niveau d'objet (décroissants), nom.
 local function SortKeys(keys, infos)
 	table.sort(keys, function(a, b)
 		local ia, ib = infos[a], infos[b]
@@ -545,6 +546,9 @@ local function SortKeys(keys, infos)
 		end
 		if (ia.level or 0) ~= (ib.level or 0) then
 			return (ia.level or 0) > (ib.level or 0)
+		end
+		if (ia.ilvl or 0) ~= (ib.ilvl or 0) then
+			return (ia.ilvl or 0) > (ib.ilvl or 0)
 		end
 		return ia.name < ib.name
 	end)
