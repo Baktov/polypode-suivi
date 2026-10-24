@@ -48,6 +48,8 @@ P.AddTranslations(ns.L, "deDE", {
 	["Sacrenuit"] = "Nachtgeborener",
 	["Gobelin"] = "Goblin",
 	["Vulpérin"] = "Vulpera",
+	["Éolide de l'Ordre suprême"] = "Himmelsgeborener des Hohen Ordens",
+	["Éolide des Sculpte-vents"] = "Himmelsgeborener der Windformer",
 	["Compte"] = "Konto",
 	["non renseigné"] = "nicht angegeben",
 	["Niveau"] = "Stufe",

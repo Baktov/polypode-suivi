@@ -287,6 +287,7 @@ other language).*
 
 ## Version
 
+`2.11.1` : Éolides de WoW Forever traduits dans la Grille (High Order Skyborne, Himmelsgeborener des Hohen Ordens, Cielonato de la Orden Eminente...) et reconnus quelle que soit la langue du client. *Skyborne races translated in the Grid.*
 `2.11.0` : Polypode Suivi en anglais, allemand, espagnol, italien et portugais du Brésil, selon la langue choisie dans Polypode (Tracker, Seguimiento, Monitoraggio, Acompanhamento ; Grille : Grid, Raster, Cuadrícula, Griglia, Grade) ; alias anglais /poly tracker, /poly grid, /poly quests. *Translated into English, German, Spanish, Italian and Brazilian Portuguese.*
 `2.10.1` : bouton « Grille » à droite du titre, contre les boutons de droite ; titre à droite de « Joués depuis ».
 `2.10.0` : liste « Joués depuis » (1 jour, 1 semaine, 1 mois, 1 an, Tous) à droite de « Tous les personnages » et dans les options : seuls les personnages joués dans la durée choisie sont affichés ; titre de la fenêtre à droite de « Grille ».

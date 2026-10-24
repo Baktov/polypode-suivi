@@ -93,7 +93,8 @@ local RACES = {
 }
 
 -- Noms affichés des races (langue choisie) ; le nom de RACES reste celui de la comparaison avec le
--- nom relevé en jeu (RaceKey). Éolides de WoW Forever : nom français (pas de traduction connue).
+-- nom relevé en jeu (RaceKey). Éolides de WoW Forever : noms du client de Blizzard (italien et
+-- portugais : noms anglais, pas de traduction connue).
 local RACE_LABELS = {
 	Human = L["Humain"], KulTiran = L["Kultirassien"], Dwarf = L["Nain"], DarkIronDwarf = L["Nain sombrefer"],
 	NightElf = L["Elfe de la nuit"], VoidElf = L["Elfe du Vide"], Gnome = L["Gnome"], Mechagnome = L["Mécagnome"],
@@ -102,6 +103,7 @@ local RACE_LABELS = {
 	Scourge = L["Mort-vivant"], Tauren = L["Tauren"], HighmountainTauren = L["Tauren de Haut-Roc"], Troll = L["Troll"],
 	ZandalariTroll = L["Troll zandalari"], BloodElf = L["Elfe de sang"], Nightborne = L["Sacrenuit"], Goblin = L["Gobelin"],
 	Vulpera = L["Vulpérin"],
+	["?eolide-ordre"] = L["Éolide de l'Ordre suprême"], ["?eolide-sculpte"] = L["Éolide des Sculpte-vents"],
 }
 
 -- WoW Forever (contenu Vanilla) : neuf classes, dix races ; combinaisons dans l'ordre de
@@ -119,6 +121,16 @@ local FOREVER_RACES = {
 	{ "Troll", "Troll", "H", "xxxxxx--x" },
 	{ "Scourge", "Mort-vivant", "H", "x-xxxxx--" },
 	{ "?eolide-sculpte", "Éolide des Sculpte-vents", "H", "xx-x---xx" },
+}
+
+-- Noms des Éolides dans les autres langues du client (formes féminines comprises), pour les
+-- reconnaître quel que soit le client.
+local FOREVER_RACE_NAMES = {
+	["?eolide-ordre"] = { "High Order Skyborne", "Skyborne High Order", "Himmelsgeborener des Hohen Ordens",
+		"Himmelsgeborene des Hohen Ordens", "Cielonato de la Orden Eminente", "Cielonata de la Orden Eminente" },
+	["?eolide-sculpte"] = { "Éolide sculpte-vents", "Windshaper Skyborne", "Skyborne Windshaper",
+		"Himmelsgeborener der Windformer", "Himmelsgeborene der Windformer", "Himmelsgeborene Windformer",
+		"Cielonato Formavientos", "Cielonata Formavientos" },
 }
 
 -- Classes et races de la matrice selon le jeu.
@@ -785,6 +797,9 @@ local function BuildMatrixGrid()
 	for _, race in ipairs(MATRIX_RACES) do
 		known[race[1]] = true
 		byName[NormalizeRaceName(race[2])] = race[1]
+		for _, name in ipairs(FOREVER_RACE_NAMES[race[1]] or {}) do
+			byName[NormalizeRaceName(name)] = race[1]
+		end
 	end
 	for key, info in pairs(infos) do
 		local race = info.race

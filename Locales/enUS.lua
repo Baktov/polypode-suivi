@@ -48,6 +48,8 @@ P.AddTranslations(ns.L, "enUS", {
 	["Sacrenuit"] = "Nightborne",
 	["Gobelin"] = "Goblin",
 	["Vulpérin"] = "Vulpera",
+	["Éolide de l'Ordre suprême"] = "High Order Skyborne",
+	["Éolide des Sculpte-vents"] = "Windshaper Skyborne",
 	["Compte"] = "Account",
 	["non renseigné"] = "not set",
 	["Niveau"] = "Level",

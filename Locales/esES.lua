@@ -48,6 +48,8 @@ P.AddTranslations(ns.L, "esES", {
 	["Sacrenuit"] = "Nocheterna",
 	["Gobelin"] = "Goblin",
 	["Vulpérin"] = "Vulpera",
+	["Éolide de l'Ordre suprême"] = "Cielonato de la Orden Eminente",
+	["Éolide des Sculpte-vents"] = "Cielonato Formavientos",
 	["Compte"] = "Cuenta",
 	["non renseigné"] = "sin indicar",
 	["Niveau"] = "Nivel",
