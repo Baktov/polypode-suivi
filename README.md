@@ -194,11 +194,16 @@ Maj + molette : défilement horizontal si la grille est plus large que la fenêt
 
 - **Comptes** : une colonne par **compte WoW** (nommé dans Polypode ; nombre et ordre des colonnes
   dans les options, colonne **Autres** pour les personnages sans compte ou d'un compte sans
-  colonne). Une ligne par personnage seul, ou par **équipe** de Polypode (2 personnages et plus ;
-  un personnage membre de plusieurs équipes est placé dans la plus grande), en trois blocs :
-  **Solo** (regroupés par métiers), **Multi 2/3**, **Multi 4/5/+**. À gauche : **Métier 1** et
-  **Métier 2** (masquables ; pour une équipe, une seule case à son **nom**) et le **niveau** — « 90 / 308 » au niveau maximum, avec le niveau
-  d'objet (le plus bas de l'équipe) ; les niveaux de chacun si ceux d'une équipe diffèrent.
+  colonne ; un compte sans personnage affiché n'a pas de colonne). Trois blocs **repliables**
+  (clic sur leur titre, avec leur nombre) : **Solo**, où chaque compte liste ses personnages hors
+  équipe du plus haut au plus bas niveau ; **Multi 2/3** et **Multi 4/5/+**, une ligne par
+  **équipe** de Polypode (2 personnages et plus ; un personnage membre de plusieurs équipes est
+  placé dans la plus grande), son nom à gauche. Chaque case : les **icônes des deux métiers**
+  (masquables dans les options ; nom au survol), le nom en couleur de classe sur un fond teinté
+  de la classe, et à droite le **niveau** — ou le **niveau d'objet en doré** au niveau maximum,
+  signalé aussi par un **coin doré**. Les personnages seuls de **niveau 10 ou moins** sont masqués
+  (leur nombre est indiqué dans le titre du bloc Solo) : cocher **Bas niveaux** (en haut à
+  droite) pour les voir ; ceux d'une équipe sont toujours affichés.
 - **Matrice** : les **races** en lignes (icône et nom), groupées par faction (**Alliance**,
   **Neutre**, **Horde**, puis **Autres** : races inconnues de la table, « Race inconnue »), avec un
   liseré de la couleur de la faction ; les **classes** en colonnes (icônes, nom au survol),
@@ -300,6 +305,7 @@ other language).*
 
 ## Version
 
+`2.13.0` : onglet Comptes compact : personnages seuls empilés par compte (triés par niveau), niveau dans la case (niveau d'objet doré au niveau maximum, coin doré), icônes des métiers, colonnes de largeur fixe et comptes vides masqués, un seul en-tête, blocs repliables, bas niveaux (10 ou moins, hors équipes) masqués sauf case « Bas niveaux ».
 `2.12.1` : Matrice : combinaisons race / classe impossibles barrées d'un fin trait en diagonale, avec infobulle.
 `2.12.0` : Matrice plus compacte et lisible : une ligne par race (personnage le plus haut et « +n »), icônes de classes et de races, classes groupées par armure, races par faction, seulement les races jouées (case « Toutes les races »), couleurs adoucies (coin doré au niveau maximum), lignes libres repliables ; races au féminin (Kultirassienne, Pandarène...) rangées avec leur race (fichier de race de Polypode Data 2.4).
 `2.11.1` : Éolides de WoW Forever traduits dans la Grille (High Order Skyborne, Himmelsgeborener des Hohen Ordens, Cielonato de la Orden Eminente...) et reconnus quelle que soit la langue du client. *Skyborne races translated in the Grid.*

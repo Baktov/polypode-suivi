@@ -178,12 +178,15 @@ horizontal scrolling if the grid is wider than the window.
 
 - **Accounts**: one column per **WoW account** (named in Polypode; number and order of the columns
   in the options, **Others** column for characters with no account or of an account with no
-  column). One line per character alone, or per Polypode **team** (2 characters and more; a
-  character member of several teams is placed in the largest one), in three blocks: **Solo**
-  (grouped by professions), **Multi 2/3**, **Multi 4/5/+**. On the left: **Profession 1** and
-  **Profession 2** (can be hidden; for a team, a single cell with its **name**) and the **level**
-  ("90 / 308" at max level, with the item level, the lowest of the team); each one's levels if
-  those of a team differ.
+  column; an account with no character shown has no column). Three **collapsible** blocks (click
+  their title, with their count): **Solo**, where each account lists its characters outside teams
+  from highest to lowest level; **Multi 2/3** and **Multi 4/5/+**, one row per Polypode **team**
+  (2 characters and more; a character member of several teams is placed in the largest one),
+  its name on the left. Each cell: the **icons of both professions** (can be hidden in the
+  options; name on hover), the name in class color on a class-tinted background, and on the right
+  the **level** — or the **item level in gold** at max level, also shown by a **gold corner**.
+  Solo characters of **level 10 or lower** are hidden (their number is shown in the Solo block
+  title): check **Low levels** (top right) to see them; those of a team are always shown.
 - **Matrix**: **races** in rows (icon and name), grouped by faction (**Alliance**, **Neutral**,
   **Horde**, then **Others**: races missing from the table, "Unknown race"), with a stripe in the
   faction color; **classes** in columns (icons, name on hover), grouped by **armor** (Cloth,

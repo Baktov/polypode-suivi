@@ -5,17 +5,18 @@ local P = Polypode
 local L = ns.L
 
 -- FENÊTRE « GRILLE » (bouton « Grille » de la fenêtre Suivi, ns.ToggleGrid) :
---   Comptes — une ligne par personnage seul ou par équipe de Polypode (2 membres et plus, chaque
---     personnage dans une seule équipe : la plus grande), une colonne par compte WoW (nom donné
---     dans Polypode, P.GetCharacterAccount ; ordre et nombre réglés dans les options), à gauche
---     les métiers (option ; nom de l'équipe pour une ligne d'équipe) et le niveau (« niveau / ilvl » au niveau maximum). Trois blocs :
---     Solo, Multi 2/3, Multi 4/5/+.
+--   Comptes — une colonne par compte WoW ayant un personnage affiché (nom donné dans Polypode,
+--     P.GetCharacterAccount ; ordre et nombre réglés dans les options), trois blocs repliables :
+--     Solo (chaque compte liste ses personnages hors équipe du plus haut au plus bas niveau ;
+--     niveau 10 ou moins masqué sauf « Bas niveaux »), Multi 2/3 et Multi 4/5/+ (une ligne par
+--     équipe de Polypode, 2 membres et plus, chaque personnage dans la plus grande). Case : icônes
+--     des métiers (option), nom, niveau (ou ilvl doré au niveau maximum) à droite.
 --   Matrice — races en lignes groupées par faction, classes en colonnes groupées par armure
---     (icônes ; RACES sur Retail, FOREVER_RACES sur WoW Forever ; combinaisons impossibles presque
---     invisibles), une ligne par case (personnage le plus haut et « +n », coin doré au niveau
---     maximum), seulement les races jouées sauf « Toutes les races » ; en bas, une section
---     repliable de lignes libres (libellé et texte par classe) qu'on ajoute, renomme et supprime.
--- Onglet Comptes : personnage au niveau maximum en rouge. Données : section G de Suivi (classe, race,
+--     (icônes ; RACES sur Retail, FOREVER_RACES sur WoW Forever ; combinaisons impossibles
+--     barrées), une ligne par case (personnage le plus haut et « +n »), seulement les races jouées
+--     sauf « Toutes les races » ; en bas, une section repliable de lignes libres (libellé et
+--     texte par classe) qu'on ajoute, renomme et supprime.
+-- Deux onglets : case teintée de la couleur de la classe, coin doré au niveau maximum. Données : section G de Suivi (classe, race,
 -- niveau, ilvl, métiers), repli sur le roster de Polypode (classe, niveau).
 -- RÉGLAGES (PolypodeSuiviGrid, fichier de compte, communs à tous les personnages) : count =
 -- nombre de colonnes de comptes (nil = automatique), columns[i] = compte de la colonne i (vide =
@@ -31,7 +32,9 @@ local SEND_DELAY = 1
 local MIN_WIDTH, MIN_HEIGHT = 700, 300
 local DEFAULT_WIDTH, DEFAULT_HEIGHT = 1200, 700
 local LINE_HEIGHT, CELL_PAD, GAP = 13, 4, 1
-local FIXED_WIDTH = 90 -- colonnes Métier 1, Métier 2, Niveau
+local TEAM_WIDTH = 140 -- colonne des noms d'équipes (Comptes)
+local ACCOUNT_WIDTH = 130 -- colonnes de comptes (Comptes : largeur fixe, métiers, nom, niveau)
+local LOW_LEVEL = 10 -- personnages seuls de ce niveau ou moins : masqués sauf « Bas niveaux »
 local RACE_WIDTH = 150 -- colonne des races (Matrice : icône et nom)
 local CLASS_WIDTH = 76 -- colonnes de classes (Matrice : largeur fixe, un nom et « +n »)
 local MIN_FLEX = 70 -- largeur minimale d'une colonne de compte
@@ -40,8 +43,6 @@ local OTHER_ACCOUNT = "\1autres" -- colonne des personnages sans compte affiché
 -- Couleurs de fond des cases.
 local BG_EMPTY = { 0.05, 0.05, 0.05, 0.9 }
 local BG_FILLED = { 0.14, 0.14, 0.14, 0.95 }
-local BG_HEADER = { 0.45, 0.45, 0.45, 1 }
-local BG_MAX_LEVEL = { 0.75, 0.08, 0.08, 1 } -- personnage au niveau maximum
 local BG_FREE_LABEL = { 0.25, 0.25, 0.25, 1 }
 local BG_ADD = { 0.1, 0.25, 0.4, 1 }
 local FACTION_BG = { A = { 0.2, 0.4, 0.7, 1 }, N = { 0.05, 0.45, 0.2, 1 }, H = { 0.6, 0.08, 0.08, 1 } }
@@ -574,16 +575,6 @@ local function CharacterTooltip(info, team)
 	end
 end
 
--- Texte d'une case : noms des personnages (couleur de classe, blanc au niveau maximum).
-local function NamesText(keys, infos)
-	local lines = {}
-	for _, key in ipairs(keys) do
-		local info = infos[key]
-		lines[#lines + 1] = (info.max and "|cffffffff" or ClassColorCode(info.class)) .. info.name .. "|r"
-	end
-	return table.concat(lines, "\n")
-end
-
 local function AnyMax(keys, infos)
 	for _, key in ipairs(keys) do
 		if infos[key].max then
@@ -604,47 +595,115 @@ local function NamesTooltip(keys, infos, team)
 	end
 end
 
+-- CASES COMMUNES AUX DEUX ONGLETS ------------------------------------------------------------
+
+-- Fond sombre teinté de la couleur d'une classe (case occupée).
+local function ClassTint(classFile)
+	local color = classFile and RAID_CLASS_COLORS and RAID_CLASS_COLORS[classFile]
+	if not color then
+		return { 0.18, 0.18, 0.18, 0.95 }
+	end
+	return { color.r * 0.3, color.g * 0.3, color.b * 0.3, 0.95 }
+end
+
+-- Ligne de sous-titre sur toute la largeur (bloc, faction, lignes libres) ; extra = champs de plus
+-- (infobulle, clic).
+local function GroupRow(text, count, extra)
+	local spec = { text = text, bg = BG_M_GROUP, span = count, justify = "LEFT" }
+	for k, v in pairs(extra or {}) do
+		spec[k] = v
+	end
+	return { cells = { [1] = spec }, header = true }
+end
+
+-- Icône « + » (replié) ou « − » (déplié) d'un titre de section repliable.
+local function ToggleIcon(collapsed)
+	return "|T" .. (collapsed and "Interface\\Buttons\\UI-PlusButton-Up" or "Interface\\Buttons\\UI-MinusButton-Up")
+		.. ":14:14|t "
+end
+
 -- ONGLET COMPTES ---------------------------------------------------------------------------
 
--- Texte des métiers d'une ligne : valeurs distinctes de ses personnages, jointes par « / ».
-local function DistinctText(keys, infos, index)
-	local seen, list = {}, {}
-	for _, key in ipairs(keys) do
-		local value = infos[key].profs[index]
-		if value and not seen[value] then
-			seen[value] = true
-			list[#list + 1] = value
+-- Métiers principaux : ligne de compétence, icône, noms français et anglais de repli. Le nom du
+-- client (C_TradeSkillUI.GetTradeSkillDisplayName) retrouve l'icône d'un métier relevé par son nom.
+local PROFESSIONS = {
+	{ 171, "Interface\\Icons\\Trade_Alchemy", "Alchimie", "Alchemy" },
+	{ 164, "Interface\\Icons\\Trade_BlackSmithing", "Forge", "Blacksmithing" },
+	{ 333, "Interface\\Icons\\Trade_Engraving", "Enchantement", "Enchanting" },
+	{ 202, "Interface\\Icons\\Trade_Engineering", "Ingénierie", "Engineering" },
+	{ 182, "Interface\\Icons\\Trade_Herbalism", "Herboristerie", "Herbalism" },
+	{ 773, "Interface\\Icons\\INV_Inscription_Tradeskill01", "Calligraphie", "Inscription" },
+	{ 755, "Interface\\Icons\\INV_Misc_Gem_01", "Joaillerie", "Jewelcrafting" },
+	{ 165, "Interface\\Icons\\Trade_LeatherWorking", "Travail du cuir", "Leatherworking" },
+	{ 186, "Interface\\Icons\\Trade_Mining", "Minage", "Mining" },
+	{ 393, "Interface\\Icons\\INV_Misc_Pelt_Wolf_01", "Dépeçage", "Skinning" },
+	{ 197, "Interface\\Icons\\Trade_Tailoring", "Couture", "Tailoring" },
+}
+local professionIcons -- [nom normalisé] = icône, construit une fois
+
+local function ProfessionIcon(name)
+	if not professionIcons then
+		professionIcons = {}
+		for _, prof in ipairs(PROFESSIONS) do
+			professionIcons[NormalizeRaceName(prof[3])] = prof[2]
+			professionIcons[NormalizeRaceName(prof[4])] = prof[2]
+			if C_TradeSkillUI and C_TradeSkillUI.GetTradeSkillDisplayName then
+				local ok, display = pcall(C_TradeSkillUI.GetTradeSkillDisplayName, prof[1])
+				if ok and type(display) == "string" and display ~= "" then
+					professionIcons[NormalizeRaceName(display)] = prof[2]
+				end
+			end
 		end
 	end
-	return table.concat(list, " / ")
+	return name and professionIcons[NormalizeRaceName(name)]
 end
 
--- Niveau d'une ligne : le niveau (ou les niveaux de l'équipe, du plus haut au plus bas) ; « niveau / ilvl »
--- si tous sont au niveau maximum (ilvl le plus bas de l'équipe).
-local function LevelText(keys, infos)
-	local levels, seen, allMax, minIlvl = {}, {}, true, nil
-	for _, key in ipairs(keys) do
-		local info = infos[key]
-		local level = info.level and tostring(info.level) or "?"
-		levels[#levels + 1] = level
-		seen[level] = true
-		allMax = allMax and info.max
-		if info.ilvl then
-			minIlvl = math.min(minIlvl or info.ilvl, info.ilvl)
+-- Texte d'un personnage : icônes de ses métiers (option), nom en couleur de classe.
+local function CharacterLabel(info, showProfs)
+	local icons = ""
+	if showProfs then
+		for _, prof in ipairs(info.profs) do
+			local icon = ProfessionIcon(prof)
+			if icon then
+				icons = icons .. "|T" .. icon .. ":12:12|t"
+			end
+		end
+		if icons ~= "" then
+			icons = icons .. " "
 		end
 	end
-	local distinct = 0
-	for _ in pairs(seen) do
-		distinct = distinct + 1
-	end
-	local text = distinct == 1 and levels[1] or table.concat(levels, "/")
-	if allMax and minIlvl then
-		text = text .. " / " .. minIlvl
-	end
-	return text, allMax
+	return icons .. ClassColorCode(info.class) .. info.name .. "|r"
 end
 
--- Lignes de l'onglet : { title, rows = { { keys, team } } } par bloc (Solo, Multi 2/3, Multi 4/5/+).
+-- Nombre affiché à droite : niveau, ou niveau d'objet (doré) au niveau maximum.
+local function LevelBadge(info)
+	if info.max and info.ilvl then
+		return "|cffffd100" .. info.ilvl .. "|r"
+	end
+	return info.level and tostring(info.level) or nil
+end
+
+-- Case d'un compte : un personnage (nom, nombre à droite), ou plusieurs d'une même équipe sur ce
+-- compte (une ligne chacun, nombre en gris après le nom).
+local function CharacterCell(keys, infos, team, showProfs)
+	local first = infos[keys[1]]
+	local spec = { justify = "LEFT", bg = ClassTint(first.class), mark = AnyMax(keys, infos),
+		tooltip = NamesTooltip(keys, infos, team) }
+	if #keys == 1 then
+		spec.text, spec.badge = CharacterLabel(first, showProfs), LevelBadge(first)
+	else
+		local lines = {}
+		for _, key in ipairs(keys) do
+			local badge = LevelBadge(infos[key])
+			lines[#lines + 1] = CharacterLabel(infos[key], showProfs) .. (badge and (" |cff999999" .. badge .. "|r") or "")
+		end
+		spec.text, spec.lines = table.concat(lines, "\n"), #keys
+	end
+	return spec
+end
+
+-- Blocs de l'onglet : Solo (personnages hors équipe : { title, keys }), Multi 2/3 et Multi 4/5/+
+-- (une ligne par équipe : { title, rows = { { keys, team } } }).
 local function AccountSections(infos)
 	local teams = {}
 	for name, team in pairs(P.GetTeams and P.GetTeams() or {}) do
@@ -667,7 +726,7 @@ local function AccountSections(infos)
 	-- Chaque personnage dans une seule équipe (la plus grande) ; une équipe réduite à un seul
 	-- personnage le laisse seul.
 	local placed = {}
-	local solo, small, large = { title = L["Solo"], rows = {} }, { title = L["Multi 2/3"], rows = {} },
+	local solo, small, large = { title = L["Solo"], keys = {} }, { title = L["Multi 2/3"], rows = {} },
 		{ title = L["Multi 4/5/+"], rows = {} }
 	for _, team in ipairs(teams) do
 		local keys = {}
@@ -686,25 +745,9 @@ local function AccountSections(infos)
 	end
 	for key in pairs(infos) do
 		if not placed[key] then
-			solo.rows[#solo.rows + 1] = { keys = { key } }
+			solo.keys[#solo.keys + 1] = key
 		end
 	end
-	-- Solo : regroupés par métiers (comme le tableau d'origine), puis niveau décroissant, nom.
-	local function ProfKey(row)
-		local profs = infos[row.keys[1]].profs
-		return #profs > 0 and table.concat(profs, "/") or "\255"
-	end
-	table.sort(solo.rows, function(a, b)
-		local pa, pb = ProfKey(a), ProfKey(b)
-		if pa ~= pb then
-			return pa < pb
-		end
-		local ia, ib = infos[a.keys[1]], infos[b.keys[1]]
-		if (ia.level or 0) ~= (ib.level or 0) then
-			return (ia.level or 0) > (ib.level or 0)
-		end
-		return ia.name < ib.name
-	end)
 	for _, section in ipairs({ small, large }) do
 		table.sort(section.rows, function(a, b)
 			if #a.keys ~= #b.keys then
@@ -716,114 +759,158 @@ local function AccountSections(infos)
 	return { solo, small, large }
 end
 
+-- Personnages seuls de niveau LOW_LEVEL ou moins : masqués sauf case « Bas niveaux »
+-- (PolypodeSuiviDB.gridLowLevels) ; jamais ceux d'une équipe.
+local function ShowLowLevels()
+	return WindowSettings().gridLowLevels == true
+end
+
+-- Blocs repliés (PolypodeSuiviDB.gridCollapsed = { solo, small, large }).
+local function CollapsedBlocks()
+	if PolypodeSuiviDB then
+		PolypodeSuiviDB.gridCollapsed = PolypodeSuiviDB.gridCollapsed or {}
+		return PolypodeSuiviDB.gridCollapsed
+	end
+	return {}
+end
+
 local function BuildAccountsGrid()
 	local infos = CharacterInfos()
-	local accounts = AccountColumns()
 	local showProfs = Grid().professions
-	local accountIndex = {}
-	for i, label in ipairs(accounts) do
-		accountIndex[label] = i
-	end
 	local sections = AccountSections(infos)
-	-- Colonne « Autres » : personnages sans compte, ou d'un compte non affiché.
-	local needOther = false
-	for _, info in pairs(infos) do
-		if not (info.account and accountIndex[info.account]) then
-			needOther = true
+	-- Compte d'un personnage : sa colonne des options, sinon « Autres » (sans compte, ou compte
+	-- sans colonne).
+	local labels, chosen = AccountColumns(), {}
+	for _, label in ipairs(labels) do
+		chosen[label] = true
+	end
+	local function AccountOf(key)
+		local account = infos[key].account
+		return account and chosen[account] and account or OTHER_ACCOUNT
+	end
+
+	-- Personnages seuls par compte (bas niveaux comptés à part), puis comptes utilisés.
+	local showLow, hiddenLow = ShowLowLevels(), 0
+	local soloByAccount, perAccount = {}, {}
+	for _, key in ipairs(sections[1].keys) do
+		local level = infos[key].level
+		if not showLow and level and level <= LOW_LEVEL then
+			hiddenLow = hiddenLow + 1
+		else
+			local account = AccountOf(key)
+			soloByAccount[account] = soloByAccount[account] or {}
+			table.insert(soloByAccount[account], key)
+			perAccount[account] = (perAccount[account] or 0) + 1
 		end
 	end
-	if needOther then
+	for i = 2, 3 do
+		for _, row in ipairs(sections[i].rows) do
+			for _, key in ipairs(row.keys) do
+				local account = AccountOf(key)
+				perAccount[account] = (perAccount[account] or 0) + 1
+			end
+		end
+	end
+	-- Colonnes : nom d'équipe, puis les comptes qui ont un personnage affiché (ordre des options),
+	-- « Autres » en dernier ; largeurs fixes.
+	local accounts, column = {}, {}
+	for _, label in ipairs(labels) do
+		if perAccount[label] then
+			accounts[#accounts + 1] = label
+		end
+	end
+	if perAccount[OTHER_ACCOUNT] then
 		accounts[#accounts + 1] = OTHER_ACCOUNT
-		accountIndex[OTHER_ACCOUNT] = #accounts
+	end
+	local columns = { { width = TEAM_WIDTH } }
+	for i, label in ipairs(accounts) do
+		columns[i + 1] = { width = ACCOUNT_WIDTH }
+		column[label] = i + 1
 	end
 
-	local columns = {}
-	if showProfs then
-		columns[#columns + 1] = { width = FIXED_WIDTH }
-		columns[#columns + 1] = { width = FIXED_WIDTH }
+	-- En-tête unique : les comptes (nombre de personnages affichés au survol).
+	local header = { [1] = { bg = BG_M_HEADER } }
+	for i, label in ipairs(accounts) do
+		local name = label == OTHER_ACCOUNT and L["Autres"] or label
+		header[i + 1] = { text = name, bg = BG_M_HEADER, tooltip = function()
+			GameTooltip:AddLine(name)
+			GameTooltip:AddLine(L["%d personnage(s)"]:format(perAccount[label]), 1, 1, 1)
+			if label == OTHER_ACCOUNT then
+				GameTooltip:AddLine(L["Personnages sans compte WoW, ou d'un compte qui n'a pas de colonne "
+					.. "(Options > Polypode > Suivi > Grille)."], 1, 1, 1, true)
+			end
+		end }
 	end
-	columns[#columns + 1] = { width = FIXED_WIDTH }
-	local firstAccount = #columns + 1
-	for _ = 1, #accounts do
-		columns[#columns + 1] = {}
+	local rows = { { cells = header, header = true } }
+
+	-- Titre d'un bloc repliable (clic) ; renvoie vrai si le bloc est déplié.
+	local collapsed = CollapsedBlocks()
+	local function BlockTitle(id, title, count, note)
+		local isCollapsed = collapsed[id] == true
+		rows[#rows + 1] = GroupRow(ToggleIcon(isCollapsed) .. ("%s (%d)"):format(title, count)
+			.. (note and ("   |cff999999" .. note .. "|r") or ""), #columns, {
+				tooltip = function()
+					GameTooltip:AddLine(title)
+					GameTooltip:AddLine(L["Clic : afficher ou masquer ce bloc."], 1, 1, 1, true)
+				end,
+				onClick = function()
+					collapsed[id] = not isCollapsed or nil
+					ns.RefreshGrid()
+				end,
+			})
+		return not isCollapsed
 	end
 
-	local rows = {}
-	for _, section in ipairs(sections) do
-		if #section.rows > 0 then
-			local header = {}
-			if showProfs then
-				header[1] = { text = section.title, bg = BG_HEADER, span = 2, justify = "LEFT" }
-				header[3] = { text = L["Niveau"], bg = BG_HEADER }
-			else
-				header[1] = { text = section.title, bg = BG_HEADER }
-			end
-			for i, label in ipairs(accounts) do
-				header[firstAccount + i - 1] = { text = label == OTHER_ACCOUNT and L["Autres"] or label, bg = BG_HEADER,
-					tooltip = label == OTHER_ACCOUNT and function()
-						GameTooltip:AddLine(L["Autres"])
-						GameTooltip:AddLine(L["Personnages sans compte WoW, ou d'un compte qui n'a pas de colonne "
-							.. "(Options > Polypode > Suivi > Grille)."], 1, 1, 1, true)
-					end or nil }
-			end
-			rows[#rows + 1] = { cells = header, header = true }
-			local lastProfs
-			for _, row in ipairs(section.rows) do
-				local cellsOfRow = {}
-				if showProfs and row.team then
-					-- Multi : nom de l'équipe sur les deux colonnes des métiers.
-					cellsOfRow[1] = { text = row.team, span = 2, justify = "LEFT" }
-				elseif showProfs then
-					local p1, p2 = DistinctText(row.keys, infos, 1), DistinctText(row.keys, infos, 2)
-					-- Solo : métiers écrits sur la première ligne de chaque groupe seulement.
-					local profs = p1 .. "\1" .. p2
-					if profs ~= lastProfs then
-						cellsOfRow[1] = { text = p1 }
-						cellsOfRow[2] = { text = p2 }
-					end
-					lastProfs = profs
+	-- Solo : chaque compte liste ses personnages du plus haut au plus bas niveau ; une ligne =
+	-- le n-ième personnage de chaque compte.
+	local soloCount, depth = 0, 0
+	for _, keys in pairs(soloByAccount) do
+		SortKeys(keys, infos)
+		soloCount, depth = soloCount + #keys, math.max(depth, #keys)
+	end
+	if soloCount + hiddenLow > 0 and BlockTitle("solo", sections[1].title, soloCount,
+		hiddenLow > 0 and L["%d bas niveaux masqués"]:format(hiddenLow) or nil) then
+		for i = 1, depth do
+			local cellsOfRow = {}
+			for account, keys in pairs(soloByAccount) do
+				if keys[i] then
+					cellsOfRow[column[account]] = CharacterCell({ keys[i] }, infos, nil, showProfs)
 				end
-				local levelText, allMax = LevelText(row.keys, infos)
-				cellsOfRow[showProfs and 3 or 1] = {
-					text = levelText,
-					bg = allMax and BG_MAX_LEVEL or nil,
-					tooltip = row.team and function()
-						GameTooltip:AddLine(L["Équipe « %s »"]:format(row.team))
-						GameTooltip:AddLine(L["%d personnages ; au niveau maximum, niveau d'objet le plus bas de l'équipe."]
-							:format(#row.keys), 1, 1, 1, true)
-					end or nil,
-				}
+			end
+			rows[#rows + 1] = { cells = cellsOfRow }
+		end
+	end
+
+	-- Équipes : une ligne par équipe, son nom à gauche, chaque membre dans la colonne de son compte.
+	for i, id in ipairs({ "small", "large" }) do
+		local section = sections[i + 1]
+		if #section.rows > 0 and BlockTitle(id, section.title, #section.rows) then
+			for _, row in ipairs(section.rows) do
+				local cellsOfRow = { [1] = { text = row.team, justify = "LEFT", bg = BG_M_LABEL, tooltip = function()
+					GameTooltip:AddLine(L["Équipe « %s »"]:format(row.team))
+					GameTooltip:AddLine(L["%d personnage(s)"]:format(#row.keys), 1, 1, 1)
+				end } }
 				local byAccount = {}
 				for _, key in ipairs(row.keys) do
-					local column = accountIndex[infos[key].account] or accountIndex[OTHER_ACCOUNT]
-					byAccount[column] = byAccount[column] or {}
-					table.insert(byAccount[column], key)
+					local account = AccountOf(key)
+					byAccount[account] = byAccount[account] or {}
+					table.insert(byAccount[account], key)
 				end
-				for column, keys in pairs(byAccount) do
-					cellsOfRow[firstAccount + column - 1] = {
-						text = NamesText(keys, infos),
-						lines = #keys,
-						bg = AnyMax(keys, infos) and BG_MAX_LEVEL or BG_FILLED,
-						tooltip = NamesTooltip(keys, infos, row.team),
-					}
+				for account, keys in pairs(byAccount) do
+					cellsOfRow[column[account]] = CharacterCell(keys, infos, row.team, showProfs)
 				end
 				rows[#rows + 1] = { cells = cellsOfRow }
 			end
 		end
 	end
-	return { columns = columns, rows = rows, empty = L["Aucun personnage dans le roster."] }
+	if #accounts == 0 then
+		rows = {}
+	end
+	return { columns = columns, rows = rows, empty = hiddenLow > 0 and L["%d bas niveaux masqués"]:format(hiddenLow)
+		or L["Aucun personnage dans le roster."] }
 end
 
 -- ONGLET MATRICE ---------------------------------------------------------------------------
-
--- Fond sombre teinté de la couleur d'une classe (case occupée).
-local function ClassTint(classFile)
-	local color = classFile and RAID_CLASS_COLORS and RAID_CLASS_COLORS[classFile]
-	if not color then
-		return { 0.18, 0.18, 0.18, 0.95 }
-	end
-	return { color.r * 0.3, color.g * 0.3, color.b * 0.3, 0.95 }
-end
 
 -- En-têtes : une case par armure (sur ses classes, icône et nom), puis les icônes des classes
 -- (nom et armure dans l'infobulle ; nom de la classe si l'icône manque).
@@ -859,16 +946,6 @@ local function ClassHeaderRows()
 		}
 	end
 	return { cells = armorRow, header = true }, { cells = classRow, header = true }
-end
-
--- Ligne de sous-titre sur toute la largeur (faction, lignes libres) ; extra = champs de plus
--- (infobulle, clic).
-local function GroupRow(text, count, extra)
-	local spec = { text = text, bg = BG_M_GROUP, span = count, justify = "LEFT" }
-	for k, v in pairs(extra or {}) do
-		spec[k] = v
-	end
-	return { cells = { [1] = spec }, header = true }
 end
 
 local ShowEditor -- défini plus bas (champ de saisie posé sur une case)
@@ -1039,8 +1116,7 @@ local function BuildMatrixGrid()
 	-- Lignes libres : section repliable (PolypodeSuiviDB.gridFreeCollapsed), sans rappel des en-têtes.
 	local freeRows = Grid().rows
 	local collapsed = WindowSettings().gridFreeCollapsed == true
-	local toggle = collapsed and "Interface\\Buttons\\UI-PlusButton-Up" or "Interface\\Buttons\\UI-MinusButton-Up"
-	rows[#rows + 1] = GroupRow("|T" .. toggle .. ":14:14|t " .. L["Lignes libres (%d)"]:format(#freeRows), #columns, {
+	rows[#rows + 1] = GroupRow(ToggleIcon(collapsed) .. L["Lignes libres (%d)"]:format(#freeRows), #columns, {
 		tooltip = function()
 			GameTooltip:AddLine(L["Lignes libres"])
 			GameTooltip:AddLine(L["Clic : afficher ou masquer les lignes libres (libellé et texte par classe, "
@@ -1290,9 +1366,11 @@ function ns.RefreshGrid()
 	frame.matrixTab.activeTint:SetShown(tab == "matrix")
 	frame.allRacesCheck:SetShown(tab == "matrix")
 	frame.allRacesCheck:SetChecked(ShowAllRaces())
+	frame.lowLevelsCheck:SetShown(tab == "accounts")
+	frame.lowLevelsCheck:SetChecked(ShowLowLevels())
 	frame.helpText:SetText(tab == "matrix"
 		and L["Coin doré : niveau maximum ; « +n » : autres personnages. Survol : détail ; Maj + molette : défilement horizontal."]
-		or L["Rouge : niveau maximum. Survol : détail ; Maj + molette : défilement horizontal."])
+		or L["Coin doré : niveau maximum (nombre doré : niveau d'objet). Survol : détail ; Maj + molette : défilement horizontal."])
 	Render(tab == "matrix" and BuildMatrixGrid() or BuildAccountsGrid())
 end
 
@@ -1426,32 +1504,38 @@ local function Build()
 	panel.header:SetFontObject("GameFontDisableSmall") -- aide de l'onglet (ns.RefreshGrid)
 	frame.helpText = panel.header
 
-	-- Matrice : case « Toutes les races » à droite de l'aide (décochée : races jouées seulement).
-	local allRaces = CreateFrame("CheckButton", nil, panel, "UICheckButtonTemplate")
-	allRaces:SetSize(20, 20)
-	allRaces:SetPoint("TOPRIGHT", -110, -2)
-	local allRacesLabel = allRaces:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
-	allRacesLabel:SetPoint("LEFT", allRaces, "RIGHT", 2, 0)
-	allRacesLabel:SetText(L["Toutes les races"])
-	allRaces:SetScript("OnClick", function(self)
-		if PolypodeSuiviDB then
-			PolypodeSuiviDB.gridAllRaces = self:GetChecked() and true or nil
-		end
-		ns.RefreshGrid()
-	end)
-	allRaces:SetScript("OnEnter", function(self)
-		GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
-		GameTooltip:AddLine(L["Toutes les races"])
-		GameTooltip:AddLine(L["Cochée : toutes les races, pour voir les combinaisons qui manquent. Décochée : "
-			.. "seulement les races qui ont un personnage."], 1, 1, 1, true)
-		if ns.ShowTooltip then
-			ns.ShowTooltip()
-		else
-			GameTooltip:Show()
-		end
-	end)
-	allRaces:SetScript("OnLeave", GameTooltip_Hide)
-	frame.allRacesCheck = allRaces
+	-- Case à cocher à droite de l'aide, propre à un onglet (réglage booléen de PolypodeSuiviDB) :
+	-- Matrice « Toutes les races » (gridAllRaces), Comptes « Bas niveaux » (gridLowLevels).
+	local function FilterCheck(label, tip, setting)
+		local check = CreateFrame("CheckButton", nil, panel, "UICheckButtonTemplate")
+		check:SetSize(20, 20)
+		check:SetPoint("TOPRIGHT", -110, -2)
+		local text = check:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
+		text:SetPoint("LEFT", check, "RIGHT", 2, 0)
+		text:SetText(label)
+		check:SetScript("OnClick", function(self)
+			if PolypodeSuiviDB then
+				PolypodeSuiviDB[setting] = self:GetChecked() and true or nil
+			end
+			ns.RefreshGrid()
+		end)
+		check:SetScript("OnEnter", function(self)
+			GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
+			GameTooltip:AddLine(label)
+			GameTooltip:AddLine(tip, 1, 1, 1, true)
+			if ns.ShowTooltip then
+				ns.ShowTooltip()
+			else
+				GameTooltip:Show()
+			end
+		end)
+		check:SetScript("OnLeave", GameTooltip_Hide)
+		return check
+	end
+	frame.allRacesCheck = FilterCheck(L["Toutes les races"], L["Cochée : toutes les races, pour voir les "
+		.. "combinaisons qui manquent. Décochée : seulement les races qui ont un personnage."], "gridAllRaces")
+	frame.lowLevelsCheck = FilterCheck(L["Bas niveaux"], L["Cochée : aussi les personnages seuls de niveau 10 ou "
+		.. "moins. Décochée : ils sont masqués (jamais ceux d'une équipe)."], "gridLowLevels")
 
 	-- Zone défilante : ScrollFrame piloté par une MinimalScrollBar (la barre des listes de Polypode,
 	-- skinnée par P.SkinScrollBar pour EllesmereUI / ElvUI), affichée seulement si la grille déborde.
@@ -1567,8 +1651,8 @@ function ns.BuildGridSettings(parent)
 			Grid().professions = value and true or false
 			GridChanged()
 		end)
-	Settings.CreateCheckbox(category, profSetting, Tip(L["Onglet « Comptes » de la grille : colonnes Métier 1 et "
-		.. "Métier 2 à gauche. Réglage commun à tous vos personnages."]))
+	Settings.CreateCheckbox(category, profSetting, Tip(L["Onglet « Comptes » de la grille : icônes des deux "
+		.. "métiers devant le nom de chaque personnage (nom au survol). Réglage commun à tous vos personnages."]))
 
 	local countSetting = Settings.RegisterProxySetting(category, "POLYPODE_SUIVI_GRID_COUNT",
 		Settings.VarType.Number, L["Nombre de colonnes de comptes"], AccountCount(),
