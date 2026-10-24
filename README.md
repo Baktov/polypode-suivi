@@ -1,11 +1,18 @@
 # Polypode Suivi
 
+*English version: [README.en.md](README.en.md)*
+
 Fenêtre **« Suivi de l'équipe »** pour [Polypode](https://github.com/Baktov/polypode), sous forme
 d'addon séparé (chargé ou non depuis la liste des AddOns de WoW, par personnage) : pour chaque
 membre de l'équipe sélectionnée, les informations du « Résumé de l'extension » qui comptent
 pour faire avancer toute l'équipe.
 
 Nécessite **Polypode 0.51.0** ou plus récent.
+
+> **Langues** : français, anglais, allemand, espagnol, italien et portugais du Brésil, selon la
+> langue choisie dans Polypode (option « Langue / Language »). Les traductions ont été faites avec
+> l'aide de Claude, l'IA d'Anthropic : les retours de joueurs dont c'est la langue maternelle sont
+> les bienvenus ([issue GitHub](https://github.com/Baktov/polypode-suivi/issues)).
 
 ---
 
@@ -277,7 +284,7 @@ travail de recensement.
 Polypode Suivi s'affiche dans la langue choisie dans Polypode (option « Langue / Language », `/poly langue`),
 par défaut celle du jeu : français, anglais, allemand, espagnol, italien ou portugais du Brésil
 (anglais pour une autre langue). Nécessite Polypode 2.9 pour choisir la langue ; avec un Polypode plus
-ancien, le module reste en français. La commande `C:/Program Files/Git/poly suivi` garde son nom.
+ancien, le module reste en français. La commande `/poly suivi` garde son nom.
 
 *Polypode Suivi follows the language chosen in Polypode ("Langue / Language" option, `/poly language`), by
 default the game's: French, English, German, Spanish, Italian or Brazilian Portuguese (English for any
