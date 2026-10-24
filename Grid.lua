@@ -10,10 +10,12 @@ local L = ns.L
 --     dans Polypode, P.GetCharacterAccount ; ordre et nombre réglés dans les options), à gauche
 --     les métiers (option ; nom de l'équipe pour une ligne d'équipe) et le niveau (« niveau / ilvl » au niveau maximum). Trois blocs :
 --     Solo, Multi 2/3, Multi 4/5/+.
---   Matrice — races en lignes, classes en colonnes (combinaisons impossibles en gris, RACES sur
---     Retail, FOREVER_RACES sur WoW Forever), chaque personnage dans sa case ; en bas, des lignes libres (libellé et texte
---     par classe) qu'on ajoute, renomme et supprime.
--- Personnage au niveau maximum : case en rouge. Données : section G de Suivi (classe, race,
+--   Matrice — races en lignes groupées par faction, classes en colonnes groupées par armure
+--     (icônes ; RACES sur Retail, FOREVER_RACES sur WoW Forever ; combinaisons impossibles presque
+--     invisibles), une ligne par case (personnage le plus haut et « +n », coin doré au niveau
+--     maximum), seulement les races jouées sauf « Toutes les races » ; en bas, une section
+--     repliable de lignes libres (libellé et texte par classe) qu'on ajoute, renomme et supprime.
+-- Onglet Comptes : personnage au niveau maximum en rouge. Données : section G de Suivi (classe, race,
 -- niveau, ilvl, métiers), repli sur le roster de Polypode (classe, niveau).
 -- RÉGLAGES (PolypodeSuiviGrid, fichier de compte, communs à tous les personnages) : count =
 -- nombre de colonnes de comptes (nil = automatique), columns[i] = compte de la colonne i (vide =
@@ -26,23 +28,31 @@ local L = ns.L
 local IS_RETAIL = (tonumber((select(4, GetBuildInfo()))) or 0) >= 100000
 local MAX_ACCOUNTS = 10
 local SEND_DELAY = 1
-local MIN_WIDTH, MIN_HEIGHT = 900, 300
+local MIN_WIDTH, MIN_HEIGHT = 700, 300
 local DEFAULT_WIDTH, DEFAULT_HEIGHT = 1200, 700
 local LINE_HEIGHT, CELL_PAD, GAP = 13, 4, 1
 local FIXED_WIDTH = 90 -- colonnes Métier 1, Métier 2, Niveau
-local RACE_WIDTH = 120 -- colonne des races (Matrice)
-local MIN_FLEX = 70 -- largeur minimale d'une colonne de compte ou de classe
+local RACE_WIDTH = 150 -- colonne des races (Matrice : icône et nom)
+local CLASS_WIDTH = 76 -- colonnes de classes (Matrice : largeur fixe, un nom et « +n »)
+local MIN_FLEX = 70 -- largeur minimale d'une colonne de compte
 local OTHER_ACCOUNT = "\1autres" -- colonne des personnages sans compte affiché
 
 -- Couleurs de fond des cases.
 local BG_EMPTY = { 0.05, 0.05, 0.05, 0.9 }
 local BG_FILLED = { 0.14, 0.14, 0.14, 0.95 }
 local BG_HEADER = { 0.45, 0.45, 0.45, 1 }
-local BG_IMPOSSIBLE = { 0.5, 0.5, 0.5, 0.9 }
 local BG_MAX_LEVEL = { 0.75, 0.08, 0.08, 1 } -- personnage au niveau maximum
 local BG_FREE_LABEL = { 0.25, 0.25, 0.25, 1 }
 local BG_ADD = { 0.1, 0.25, 0.4, 1 }
 local FACTION_BG = { A = { 0.2, 0.4, 0.7, 1 }, N = { 0.05, 0.45, 0.2, 1 }, H = { 0.6, 0.08, 0.08, 1 } }
+-- Matrice : ce qui existe ressort, le reste s'efface (impossible presque invisible, vide possible
+-- gris foncé, personnage teinté de la couleur de sa classe, niveau maximum = coin doré).
+local BG_M_IMPOSSIBLE = { 0, 0, 0, 0.3 }
+local BG_M_EMPTY = { 0.1, 0.1, 0.1, 0.9 }
+local BG_M_HEADER = { 0.16, 0.16, 0.16, 1 }
+local BG_M_LABEL = { 0.12, 0.12, 0.12, 1 }
+local BG_M_GROUP = { 0.07, 0.07, 0.07, 1 }
+local MAX_MARK = { 1, 0.82, 0, 1 }
 -- Types d'armure (clés de ARMOR_BG et de CLASSES) affichés dans la langue choisie.
 local ARMOR_LABELS = { Plaque = L["Plaque"], Maille = L["Maille"], Tissu = L["Tissu"], Cuir = L["Cuir"] }
 local ARMOR_BG = {
@@ -145,6 +155,56 @@ if not IS_RETAIL then
 		end
 	end
 	MATRIX_RACES = FOREVER_RACES
+end
+
+-- Colonnes de la matrice : classes groupées par armure (ARMOR_ORDER), dans l'ordre de
+-- MATRIX_CLASSES dans un groupe ; index = position dans MATRIX_CLASSES (chaînes « x/- » des races).
+local ARMOR_ORDER = { "Tissu", "Cuir", "Maille", "Plaque" }
+local ARMOR_ICONS = {
+	Tissu = "Interface\\Icons\\INV_Chest_Cloth_03", Cuir = "Interface\\Icons\\INV_Chest_Leather_01",
+	Maille = "Interface\\Icons\\INV_Chest_Chain_05", Plaque = "Interface\\Icons\\INV_Chest_Plate03",
+}
+local MATRIX_COLUMNS = {}
+for _, armor in ipairs(ARMOR_ORDER) do
+	for index, class in ipairs(MATRIX_CLASSES) do
+		if class[2] == armor then
+			MATRIX_COLUMNS[#MATRIX_COLUMNS + 1] = { class = class, index = index }
+		end
+	end
+end
+
+-- Formes féminines des races (client français) : les noms du jeu (C_CreatureInfo.GetRaceInfo) sont
+-- au masculin, et Polypode Data n'enregistrait que le nom traduit avant sa version 2.4.0 (rf).
+local FEMININE_RACES = {
+	["Humaine"] = "Human", ["Kultirassienne"] = "KulTiran", ["Naine"] = "Dwarf",
+	["Naine sombrefer"] = "DarkIronDwarf", ["Pandarène"] = "Pandaren", ["Orque"] = "Orc",
+	["Orque mag'har"] = "MagharOrc", ["Morte-vivante"] = "Scourge", ["Mort-vivante"] = "Scourge",
+	["Taurène"] = "Tauren", ["Taurène de Haut-Roc"] = "HighmountainTauren", ["Trollesse"] = "Troll",
+	["Trollesse zandalari"] = "ZandalariTroll", ["Gobeline"] = "Goblin", ["Vulpérine"] = "Vulpera",
+}
+
+-- Icônes en ligne (|A atlas|a), ou nil si l'atlas manque dans ce client.
+local function AtlasMarkup(atlas, size)
+	if C_Texture and C_Texture.GetAtlasInfo and C_Texture.GetAtlasInfo(atlas) then
+		return ("|A:%s:%d:%d|a"):format(atlas, size, size)
+	end
+end
+
+local function ClassIcon(classFile)
+	return classFile and AtlasMarkup("classicon-" .. classFile:lower(), 16)
+end
+
+-- Icône de race (écran de création de personnage) : nom d'atlas tiré du fichier de race.
+local RACE_ATLAS_NAMES = {
+	Scourge = "undead", HighmountainTauren = "highmountain", LightforgedDraenei = "lightforged",
+	ZandalariTroll = "zandalari", Harronir = "haranir", EarthenDwarf = "earthen",
+}
+local function RaceIcon(raceFile)
+	if not raceFile or raceFile:find("^%?") then
+		return nil
+	end
+	local name = RACE_ATLAS_NAMES[raceFile] or raceFile:lower()
+	return AtlasMarkup("raceicon128-" .. name .. "-male", 16) or AtlasMarkup("raceicon-" .. name .. "-male", 16)
 end
 
 -- Nom de race comparable : minuscules, sans espaces, tirets ni apostrophes.
@@ -455,7 +515,10 @@ local function CharacterInfos()
 		end
 		table.sort(profs)
 		local raceName = g.rn or (identity.r ~= "" and identity.r or nil)
-		local race = (g.r and g.r ~= "") and g.r or (raceName and raceFiles[NormalizeRaceName(raceName)]) or nil
+		-- Fichier de race : section G, puis Polypode Data (rf, 2.4.0), puis nom traduit (table du jeu,
+		-- noms appris, formes féminines françaises).
+		local race = (g.r and g.r ~= "") and g.r or (identity.rf and identity.rf ~= "" and identity.rf)
+			or (raceName and (raceFiles[NormalizeRaceName(raceName)] or FEMININE_RACES[raceName])) or nil
 		local class = (g.c and g.c ~= "") and g.c or (identity.c and identity.c ~= "" and identity.c) or entry.class
 		infos[key] = {
 			key = key,
@@ -753,13 +816,59 @@ end
 
 -- ONGLET MATRICE ---------------------------------------------------------------------------
 
+-- Fond sombre teinté de la couleur d'une classe (case occupée).
+local function ClassTint(classFile)
+	local color = classFile and RAID_CLASS_COLORS and RAID_CLASS_COLORS[classFile]
+	if not color then
+		return { 0.18, 0.18, 0.18, 0.95 }
+	end
+	return { color.r * 0.3, color.g * 0.3, color.b * 0.3, 0.95 }
+end
+
+-- En-têtes : une case par armure (sur ses classes, icône et nom), puis les icônes des classes
+-- (nom et armure dans l'infobulle ; nom de la classe si l'icône manque).
 local function ClassHeaderRows()
-	local armorRow, classRow = { [1] = { bg = BG_HEADER } }, { [1] = { bg = BG_HEADER } }
-	for i, class in ipairs(MATRIX_CLASSES) do
-		armorRow[i + 1] = { text = ARMOR_LABELS[class[2]] or class[2], bg = ARMOR_BG[class[2]] }
-		classRow[i + 1] = { text = ClassName(class[1]), bg = BG_HEADER }
+	local armorRow, classRow = { [1] = { bg = BG_M_HEADER } }, { [1] = { bg = BG_M_HEADER } }
+	local column = 2
+	for _, armor in ipairs(ARMOR_ORDER) do
+		local count = 0
+		for _, entry in ipairs(MATRIX_COLUMNS) do
+			if entry.class[2] == armor then
+				count = count + 1
+			end
+		end
+		if count > 0 then
+			local color = ARMOR_BG[armor]
+			armorRow[column] = {
+				text = "|T" .. ARMOR_ICONS[armor] .. ":14:14|t " .. ARMOR_LABELS[armor],
+				bg = { color[1] * 0.45, color[2] * 0.45, color[3] * 0.45, 1 },
+				span = count,
+			}
+			column = column + count
+		end
+	end
+	for i, entry in ipairs(MATRIX_COLUMNS) do
+		local classFile, armor = entry.class[1], entry.class[2]
+		classRow[i + 1] = {
+			text = ClassIcon(classFile) or ClassName(classFile),
+			bg = BG_M_HEADER,
+			tooltip = function()
+				GameTooltip:AddLine(ClassColorCode(classFile) .. ClassName(classFile) .. "|r")
+				GameTooltip:AddLine(ARMOR_LABELS[armor] or armor, 1, 1, 1)
+			end,
+		}
 	end
 	return { cells = armorRow, header = true }, { cells = classRow, header = true }
+end
+
+-- Ligne de sous-titre sur toute la largeur (faction, lignes libres) ; extra = champs de plus
+-- (infobulle, clic).
+local function GroupRow(text, count, extra)
+	local spec = { text = text, bg = BG_M_GROUP, span = count, justify = "LEFT" }
+	for k, v in pairs(extra or {}) do
+		spec[k] = v
+	end
+	return { cells = { [1] = spec }, header = true }
 end
 
 local ShowEditor -- défini plus bas (champ de saisie posé sur une case)
@@ -784,11 +893,28 @@ local function ConfirmDeleteRow(index)
 	StaticPopup_Show("POLYPODE_SUIVI_GRID_DELETE_ROW", row.label ~= "" and row.label or L["sans nom"], nil, index)
 end
 
+-- Toutes les races (combinaisons manquantes comprises) ou seulement celles qui ont un personnage
+-- (défaut) : case « Toutes les races » de la fenêtre, PolypodeSuiviDB.gridAllRaces.
+local function ShowAllRaces()
+	return WindowSettings().gridAllRaces == true
+end
+
+-- Groupes de lignes de races : factions de MATRIX_RACES, puis « Autres » (races absentes de la
+-- table, race inconnue).
+local FACTION_GROUPS = {
+	{ "A", FACTION_ALLIANCE or L["Alliance"] }, { "N", L["Neutre"] }, { "H", FACTION_HORDE or L["Horde"] },
+}
+
+local function ColorCode(color)
+	return ("|cff%02x%02x%02x"):format(math.min(255, math.floor(color[1] * 400)),
+		math.min(255, math.floor(color[2] * 400)), math.min(255, math.floor(color[3] * 400)))
+end
+
 local function BuildMatrixGrid()
 	local infos = CharacterInfos()
 	local columns = { { width = RACE_WIDTH } }
-	for i = 1, #MATRIX_CLASSES do
-		columns[i + 1] = {}
+	for i = 1, #MATRIX_COLUMNS do
+		columns[i + 1] = { width = CLASS_WIDTH }
 	end
 	-- [race][classe] = { clés } ; races inconnues de MATRIX_RACES ajoutées après, personnages sans
 	-- race connue sur une dernière ligne. Race au fichier inconnu : reconnue par son nom traduit.
@@ -813,61 +939,117 @@ local function BuildMatrixGrid()
 		table.insert(byRace[race][class], key)
 		if race ~= "?" and not known[race] then
 			known[race] = true
-			unknownRaces[#unknownRaces + 1] = { race, info.raceName or race, "N", string.rep("x", #MATRIX_CLASSES) }
+			unknownRaces[#unknownRaces + 1] = { race, info.raceName or race, nil, string.rep("x", #MATRIX_CLASSES) }
 		end
 	end
 	table.sort(unknownRaces, function(a, b)
 		return a[2] < b[2]
 	end)
-	local raceList = {}
-	for _, race in ipairs(MATRIX_RACES) do
-		raceList[#raceList + 1] = race
-	end
-	for _, race in ipairs(unknownRaces) do
-		raceList[#raceList + 1] = race
-	end
 	if byRace["?"] then
-		raceList[#raceList + 1] = { "?", L["Race inconnue"], nil, string.rep("x", #MATRIX_CLASSES) }
+		unknownRaces[#unknownRaces + 1] = { "?", L["Race inconnue"], nil, string.rep("x", #MATRIX_CLASSES) }
+	end
+
+	-- Ligne d'une race : icône et nom (liseré de la faction), puis une case par classe ; nil si
+	-- la race n'a aucun personnage et que seules les races jouées sont affichées.
+	local allRaces = ShowAllRaces()
+	local function RaceRow(race)
+		local raceFile = race[1]
+		local chars = byRace[raceFile] or {}
+		local total = 0
+		for _, keys in pairs(chars) do
+			total = total + #keys
+		end
+		if total == 0 and not allRaces then
+			return nil
+		end
+		local label = RACE_LABELS[raceFile] or race[2] -- nom de la table (les noms relevés peuvent être au féminin)
+		local icon = RaceIcon(raceFile)
+		local rowCells = { [1] = {
+			text = (icon and (icon .. " ") or "") .. label,
+			bg = BG_M_LABEL,
+			stripe = race[3] and FACTION_BG[race[3]] or nil,
+			justify = "LEFT",
+			tooltip = function()
+				GameTooltip:AddLine(label)
+				if raceFile == "?" then
+					GameTooltip:AddLine(L["Personnages dont la race sera connue à leur prochaine connexion (avec "
+						.. "Polypode Suivi à jour, ou Polypode Data)."], 1, 1, 1, true)
+				else
+					GameTooltip:AddLine(L["%d personnage(s)"]:format(total), 1, 1, 1)
+				end
+			end,
+		} }
+		for i, entry in ipairs(MATRIX_COLUMNS) do
+			local classFile = entry.class[1]
+			local keys = chars[classFile]
+			if keys then
+				-- Le plus haut niveau d'abord, les autres comptés (« +n »), tous dans l'infobulle.
+				SortKeys(keys, infos)
+				local first = infos[keys[1]]
+				rowCells[i + 1] = {
+					text = ClassColorCode(first.class) .. first.name .. "|r",
+					badge = #keys > 1 and ("+" .. (#keys - 1)) or nil,
+					bg = ClassTint(classFile),
+					mark = AnyMax(keys, infos),
+					tooltip = NamesTooltip(keys, infos),
+				}
+			elseif race[4]:sub(entry.index, entry.index) ~= "x" then
+				rowCells[i + 1] = { bg = BG_M_IMPOSSIBLE }
+			else
+				rowCells[i + 1] = { bg = BG_M_EMPTY }
+			end
+		end
+		return { cells = rowCells }
 	end
 
 	local armorRow, classRow = ClassHeaderRows()
 	local rows = { armorRow, classRow }
-	for _, race in ipairs(raceList) do
-		local raceFile = race[1]
-		local rowCells = { [1] = {
-			text = RACE_LABELS[raceFile] or race[2], -- nom de la table (les noms relevés peuvent être au féminin)
-			bg = race[3] and FACTION_BG[race[3]] or BG_HEADER,
-			justify = "LEFT",
-			tooltip = raceFile == "?" and function()
-				GameTooltip:AddLine(L["Race inconnue"])
-				GameTooltip:AddLine(L["Personnages dont la race sera connue à leur prochaine connexion (avec "
-					.. "Polypode Suivi à jour, ou Polypode Data)."], 1, 1, 1, true)
-			end or nil,
-		} }
-		local chars = byRace[raceFile] or {}
-		for i, class in ipairs(MATRIX_CLASSES) do
-			local keys = chars[class[1]]
-			if keys then
-				SortKeys(keys, infos)
-				rowCells[i + 1] = {
-					text = NamesText(keys, infos),
-					lines = #keys,
-					bg = AnyMax(keys, infos) and BG_MAX_LEVEL or BG_FILLED,
-					tooltip = NamesTooltip(keys, infos),
-				}
-			elseif race[4]:sub(i, i) ~= "x" then
-				rowCells[i + 1] = { bg = BG_IMPOSSIBLE }
+	-- Un groupe (sous-titre puis ses races), omis s'il n'a aucune ligne affichée.
+	local function AddGroup(title, races)
+		local groupRows = {}
+		for _, race in ipairs(races) do
+			groupRows[#groupRows + 1] = RaceRow(race)
+		end
+		if #groupRows > 0 then
+			rows[#rows + 1] = GroupRow(title, #columns)
+			for _, row in ipairs(groupRows) do
+				rows[#rows + 1] = row
 			end
 		end
-		rows[#rows + 1] = { cells = rowCells }
 	end
+	for _, group in ipairs(FACTION_GROUPS) do
+		local races = {}
+		for _, race in ipairs(MATRIX_RACES) do
+			if race[3] == group[1] then
+				races[#races + 1] = race
+			end
+		end
+		AddGroup(ColorCode(FACTION_BG[group[1]]) .. group[2] .. "|r", races)
+	end
+	AddGroup("|cff999999" .. L["Autres"] .. "|r", unknownRaces)
 	-- Personnages d'une classe inconnue (ni dans CLASSES) : ignorés de la matrice, rares.
 
-	-- Lignes libres, sous un rappel des en-têtes de classes.
-	local armorRow2, classRow2 = ClassHeaderRows()
-	rows[#rows + 1] = armorRow2
-	rows[#rows + 1] = classRow2
-	for index, free in ipairs(Grid().rows) do
+	-- Lignes libres : section repliable (PolypodeSuiviDB.gridFreeCollapsed), sans rappel des en-têtes.
+	local freeRows = Grid().rows
+	local collapsed = WindowSettings().gridFreeCollapsed == true
+	local toggle = collapsed and "Interface\\Buttons\\UI-PlusButton-Up" or "Interface\\Buttons\\UI-MinusButton-Up"
+	rows[#rows + 1] = GroupRow("|T" .. toggle .. ":14:14|t " .. L["Lignes libres (%d)"]:format(#freeRows), #columns, {
+		tooltip = function()
+			GameTooltip:AddLine(L["Lignes libres"])
+			GameTooltip:AddLine(L["Clic : afficher ou masquer les lignes libres (libellé et texte par classe, "
+				.. "communes à tous vos personnages)."], 1, 1, 1, true)
+		end,
+		onClick = function()
+			if PolypodeSuiviDB then
+				PolypodeSuiviDB.gridFreeCollapsed = not collapsed
+			end
+			ns.RefreshGrid()
+		end,
+	})
+	if collapsed then
+		return { columns = columns, rows = rows }
+	end
+	for index, free in ipairs(freeRows) do
 		local rowCells = { [1] = {
 			text = free.label ~= "" and free.label or "|cff999999" .. L["(sans nom)"] .. "|r",
 			bg = BG_FREE_LABEL,
@@ -886,14 +1068,15 @@ local function BuildMatrixGrid()
 				end
 			end,
 		} }
-		for i, class in ipairs(MATRIX_CLASSES) do
-			local text = free.cells and free.cells[class[1]] or ""
+		for i, entry in ipairs(MATRIX_COLUMNS) do
+			local classFile = entry.class[1]
+			local text = free.cells and free.cells[classFile] or ""
 			rowCells[i + 1] = {
 				text = text,
-				bg = text ~= "" and BG_FILLED or BG_EMPTY,
+				bg = text ~= "" and BG_FILLED or BG_M_EMPTY,
 				tooltip = function()
 					GameTooltip:AddLine((free.label ~= "" and free.label or L["Ligne sans nom"]) .. " · "
-						.. ClassName(class[1]))
+						.. ClassName(classFile))
 					if text ~= "" then
 						GameTooltip:AddLine(text, 1, 1, 1, true)
 					end
@@ -903,7 +1086,7 @@ local function BuildMatrixGrid()
 				onClick = function(cell)
 					ShowEditor(cell, text, function(value)
 						free.cells = free.cells or {}
-						free.cells[class[1]] = value ~= "" and value or nil
+						free.cells[classFile] = value ~= "" and value or nil
 					end)
 				end,
 			}
@@ -962,9 +1145,18 @@ local function AcquireCell(index)
 		cell.hover:SetAllPoints()
 		cell.hover:SetColorTexture(1, 1, 1, 0.12)
 		cell.hover:Hide()
+		-- Liseré à gauche (faction d'une race), coin doré (niveau maximum), compteur à droite (« +n »).
+		cell.stripe = cell:CreateTexture(nil, "BORDER")
+		cell.stripe:SetPoint("TOPLEFT")
+		cell.stripe:SetPoint("BOTTOMLEFT")
+		cell.stripe:SetWidth(3)
+		cell.mark = cell:CreateTexture(nil, "BORDER")
+		cell.mark:SetPoint("TOPRIGHT")
+		cell.mark:SetSize(5, 5)
+		cell.mark:SetColorTexture(MAX_MARK[1], MAX_MARK[2], MAX_MARK[3], MAX_MARK[4])
+		cell.badge = cell:CreateFontString(nil, "OVERLAY", "GameFontDisableSmall")
+		cell.badge:SetPoint("RIGHT", -3, 0)
 		cell.text = cell:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
-		cell.text:SetPoint("TOPLEFT", 3, -CELL_PAD)
-		cell.text:SetPoint("BOTTOMRIGHT", -3, CELL_PAD)
 		cell.text:SetJustifyV("MIDDLE")
 		cell.text:SetWordWrap(false)
 		cell:RegisterForClicks("LeftButtonUp", "RightButtonUp")
@@ -1029,6 +1221,19 @@ local function Render(grid)
 			cell:SetSize(width, height)
 			local bg = spec.bg or BG_EMPTY
 			cell.bg:SetColorTexture(bg[1], bg[2], bg[3], bg[4] or 1)
+			local stripe = spec.stripe
+			cell.stripe:SetShown(stripe ~= nil)
+			if stripe then
+				cell.stripe:SetColorTexture(stripe[1], stripe[2], stripe[3], stripe[4] or 1)
+			end
+			cell.mark:SetShown(spec.mark == true)
+			cell.badge:SetText(spec.badge or "")
+			cell.badge:SetShown(spec.badge ~= nil)
+			-- Texte entre le liseré et le compteur (nom tronqué, compteur toujours visible).
+			local right = spec.badge and (cell.badge:GetStringWidth() + 6) or 3
+			cell.text:ClearAllPoints()
+			cell.text:SetPoint("TOPLEFT", stripe and 7 or 3, -CELL_PAD)
+			cell.text:SetPoint("BOTTOMRIGHT", -right, CELL_PAD)
 			cell.text:SetText(spec.text or "")
 			cell.text:SetJustifyH(spec.justify or "CENTER")
 			cell.text:SetFontObject(row.header and "GameFontNormalSmall" or "GameFontHighlightSmall")
@@ -1067,6 +1272,11 @@ function ns.RefreshGrid()
 	local tab = CurrentTab()
 	frame.accountsTab.activeTint:SetShown(tab == "accounts")
 	frame.matrixTab.activeTint:SetShown(tab == "matrix")
+	frame.allRacesCheck:SetShown(tab == "matrix")
+	frame.allRacesCheck:SetChecked(ShowAllRaces())
+	frame.helpText:SetText(tab == "matrix"
+		and L["Coin doré : niveau maximum ; « +n » : autres personnages. Survol : détail ; Maj + molette : défilement horizontal."]
+		or L["Rouge : niveau maximum. Survol : détail ; Maj + molette : défilement horizontal."])
 	Render(tab == "matrix" and BuildMatrixGrid() or BuildAccountsGrid())
 end
 
@@ -1197,8 +1407,35 @@ local function Build()
 	local panel = P.CreatePanel(frame, "")
 	panel:SetPoint("TOPLEFT", 12, -36)
 	panel:SetPoint("BOTTOMRIGHT", -12, 12)
-	panel.header:SetText(L["Rouge : niveau maximum. Survol : détail ; Maj + molette : défilement horizontal."])
-	panel.header:SetFontObject("GameFontDisableSmall")
+	panel.header:SetFontObject("GameFontDisableSmall") -- aide de l'onglet (ns.RefreshGrid)
+	frame.helpText = panel.header
+
+	-- Matrice : case « Toutes les races » à droite de l'aide (décochée : races jouées seulement).
+	local allRaces = CreateFrame("CheckButton", nil, panel, "UICheckButtonTemplate")
+	allRaces:SetSize(20, 20)
+	allRaces:SetPoint("TOPRIGHT", -110, -2)
+	local allRacesLabel = allRaces:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
+	allRacesLabel:SetPoint("LEFT", allRaces, "RIGHT", 2, 0)
+	allRacesLabel:SetText(L["Toutes les races"])
+	allRaces:SetScript("OnClick", function(self)
+		if PolypodeSuiviDB then
+			PolypodeSuiviDB.gridAllRaces = self:GetChecked() and true or nil
+		end
+		ns.RefreshGrid()
+	end)
+	allRaces:SetScript("OnEnter", function(self)
+		GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
+		GameTooltip:AddLine(L["Toutes les races"])
+		GameTooltip:AddLine(L["Cochée : toutes les races, pour voir les combinaisons qui manquent. Décochée : "
+			.. "seulement les races qui ont un personnage."], 1, 1, 1, true)
+		if ns.ShowTooltip then
+			ns.ShowTooltip()
+		else
+			GameTooltip:Show()
+		end
+	end)
+	allRaces:SetScript("OnLeave", GameTooltip_Hide)
+	frame.allRacesCheck = allRaces
 
 	-- Zone défilante : ScrollFrame piloté par une MinimalScrollBar (la barre des listes de Polypode,
 	-- skinnée par P.SkinScrollBar pour EllesmereUI / ElvUI), affichée seulement si la grille déborde.

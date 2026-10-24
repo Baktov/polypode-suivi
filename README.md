@@ -199,18 +199,24 @@ Maj + molette : défilement horizontal si la grille est plus large que la fenêt
   **Solo** (regroupés par métiers), **Multi 2/3**, **Multi 4/5/+**. À gauche : **Métier 1** et
   **Métier 2** (masquables ; pour une équipe, une seule case à son **nom**) et le **niveau** — « 90 / 308 » au niveau maximum, avec le niveau
   d'objet (le plus bas de l'équipe) ; les niveaux de chacun si ceux d'une équipe diffèrent.
-- **Matrice** : les **races** en lignes (bleu Alliance, vert neutre, rouge
-  Horde), les **classes** en colonnes (armure en en-tête), chaque personnage dans sa case ; une
-  combinaison race / classe impossible est **grise**. En bas, des **lignes libres** : « + Ajouter
-  une ligne », clic sur le libellé pour le renommer (clic droit : supprimer), clic sur une case
-  pour y écrire un texte (Entrée pour valider, Échap pour annuler). Ces lignes sont communes à tous
-  vos personnages. Sur **WoW Forever**, la matrice suit les races et classes de Forever (neuf
+- **Matrice** : les **races** en lignes (icône et nom), groupées par faction (**Alliance**,
+  **Neutre**, **Horde**, puis **Autres** : races inconnues de la table, « Race inconnue »), avec un
+  liseré de la couleur de la faction ; les **classes** en colonnes (icônes, nom au survol),
+  groupées par **armure** (Tissu, Cuir, Maille, Plaque : une case d'en-tête par armure). Une case
+  occupée montre le personnage le plus haut, teintée de la couleur de sa classe, et **« +n »**
+  pour les autres (tous dans l'infobulle) ; **coin doré** = un personnage au niveau maximum. Une
+  combinaison impossible est presque invisible (noire), une combinaison possible mais vide gris
+  foncé. Par défaut, seules les races qui ont un personnage sont affichées : cocher **Toutes les
+  races** (en haut à droite) pour voir les combinaisons qui manquent. En bas, la section
+  repliable **Lignes libres** (clic sur son titre) : « + Ajouter une ligne », clic sur le libellé
+  pour le renommer (clic droit : supprimer), clic sur une case pour y écrire un texte (Entrée pour
+  valider, Échap pour annuler). Ces lignes sont communes à tous vos personnages. Sur **WoW Forever**, la matrice suit les races et classes de Forever (neuf
   classes ; Humain, Nain, Elfe de la nuit, Gnome, Éolide de l'Ordre suprême, Orc, Tauren, Troll,
   Mort-vivant, Éolide des Sculpte-vents) et leurs combinaisons.
 
 La race, le niveau d'objet et les métiers d'un personnage sont relevés par Polypode Suivi (à sa
 prochaine connexion avec cette version) ; en attendant, ceux déjà relevés par **Polypode Data**
-(2.1 ou plus, s'il est installé) sont utilisés. Sans l'un ni l'autre : classe et niveau du roster,
+(2.1 ou plus, s'il est installé ; 2.4 ou plus pour une race sûre quelle que soit la langue — avant, les formes féminines françaises sont reconnues) sont utilisés. Sans l'un ni l'autre : classe et niveau du roster,
 ligne « Race inconnue » de la matrice.
 
 ---
@@ -294,6 +300,7 @@ other language).*
 
 ## Version
 
+`2.12.0` : Matrice plus compacte et lisible : une ligne par race (personnage le plus haut et « +n »), icônes de classes et de races, classes groupées par armure, races par faction, seulement les races jouées (case « Toutes les races »), couleurs adoucies (coin doré au niveau maximum), lignes libres repliables ; races au féminin (Kultirassienne, Pandarène...) rangées avec leur race (fichier de race de Polypode Data 2.4).
 `2.11.1` : Éolides de WoW Forever traduits dans la Grille (High Order Skyborne, Himmelsgeborener des Hohen Ordens, Cielonato de la Orden Eminente...) et reconnus quelle que soit la langue du client. *Skyborne races translated in the Grid.*
 `2.11.0` : Polypode Suivi en anglais, allemand, espagnol, italien et portugais du Brésil, selon la langue choisie dans Polypode (Tracker, Seguimiento, Monitoraggio, Acompanhamento ; Grille : Grid, Raster, Cuadrícula, Griglia, Grade) ; alias anglais /poly tracker, /poly grid, /poly quests. *Translated into English, German, Spanish, Italian and Brazilian Portuguese.*
 `2.10.1` : bouton « Grille » à droite du titre, contre les boutons de droite ; titre à droite de « Joués depuis ».

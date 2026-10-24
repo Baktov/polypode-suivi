@@ -184,17 +184,23 @@ horizontal scrolling if the grid is wider than the window.
   **Profession 2** (can be hidden; for a team, a single cell with its **name**) and the **level**
   ("90 / 308" at max level, with the item level, the lowest of the team); each one's levels if
   those of a team differ.
-- **Matrix**: **races** in rows (blue Alliance, green neutral, red Horde), **classes** in columns
-  (armor in the header), each character in their cell; an impossible race / class combination is
-  **grey**. At the bottom, **free rows**: "+ Add a row", click on the label to rename it
-  (right-click: delete), click on a cell to write a text in it (Enter to confirm, Escape to cancel).
-  These rows are shared by all your characters. On **WoW Forever**, the matrix follows Forever's
+- **Matrix**: **races** in rows (icon and name), grouped by faction (**Alliance**, **Neutral**,
+  **Horde**, then **Others**: races missing from the table, "Unknown race"), with a stripe in the
+  faction color; **classes** in columns (icons, name on hover), grouped by **armor** (Cloth,
+  Leather, Mail, Plate: one header cell per armor). An occupied cell shows the highest character,
+  tinted in their class color, and **"+n"** for the others (all in the tooltip); **gold corner** =
+  a character at max level. An impossible combination is almost invisible (black), a possible but
+  empty one dark grey. By default only the races that have a character are shown: check **All
+  races** (top right) to see the missing combinations. At the bottom, the collapsible **Free rows**
+  section (click its title): "+ Add a row", click on the label to rename it (right-click: delete),
+  click on a cell to write a text in it (Enter to confirm, Escape to cancel). These rows are shared
+  by all your characters. On **WoW Forever**, the matrix follows Forever's
   races and classes (nine classes; Human, Dwarf, Night Elf, Gnome, High Order Skyborne, Orc, Tauren,
   Troll, Undead, Windshaper Skyborne) and their combinations.
 
 A character's race, item level and professions are recorded by Polypode Tracker (at their next
 login with this version); in the meantime, those already recorded by **Polypode Data** (2.1 or
-later, if installed) are used. Without either: class and level from the roster, "Unknown race"
+later, if installed; 2.4 or later for a reliable race in any language) are used. Without either: class and level from the roster, "Unknown race"
 row of the matrix.
 
 ---
