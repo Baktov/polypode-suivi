@@ -205,7 +205,7 @@ Maj + molette : défilement horizontal si la grille est plus large que la fenêt
   groupées par **armure** (Tissu, Cuir, Maille, Plaque : une case d'en-tête par armure). Une case
   occupée montre le personnage le plus haut, teintée de la couleur de sa classe, et **« +n »**
   pour les autres (tous dans l'infobulle) ; **coin doré** = un personnage au niveau maximum. Une
-  combinaison impossible est presque invisible (noire), une combinaison possible mais vide gris
+  combinaison impossible est barrée d'un fin trait gris en diagonale (« Combinaison impossible » au survol), une combinaison possible mais vide gris
   foncé. Par défaut, seules les races qui ont un personnage sont affichées : cocher **Toutes les
   races** (en haut à droite) pour voir les combinaisons qui manquent. En bas, la section
   repliable **Lignes libres** (clic sur son titre) : « + Ajouter une ligne », clic sur le libellé
@@ -300,6 +300,7 @@ other language).*
 
 ## Version
 
+`2.12.1` : Matrice : combinaisons race / classe impossibles barrées d'un fin trait en diagonale, avec infobulle.
 `2.12.0` : Matrice plus compacte et lisible : une ligne par race (personnage le plus haut et « +n »), icônes de classes et de races, classes groupées par armure, races par faction, seulement les races jouées (case « Toutes les races »), couleurs adoucies (coin doré au niveau maximum), lignes libres repliables ; races au féminin (Kultirassienne, Pandarène...) rangées avec leur race (fichier de race de Polypode Data 2.4).
 `2.11.1` : Éolides de WoW Forever traduits dans la Grille (High Order Skyborne, Himmelsgeborener des Hohen Ordens, Cielonato de la Orden Eminente...) et reconnus quelle que soit la langue du client. *Skyborne races translated in the Grid.*
 `2.11.0` : Polypode Suivi en anglais, allemand, espagnol, italien et portugais du Brésil, selon la langue choisie dans Polypode (Tracker, Seguimiento, Monitoraggio, Acompanhamento ; Grille : Grid, Raster, Cuadrícula, Griglia, Grade) ; alias anglais /poly tracker, /poly grid, /poly quests. *Translated into English, German, Spanish, Italian and Brazilian Portuguese.*

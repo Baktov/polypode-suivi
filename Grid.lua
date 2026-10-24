@@ -994,7 +994,14 @@ local function BuildMatrixGrid()
 					tooltip = NamesTooltip(keys, infos),
 				}
 			elseif race[4]:sub(entry.index, entry.index) ~= "x" then
-				rowCells[i + 1] = { bg = BG_M_IMPOSSIBLE }
+				rowCells[i + 1] = {
+					bg = BG_M_IMPOSSIBLE,
+					slash = true,
+					tooltip = function()
+						GameTooltip:AddLine(L["Combinaison impossible"])
+						GameTooltip:AddLine(label .. " · " .. ClassName(classFile), 1, 1, 1)
+					end,
+				}
 			else
 				rowCells[i + 1] = { bg = BG_M_EMPTY }
 			end
@@ -1154,6 +1161,10 @@ local function AcquireCell(index)
 		cell.mark:SetPoint("TOPRIGHT")
 		cell.mark:SetSize(5, 5)
 		cell.mark:SetColorTexture(MAX_MARK[1], MAX_MARK[2], MAX_MARK[3], MAX_MARK[4])
+		-- Barre en diagonale (combinaison impossible), longueur et angle posés par Render.
+		cell.slash = cell:CreateTexture(nil, "BORDER")
+		cell.slash:SetPoint("CENTER")
+		cell.slash:SetColorTexture(0.45, 0.45, 0.45, 0.45)
 		cell.badge = cell:CreateFontString(nil, "OVERLAY", "GameFontDisableSmall")
 		cell.badge:SetPoint("RIGHT", -3, 0)
 		cell.text = cell:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
@@ -1227,6 +1238,11 @@ local function Render(grid)
 				cell.stripe:SetColorTexture(stripe[1], stripe[2], stripe[3], stripe[4] or 1)
 			end
 			cell.mark:SetShown(spec.mark == true)
+			cell.slash:SetShown(spec.slash == true)
+			if spec.slash then
+				cell.slash:SetSize(math.sqrt(width * width + height * height) - 4, 1)
+				cell.slash:SetRotation(math.atan2(height, width))
+			end
 			cell.badge:SetText(spec.badge or "")
 			cell.badge:SetShown(spec.badge ~= nil)
 			-- Texte entre le liseré et le compteur (nom tronqué, compteur toujours visible).

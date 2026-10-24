@@ -86,6 +86,7 @@ P.AddTranslations(ns.L, "ptBR", {
 	["Lignes libres"] = "Linhas livres",
 	["Clic : afficher ou masquer les lignes libres (libellé et texte par classe, communes à tous vos personnages)."] = "Clique: mostra ou oculta as linhas livres (rótulo e texto por classe, comuns a todos os seus personagens).",
 	["Coin doré : niveau maximum ; « +n » : autres personnages. Survol : détail ; Maj + molette : défilement horizontal."] = "Canto dourado: nível máximo; \"+n\": outros personagens. Passar o mouse: detalhes; Shift + roda: rolagem horizontal.",
+	["Combinaison impossible"] = "Combinação impossível",
 	["Toutes les races"] = "Todas as raças",
 	["Cochée : toutes les races, pour voir les combinaisons qui manquent. Décochée : seulement les races qui ont un personnage."] = "Marcada: todas as raças, para ver as combinações que faltam. Desmarcada: só as raças que têm um personagem.",
 	["Clic : ajoute une ligne libre en bas de la matrice (libellé et texte par classe), commune à tous vos personnages."] = "Clique: adiciona uma linha livre no fim da matriz (rótulo e texto por classe), comum a todos os seus personagens.",

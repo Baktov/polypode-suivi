@@ -86,6 +86,7 @@ P.AddTranslations(ns.L, "esES", {
 	["Lignes libres"] = "Filas libres",
 	["Clic : afficher ou masquer les lignes libres (libellé et texte par classe, communes à tous vos personnages)."] = "Clic: mostrar u ocultar las filas libres (etiqueta y texto por clase, comunes a todos tus personajes).",
 	["Coin doré : niveau maximum ; « +n » : autres personnages. Survol : détail ; Maj + molette : défilement horizontal."] = "Esquina dorada: nivel máximo; «+n»: otros personajes. Pasar el ratón: detalle; Mayús + rueda: desplazamiento horizontal.",
+	["Combinaison impossible"] = "Combinación imposible",
 	["Toutes les races"] = "Todas las razas",
 	["Cochée : toutes les races, pour voir les combinaisons qui manquent. Décochée : seulement les races qui ont un personnage."] = "Marcada: todas las razas, para ver las combinaciones que faltan. Desmarcada: solo las razas que tienen un personaje.",
 	["Clic : ajoute une ligne libre en bas de la matrice (libellé et texte par classe), commune à tous vos personnages."] = "Clic: añade una fila libre al final de la matriz (etiqueta y texto por clase), común a todos tus personajes.",

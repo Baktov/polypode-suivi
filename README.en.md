@@ -189,7 +189,7 @@ horizontal scrolling if the grid is wider than the window.
   faction color; **classes** in columns (icons, name on hover), grouped by **armor** (Cloth,
   Leather, Mail, Plate: one header cell per armor). An occupied cell shows the highest character,
   tinted in their class color, and **"+n"** for the others (all in the tooltip); **gold corner** =
-  a character at max level. An impossible combination is almost invisible (black), a possible but
+  a character at max level. An impossible combination is crossed by a thin grey diagonal line ("Impossible combination" on hover), a possible but
   empty one dark grey. By default only the races that have a character are shown: check **All
   races** (top right) to see the missing combinations. At the bottom, the collapsible **Free rows**
   section (click its title): "+ Add a row", click on the label to rename it (right-click: delete),

@@ -86,6 +86,7 @@ P.AddTranslations(ns.L, "enUS", {
 	["Lignes libres"] = "Free rows",
 	["Clic : afficher ou masquer les lignes libres (libellé et texte par classe, communes à tous vos personnages)."] = "Click: show or hide the free rows (label and text per class, shared by all your characters).",
 	["Coin doré : niveau maximum ; « +n » : autres personnages. Survol : détail ; Maj + molette : défilement horizontal."] = "Gold corner: max level; \"+n\": other characters. Hover: details; Shift + wheel: horizontal scrolling.",
+	["Combinaison impossible"] = "Impossible combination",
 	["Toutes les races"] = "All races",
 	["Cochée : toutes les races, pour voir les combinaisons qui manquent. Décochée : seulement les races qui ont un personnage."] = "Checked: all races, to see the missing combinations. Unchecked: only the races that have a character.",
 	["Clic : ajoute une ligne libre en bas de la matrice (libellé et texte par classe), commune à tous vos personnages."] = "Click: adds a free row at the bottom of the matrix (label and text per class), shared by all your characters.",

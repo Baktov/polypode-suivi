@@ -86,6 +86,7 @@ P.AddTranslations(ns.L, "deDE", {
 	["Lignes libres"] = "Freie Zeilen",
 	["Clic : afficher ou masquer les lignes libres (libellé et texte par classe, communes à tous vos personnages)."] = "Klick: freie Zeilen ein- oder ausblenden (Bezeichnung und Text pro Klasse, für alle Ihre Charaktere gemeinsam).",
 	["Coin doré : niveau maximum ; « +n » : autres personnages. Survol : détail ; Maj + molette : défilement horizontal."] = "Goldene Ecke: Höchststufe; „+n“: weitere Charaktere. Überfahren: Details; Umschalt + Mausrad: waagerecht blättern.",
+	["Combinaison impossible"] = "Unmögliche Kombination",
 	["Toutes les races"] = "Alle Völker",
 	["Cochée : toutes les races, pour voir les combinaisons qui manquent. Décochée : seulement les races qui ont un personnage."] = "Aktiviert: alle Völker, um die fehlenden Kombinationen zu sehen. Deaktiviert: nur Völker mit einem Charakter.",
 	["Clic : ajoute une ligne libre en bas de la matrice (libellé et texte par classe), commune à tous vos personnages."] = "Klick: fügt unten in der Matrix eine freie Zeile hinzu (Bezeichnung und Text pro Klasse), für alle Ihre Charaktere.",
