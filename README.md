@@ -272,8 +272,22 @@ travail de recensement.
 
 ---
 
+## Langues (Languages)
+
+Polypode Suivi s'affiche dans la langue choisie dans Polypode (option « Langue / Language », `/poly langue`),
+par défaut celle du jeu : français, anglais, allemand, espagnol, italien ou portugais du Brésil
+(anglais pour une autre langue). Nécessite Polypode 2.9 pour choisir la langue ; avec un Polypode plus
+ancien, le module reste en français. La commande `C:/Program Files/Git/poly suivi` garde son nom.
+
+*Polypode Suivi follows the language chosen in Polypode ("Langue / Language" option, `/poly language`), by
+default the game's: French, English, German, Spanish, Italian or Brazilian Portuguese (English for any
+other language).*
+
+---
+
 ## Version
 
+`2.11.0` : Polypode Suivi en anglais, allemand, espagnol, italien et portugais du Brésil, selon la langue choisie dans Polypode (Tracker, Seguimiento, Monitoraggio, Acompanhamento ; Grille : Grid, Raster, Cuadrícula, Griglia, Grade) ; alias anglais /poly tracker, /poly grid, /poly quests. *Translated into English, German, Spanish, Italian and Brazilian Portuguese.*
 `2.10.1` : bouton « Grille » à droite du titre, contre les boutons de droite ; titre à droite de « Joués depuis ».
 `2.10.0` : liste « Joués depuis » (1 jour, 1 semaine, 1 mois, 1 an, Tous) à droite de « Tous les personnages » et dans les options : seuls les personnages joués dans la durée choisie sont affichés ; titre de la fenêtre à droite de « Grille ».
 `2.9.1` : correction d'un gel du jeu (parfois plusieurs minutes) à l'ouverture de la fenêtre, surtout sur le panneau Activités : relevé du personnage joué gardé 1 s au lieu d'être refait pour chaque ligne, quêtes de Lune-d'Argent demandées au serveur au plus une fois par minute, fenêtre rafraîchie une seule fois par rafale de titres reçus.

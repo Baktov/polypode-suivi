@@ -2,6 +2,7 @@
 
 local _, ns = ...
 local P = Polypode
+local L = ns.L
 
 -- FENÊTRE « GRILLE » (bouton « Grille » de la fenêtre Suivi, ns.ToggleGrid) :
 --   Comptes — une ligne par personnage seul ou par équipe de Polypode (2 membres et plus, chaque
@@ -42,6 +43,8 @@ local BG_MAX_LEVEL = { 0.75, 0.08, 0.08, 1 } -- personnage au niveau maximum
 local BG_FREE_LABEL = { 0.25, 0.25, 0.25, 1 }
 local BG_ADD = { 0.1, 0.25, 0.4, 1 }
 local FACTION_BG = { A = { 0.2, 0.4, 0.7, 1 }, N = { 0.05, 0.45, 0.2, 1 }, H = { 0.6, 0.08, 0.08, 1 } }
+-- Types d'armure (clés de ARMOR_BG et de CLASSES) affichés dans la langue choisie.
+local ARMOR_LABELS = { Plaque = L["Plaque"], Maille = L["Maille"], Tissu = L["Tissu"], Cuir = L["Cuir"] }
 local ARMOR_BG = {
 	Plaque = { 0.75, 0.1, 0.1, 1 }, Maille = { 0.25, 0.45, 0.15, 1 },
 	Tissu = { 0.2, 0.55, 0.9, 1 }, Cuir = { 0.5, 0.27, 0.05, 1 },
@@ -87,6 +90,18 @@ local RACES = {
 	{ "Nightborne", "Sacrenuit", "H", "xxxxxx---x-x-" },
 	{ "Goblin", "Gobelin", "H", "xxxxxx--xx-x-" },
 	{ "Vulpera", "Vulpérin", "H", "xxxxxx--xx-x-" },
+}
+
+-- Noms affichés des races (langue choisie) ; le nom de RACES reste celui de la comparaison avec le
+-- nom relevé en jeu (RaceKey). Éolides de WoW Forever : nom français (pas de traduction connue).
+local RACE_LABELS = {
+	Human = L["Humain"], KulTiran = L["Kultirassien"], Dwarf = L["Nain"], DarkIronDwarf = L["Nain sombrefer"],
+	NightElf = L["Elfe de la nuit"], VoidElf = L["Elfe du Vide"], Gnome = L["Gnome"], Mechagnome = L["Mécagnome"],
+	Draenei = L["Draeneï"], LightforgedDraenei = L["Draeneï sancteforge"], Worgen = L["Worgen"], Pandaren = L["Pandaren"],
+	Dracthyr = L["Dracthyr"], EarthenDwarf = L["Terrestre"], Harronir = L["Haranir"], Orc = L["Orc"], MagharOrc = L["Orc mag'har"],
+	Scourge = L["Mort-vivant"], Tauren = L["Tauren"], HighmountainTauren = L["Tauren de Haut-Roc"], Troll = L["Troll"],
+	ZandalariTroll = L["Troll zandalari"], BloodElf = L["Elfe de sang"], Nightborne = L["Sacrenuit"], Goblin = L["Gobelin"],
+	Vulpera = L["Vulpérin"],
 }
 
 -- WoW Forever (contenu Vanilla) : neuf classes, dix races ; combinaisons dans l'ordre de
@@ -463,24 +478,24 @@ end
 -- Infobulle d'un personnage.
 local function CharacterTooltip(info, team)
 	GameTooltip:AddLine(ClassColorCode(info.class) .. info.name .. "|r")
-	GameTooltip:AddDoubleLine("Compte", info.account or "non renseigné", 0.6, 0.6, 0.6, 1, 1, 1)
+	GameTooltip:AddDoubleLine(L["Compte"], info.account or L["non renseigné"], 0.6, 0.6, 0.6, 1, 1, 1)
 	local other = info.max and 0.3 or 1 -- niveau maximum en rouge
-	GameTooltip:AddDoubleLine("Niveau", info.level and tostring(info.level) or "?", 0.6, 0.6, 0.6, 1, other, other)
+	GameTooltip:AddDoubleLine(L["Niveau"], info.level and tostring(info.level) or "?", 0.6, 0.6, 0.6, 1, other, other)
 	if info.ilvl then
-		GameTooltip:AddDoubleLine("Niveau d'objet", tostring(info.ilvl), 0.6, 0.6, 0.6, 1, 1, 1)
+		GameTooltip:AddDoubleLine(L["Niveau d'objet"], tostring(info.ilvl), 0.6, 0.6, 0.6, 1, 1, 1)
 	end
-	GameTooltip:AddDoubleLine("Classe", ClassName(info.class), 0.6, 0.6, 0.6, 1, 1, 1)
+	GameTooltip:AddDoubleLine(L["Classe"], ClassName(info.class), 0.6, 0.6, 0.6, 1, 1, 1)
 	if info.raceName or info.race then
-		GameTooltip:AddDoubleLine("Race", info.raceName or info.race, 0.6, 0.6, 0.6, 1, 1, 1)
+		GameTooltip:AddDoubleLine(L["Race"], info.raceName or info.race, 0.6, 0.6, 0.6, 1, 1, 1)
 	end
-	GameTooltip:AddDoubleLine("Métiers", #info.profs > 0 and table.concat(info.profs, ", ") or "aucun connu",
+	GameTooltip:AddDoubleLine(L["Métiers"], #info.profs > 0 and table.concat(info.profs, ", ") or L["aucun connu"],
 		0.6, 0.6, 0.6, 1, 1, 1)
 	if team then
-		GameTooltip:AddDoubleLine("Équipe", team, 0.6, 0.6, 0.6, 1, 1, 1)
+		GameTooltip:AddDoubleLine(L["Équipe"], team, 0.6, 0.6, 0.6, 1, 1, 1)
 	end
 	if not (info.race or info.raceName) then
-		GameTooltip:AddLine("Race, ilvl et métiers connus après sa prochaine connexion (avec Polypode Suivi à jour, "
-			.. "ou Polypode Data).", 0.6, 0.6, 0.6, true)
+		GameTooltip:AddLine(L["Race, ilvl et métiers connus après sa prochaine connexion (avec Polypode Suivi à jour, "
+			.. "ou Polypode Data)."], 0.6, 0.6, 0.6, true)
 	end
 end
 
@@ -577,8 +592,8 @@ local function AccountSections(infos)
 	-- Chaque personnage dans une seule équipe (la plus grande) ; une équipe réduite à un seul
 	-- personnage le laisse seul.
 	local placed = {}
-	local solo, small, large = { title = "Solo", rows = {} }, { title = "Multi 2/3", rows = {} },
-		{ title = "Multi 4/5/+", rows = {} }
+	local solo, small, large = { title = L["Solo"], rows = {} }, { title = L["Multi 2/3"], rows = {} },
+		{ title = L["Multi 4/5/+"], rows = {} }
 	for _, team in ipairs(teams) do
 		local keys = {}
 		for _, key in ipairs(team.members) do
@@ -664,16 +679,16 @@ local function BuildAccountsGrid()
 			local header = {}
 			if showProfs then
 				header[1] = { text = section.title, bg = BG_HEADER, span = 2, justify = "LEFT" }
-				header[3] = { text = "Niveau", bg = BG_HEADER }
+				header[3] = { text = L["Niveau"], bg = BG_HEADER }
 			else
 				header[1] = { text = section.title, bg = BG_HEADER }
 			end
 			for i, label in ipairs(accounts) do
-				header[firstAccount + i - 1] = { text = label == OTHER_ACCOUNT and "Autres" or label, bg = BG_HEADER,
+				header[firstAccount + i - 1] = { text = label == OTHER_ACCOUNT and L["Autres"] or label, bg = BG_HEADER,
 					tooltip = label == OTHER_ACCOUNT and function()
-						GameTooltip:AddLine("Autres")
-						GameTooltip:AddLine("Personnages sans compte WoW, ou d'un compte qui n'a pas de colonne "
-							.. "(Options > Polypode > Suivi > Grille).", 1, 1, 1, true)
+						GameTooltip:AddLine(L["Autres"])
+						GameTooltip:AddLine(L["Personnages sans compte WoW, ou d'un compte qui n'a pas de colonne "
+							.. "(Options > Polypode > Suivi > Grille)."], 1, 1, 1, true)
 					end or nil }
 			end
 			rows[#rows + 1] = { cells = header, header = true }
@@ -698,9 +713,9 @@ local function BuildAccountsGrid()
 					text = levelText,
 					bg = allMax and BG_MAX_LEVEL or nil,
 					tooltip = row.team and function()
-						GameTooltip:AddLine("Équipe « " .. row.team .. " »")
-						GameTooltip:AddLine(#row.keys .. " personnages ; au niveau maximum, niveau d'objet le "
-							.. "plus bas de l'équipe.", 1, 1, 1, true)
+						GameTooltip:AddLine(L["Équipe « %s »"]:format(row.team))
+						GameTooltip:AddLine(L["%d personnages ; au niveau maximum, niveau d'objet le plus bas de l'équipe."]
+							:format(#row.keys), 1, 1, 1, true)
 					end or nil,
 				}
 				local byAccount = {}
@@ -721,7 +736,7 @@ local function BuildAccountsGrid()
 			end
 		end
 	end
-	return { columns = columns, rows = rows, empty = "Aucun personnage dans le roster." }
+	return { columns = columns, rows = rows, empty = L["Aucun personnage dans le roster."] }
 end
 
 -- ONGLET MATRICE ---------------------------------------------------------------------------
@@ -729,7 +744,7 @@ end
 local function ClassHeaderRows()
 	local armorRow, classRow = { [1] = { bg = BG_HEADER } }, { [1] = { bg = BG_HEADER } }
 	for i, class in ipairs(MATRIX_CLASSES) do
-		armorRow[i + 1] = { text = class[2], bg = ARMOR_BG[class[2]] }
+		armorRow[i + 1] = { text = ARMOR_LABELS[class[2]] or class[2], bg = ARMOR_BG[class[2]] }
 		classRow[i + 1] = { text = ClassName(class[1]), bg = BG_HEADER }
 	end
 	return { cells = armorRow, header = true }, { cells = classRow, header = true }
@@ -743,7 +758,7 @@ local function ConfirmDeleteRow(index)
 		return
 	end
 	StaticPopupDialogs.POLYPODE_SUIVI_GRID_DELETE_ROW = StaticPopupDialogs.POLYPODE_SUIVI_GRID_DELETE_ROW or {
-		text = "Supprimer la ligne « %s » de la matrice ?",
+		text = L["Supprimer la ligne « %s » de la matrice ?"],
 		button1 = YES,
 		button2 = NO,
 		OnAccept = function(_, data)
@@ -754,7 +769,7 @@ local function ConfirmDeleteRow(index)
 		whileDead = true,
 		hideOnEscape = true,
 	}
-	StaticPopup_Show("POLYPODE_SUIVI_GRID_DELETE_ROW", row.label ~= "" and row.label or "sans nom", nil, index)
+	StaticPopup_Show("POLYPODE_SUIVI_GRID_DELETE_ROW", row.label ~= "" and row.label or L["sans nom"], nil, index)
 end
 
 local function BuildMatrixGrid()
@@ -797,7 +812,7 @@ local function BuildMatrixGrid()
 		raceList[#raceList + 1] = race
 	end
 	if byRace["?"] then
-		raceList[#raceList + 1] = { "?", "Race inconnue", nil, string.rep("x", #MATRIX_CLASSES) }
+		raceList[#raceList + 1] = { "?", L["Race inconnue"], nil, string.rep("x", #MATRIX_CLASSES) }
 	end
 
 	local armorRow, classRow = ClassHeaderRows()
@@ -805,13 +820,13 @@ local function BuildMatrixGrid()
 	for _, race in ipairs(raceList) do
 		local raceFile = race[1]
 		local rowCells = { [1] = {
-			text = race[2], -- nom de la table (les noms relevés peuvent être au féminin)
+			text = RACE_LABELS[raceFile] or race[2], -- nom de la table (les noms relevés peuvent être au féminin)
 			bg = race[3] and FACTION_BG[race[3]] or BG_HEADER,
 			justify = "LEFT",
 			tooltip = raceFile == "?" and function()
-				GameTooltip:AddLine("Race inconnue")
-				GameTooltip:AddLine("Personnages dont la race sera connue à leur prochaine connexion (avec "
-					.. "Polypode Suivi à jour, ou Polypode Data).", 1, 1, 1, true)
+				GameTooltip:AddLine(L["Race inconnue"])
+				GameTooltip:AddLine(L["Personnages dont la race sera connue à leur prochaine connexion (avec "
+					.. "Polypode Suivi à jour, ou Polypode Data)."], 1, 1, 1, true)
 			end or nil,
 		} }
 		local chars = byRace[raceFile] or {}
@@ -839,12 +854,12 @@ local function BuildMatrixGrid()
 	rows[#rows + 1] = classRow2
 	for index, free in ipairs(Grid().rows) do
 		local rowCells = { [1] = {
-			text = free.label ~= "" and free.label or "|cff999999(sans nom)|r",
+			text = free.label ~= "" and free.label or "|cff999999" .. L["(sans nom)"] .. "|r",
 			bg = BG_FREE_LABEL,
 			justify = "LEFT",
 			tooltip = function()
-				GameTooltip:AddLine(free.label ~= "" and free.label or "Ligne sans nom")
-				GameTooltip:AddLine("Clic : renommer. Clic droit : supprimer la ligne.", 1, 1, 1, true)
+				GameTooltip:AddLine(free.label ~= "" and free.label or L["Ligne sans nom"])
+				GameTooltip:AddLine(L["Clic : renommer. Clic droit : supprimer la ligne."], 1, 1, 1, true)
 			end,
 			onClick = function(cell, mouseButton)
 				if mouseButton == "RightButton" then
@@ -862,12 +877,12 @@ local function BuildMatrixGrid()
 				text = text,
 				bg = text ~= "" and BG_FILLED or BG_EMPTY,
 				tooltip = function()
-					GameTooltip:AddLine((free.label ~= "" and free.label or "Ligne sans nom") .. " · "
+					GameTooltip:AddLine((free.label ~= "" and free.label or L["Ligne sans nom"]) .. " · "
 						.. ClassName(class[1]))
 					if text ~= "" then
 						GameTooltip:AddLine(text, 1, 1, 1, true)
 					end
-					GameTooltip:AddLine("Clic : modifier le texte (Entrée pour valider, Échap pour annuler).",
+					GameTooltip:AddLine(L["Clic : modifier le texte (Entrée pour valider, Échap pour annuler)."],
 						0.6, 0.6, 0.6, true)
 				end,
 				onClick = function(cell)
@@ -881,18 +896,18 @@ local function BuildMatrixGrid()
 		rows[#rows + 1] = { cells = rowCells }
 	end
 	rows[#rows + 1] = { cells = { [1] = {
-		text = "+ Ajouter une ligne",
+		text = L["+ Ajouter une ligne"],
 		bg = BG_ADD,
 		span = #columns,
 		justify = "LEFT",
 		tooltip = function()
-			GameTooltip:AddLine("Ajouter une ligne")
-			GameTooltip:AddLine("Clic : ajoute une ligne libre en bas de la matrice (libellé et texte par "
-				.. "classe), commune à tous vos personnages.", 1, 1, 1, true)
+			GameTooltip:AddLine(L["Ajouter une ligne"])
+			GameTooltip:AddLine(L["Clic : ajoute une ligne libre en bas de la matrice (libellé et texte par "
+				.. "classe), commune à tous vos personnages."], 1, 1, 1, true)
 		end,
 		onClick = function()
 			local rowsList = Grid().rows
-			rowsList[#rowsList + 1] = { label = "Nouvelle ligne", cells = {} }
+			rowsList[#rowsList + 1] = { label = L["Nouvelle ligne"], cells = {} }
 			GridChanged()
 		end,
 	} } }
@@ -1137,7 +1152,7 @@ local function Build()
 
 	local title = frame:CreateFontString(nil, "OVERLAY", "GameFontNormalLarge")
 	title:SetPoint("TOP", 0, -14)
-	title:SetText("Grille des personnages")
+	title:SetText(L["Grille des personnages"])
 	frame.TitleText = title
 
 	local closeBtn = CreateFrame("Button", nil, frame, "UIPanelCloseButton")
@@ -1145,19 +1160,19 @@ local function Build()
 	frame.CloseButton = closeBtn
 
 	-- Bouton Options à gauche de la barre de titre (comme dans les fenêtres de Polypode).
-	local optionsBtn = TabButton("Options", 70, "Ouvre les options de la grille (Options > AddOns > Polypode > "
-		.. "Suivi > Grille).", OpenGridOptions)
+	local optionsBtn = TabButton(L["Options"], 70, L["Ouvre les options de la grille (Options > AddOns > Polypode > "
+		.. "Suivi > Grille)."], OpenGridOptions)
 	optionsBtn:SetPoint("TOPLEFT", 6, -3)
 
 	-- Onglets, à droite de la barre de titre (Matrice contre la croix) ; l'onglet affiché porte un
 	-- voile bleu.
-	local matrixTab = TabButton("Matrice", 80, "Personnages par race et par classe (combinaisons impossibles "
-		.. "en gris), et lignes libres en bas.", function()
+	local matrixTab = TabButton(L["Matrice"], 80, L["Personnages par race et par classe (combinaisons impossibles "
+		.. "en gris), et lignes libres en bas."], function()
 			SetTab("matrix")
 		end)
 	matrixTab:SetPoint("RIGHT", closeBtn, "LEFT", -4, 0)
-	local accountsTab = TabButton("Comptes", 80, "Personnages par compte WoW : seuls, puis par équipe de "
-		.. "Polypode (une ligne par équipe). Colonnes réglées dans Options > Polypode > Suivi > Grille.",
+	local accountsTab = TabButton(L["Comptes"], 80, L["Personnages par compte WoW : seuls, puis par équipe de "
+		.. "Polypode (une ligne par équipe). Colonnes réglées dans Options > Polypode > Suivi > Grille."],
 		function()
 			SetTab("accounts")
 		end)
@@ -1167,7 +1182,7 @@ local function Build()
 	local panel = P.CreatePanel(frame, "")
 	panel:SetPoint("TOPLEFT", 12, -36)
 	panel:SetPoint("BOTTOMRIGHT", -12, 12)
-	panel.header:SetText("Rouge : niveau maximum. Survol : détail ; Maj + molette : défilement horizontal.")
+	panel.header:SetText(L["Rouge : niveau maximum. Survol : détail ; Maj + molette : défilement horizontal."])
 	panel.header:SetFontObject("GameFontDisableSmall")
 
 	-- Zone défilante : ScrollFrame piloté par une MinimalScrollBar (la barre des listes de Polypode,
@@ -1270,13 +1285,13 @@ function ns.BuildGridSettings(parent)
 		and Settings.CreateDropdown) then
 		return
 	end
-	local category = Settings.RegisterVerticalLayoutSubcategory(parent, "Grille")
+	local category = Settings.RegisterVerticalLayoutSubcategory(parent, L["Grille"])
 	local function Tip(text)
 		return P.ColorClicks and P.ColorClicks(text) or text
 	end
 
 	local profSetting = Settings.RegisterProxySetting(category, "POLYPODE_SUIVI_GRID_PROFESSIONS",
-		Settings.VarType.Boolean, "Afficher les métiers", true,
+		Settings.VarType.Boolean, L["Afficher les métiers"], true,
 		function()
 			return Grid().professions
 		end,
@@ -1284,11 +1299,11 @@ function ns.BuildGridSettings(parent)
 			Grid().professions = value and true or false
 			GridChanged()
 		end)
-	Settings.CreateCheckbox(category, profSetting, Tip("Onglet « Comptes » de la grille : colonnes Métier 1 et "
-		.. "Métier 2 à gauche. Réglage commun à tous vos personnages."))
+	Settings.CreateCheckbox(category, profSetting, Tip(L["Onglet « Comptes » de la grille : colonnes Métier 1 et "
+		.. "Métier 2 à gauche. Réglage commun à tous vos personnages."]))
 
 	local countSetting = Settings.RegisterProxySetting(category, "POLYPODE_SUIVI_GRID_COUNT",
-		Settings.VarType.Number, "Nombre de colonnes de comptes", AccountCount(),
+		Settings.VarType.Number, L["Nombre de colonnes de comptes"], AccountCount(),
 		function()
 			return AccountCount()
 		end,
@@ -1303,13 +1318,13 @@ function ns.BuildGridSettings(parent)
 	sliderOptions:SetLabelFormatter(MinimalSliderWithSteppersMixin.Label.Right, function(value)
 		return tostring(math.floor(value))
 	end)
-	local countInit = Settings.CreateSlider(category, countSetting, sliderOptions, Tip("Onglet « Comptes » : "
+	local countInit = Settings.CreateSlider(category, countSetting, sliderOptions, Tip(L["Onglet « Comptes » : "
 		.. "nombre de colonnes de comptes WoW (10 au plus). Les personnages d'un compte sans colonne vont dans "
-		.. "« Autres ». Réglage commun à tous vos personnages."))
+		.. "« Autres ». Réglage commun à tous vos personnages."]))
 
 	for i = 1, MAX_ACCOUNTS do
 		local setting = Settings.RegisterProxySetting(category, "POLYPODE_SUIVI_GRID_COLUMN" .. i,
-			Settings.VarType.String, "Colonne " .. i, "",
+			Settings.VarType.String, L["Colonne %d"]:format(i), "",
 			function()
 				return Grid().columns[i] or ""
 			end,
@@ -1322,14 +1337,14 @@ function ns.BuildGridSettings(parent)
 			end)
 		local init = Settings.CreateDropdown(category, setting, function()
 			local container = Settings.CreateControlTextContainer()
-			container:Add("", "Automatique")
+			container:Add("", L["Automatique"])
 			for _, label in ipairs(AccountLabels()) do
 				container:Add(label, label)
 			end
 			return container:GetData()
-		end, Tip("Compte WoW (nommé dans Polypode) de la colonne " .. i .. " de l'onglet « Comptes ». "
-			.. "Automatique : le premier compte pas encore placé, par ordre alphabétique. Grisée au-delà du "
-			.. "nombre de colonnes. Réglage commun à tous vos personnages."))
+		end, Tip(L["Compte WoW (nommé dans Polypode) de la colonne %d de l'onglet « Comptes ». Automatique : le premier "
+			.. "compte pas encore placé, par ordre alphabétique. Grisée au-delà du nombre de colonnes. Réglage commun à "
+			.. "tous vos personnages."]:format(i)))
 		if init and init.SetParentInitializer then
 			init:SetParentInitializer(countInit, function()
 				return i <= AccountCount()

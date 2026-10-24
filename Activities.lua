@@ -1,6 +1,7 @@
 -- Polypode Suivi: Activities — activités de Midnight suivies par personnage (panneau « Activités »)
 
 local _, ns = ...
+local L = ns.L
 
 -- Liste reprise du « Résumé de l'extension » de l'addon Plumber (Modules/ExpansionLandingPage/
 -- Retail/MID_Activity.lua), qui ne la partage pas avec les autres addons. Seules les activités
@@ -19,18 +20,19 @@ local _, ns = ...
 --   accountwide = faite pour tout le compte (IsQuestFlaggedCompletedOnAccount).
 -- Saisons de Midnight pour lesquelles cette liste est à jour (Plumber 1.9.6 : 12.0 et 12.1) ; hors
 -- de ces saisons, la fenêtre signale « listes à mettre à jour ».
+-- check_locale: noms propres (titres de repli anglais, noms de campagne de repli : le jeu les traduit)
 ns.ACTIVITIES_SEASONS = { [1] = true, [2] = true }
 
 ns.ACTIVITIES = {
 	{ name = "Delves", label = DELVES_LABEL, entries = {
 		{ q = 93784, name = "A Gnawing Void of Curiosity", always = true, accountwide = true },
-		{ q = 86371, label = "Prime de chasse au trésor", always = true },
-		{ count = { 99222, 93821, 93819, 93822, 93820 }, label = "Bonus de renom des gouffres", always = true,
+		{ q = 86371, label = L["Prime de chasse au trésor"], always = true },
+		{ count = { 99222, 93821, 93819, 93822, 93820 }, label = L["Bonus de renom des gouffres"], always = true,
 			accountwide = true },
 	} },
-	{ name = "Prey", label = "Traque", entries = {
+	{ name = "Prey", label = L["Traque"], entries = {
 		{ count = { 91458, 91523, 91590, 91591, 91592, 91594, 91595, 91596, 91207, 91601, 91602, 91604 },
-			label = "Quêtes de traque du monde", always = true },
+			label = L["Quêtes de traque du monde"], always = true },
 	} },
 	{ name = "Zul'jarra's Forces", faction = 2772, entries = {
 		{ q = 96995, name = "Turn Back the Surge", always = true },
@@ -46,7 +48,7 @@ ns.ACTIVITIES = {
 	} },
 	{ name = "Silvermoon Court", faction = 2710, entries = {
 		{ q = 89289, name = "Favor of the Court", always = true },
-		{ pool = { 90573, 90574, 90575, 90576 }, label = "Fortifier les pierres runiques", always = true },
+		{ pool = { 90573, 90574, 90575, 90576 }, label = L["Fortifier les pierres runiques"], always = true },
 		{ q = 92560, name = "Lu'ashal" },
 	} },
 	{ name = "Amani Tribe", faction = 2696, entries = {
@@ -55,7 +57,7 @@ ns.ACTIVITIES = {
 	} },
 	{ name = "Harandar", faction = 2704, entries = {
 		{ q = 89268, name = "Lost Legends", always = true },
-		{ pool = { 88993, 88994, 88995, 88996, 88997 }, label = "Relique de Harandar", always = true },
+		{ pool = { 88993, 88994, 88995, 88996, 88997 }, label = L["Relique de Harandar"], always = true },
 		{ q = 92034, name = "Thorm'belan" },
 		{ q = 92013, name = "WANTED: Dionaea's Thorntusks" },
 		{ q = 91970, name = "WANTED: Gelatonius" },
@@ -145,7 +147,7 @@ ns.CAMPAIGNS = {
 	{ expansion = LEGION, patch = "7.2", name = "Campagne du Déclin de la Légion", ids = { 290 } },
 	{ expansion = LEGION, patch = "7.3", name = "Ombres d'Argus", ids = { 291 } },
 	{ expansion = LEGION, patch = "Remix", name = "Legion Remix", ids = { 303 },
-		restricted = "réservée aux personnages de Legion Remix" },
+		restricted = L["réservée aux personnages de Legion Remix"] },
 	-- Battle for Azeroth
 	{ expansion = BFA, patch = "8.0", name = "Battle for Azeroth", ids = { 215, 226 } },
 	{ expansion = BFA, patch = "8.0", name = "Campagne militaire", ids = { 216, 225, 1, 2 } },
@@ -165,7 +167,7 @@ ns.CAMPAIGNS = {
 	{ expansion = SHADOWLANDS, patch = "9.2", name = "Les secrets des Fondateurs", ids = { 158 } },
 	-- Dragonflight
 	{ expansion = DRAGONFLIGHT, patch = "10.0", name = "Dracthyr, éveillez-vous", ids = { 159, 173 },
-		restricted = "réservée aux Dracthyrs" },
+		restricted = L["réservée aux Dracthyrs"] },
 	{ expansion = DRAGONFLIGHT, patch = "10.0", name = "L'expédition du Dracaret", ids = { 165 } },
 	{ expansion = DRAGONFLIGHT, patch = "10.0", name = "Rivages de l'Éveil", ids = { 169 } },
 	{ expansion = DRAGONFLIGHT, patch = "10.0", name = "Plaines d'Ohn'ahra", ids = { 166 } },

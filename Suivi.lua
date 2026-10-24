@@ -2,6 +2,7 @@
 
 local _, ns = ...
 local P = Polypode -- dépendance obligatoire (## Dependencies: Polypode), chargée avant nous
+local L = ns.L
 
 -- Infobulles : notions de clic en bleu (règle commune, P.ShowTooltip de Polypode 0.59.1), sinon
 -- affichage simple.
@@ -72,9 +73,9 @@ local RUNES_SYSTEM_ID, RUNES_TREE_ID = 48, 1186 -- runes de pouvoir (Blizzard_Mi
 
 -- Rangées de la grande chambre forte : lettre, type Blizzard, libellé.
 local VAULT_ROWS = {
-	{ "R", "Raid", "Raids" },
-	{ "M", "Activities", "Donjons" },
-	{ "W", "World", "Monde" },
+	{ "R", "Raid", L["Raids"] },
+	{ "M", "Activities", L["Donjons"] },
+	{ "W", "World", L["Monde"] },
 }
 
 -- Écus, du plus haut au plus bas (Plumber, SharedData.lua).
@@ -136,8 +137,8 @@ local received = {}
 -- qu'avec « Tous ». { valeur, libellé, secondes (nil = tous) }.
 -- (Fonctions rangées dans ns : le fichier frôle la limite de 200 variables locales de Lua.)
 local PLAYED_CHOICES = {
-	{ "day", "1 jour", 86400 }, { "week", "1 semaine", 7 * 86400 }, { "month", "1 mois", 30 * 86400 },
-	{ "year", "1 an", 365 * 86400 }, { "all", "Tous" },
+	{ "day", L["1 jour"], 86400 }, { "week", L["1 semaine"], 7 * 86400 }, { "month", L["1 mois"], 30 * 86400 },
+	{ "year", L["1 an"], 365 * 86400 }, { "all", L["Tous"] },
 }
 
 function ns.PlayedChoice()
@@ -217,8 +218,8 @@ local function SeasonText()
 	if not expansion then
 		return nil
 	end
-	local name = _G["EXPANSION_NAME" .. expansion] or ("Extension " .. expansion)
-	return number and (name .. ", saison " .. number) or (name .. ", hors saison")
+	local name = _G["EXPANSION_NAME" .. expansion] or L["Extension %s"]:format(expansion)
+	return number and L["%s, saison %d"]:format(name, number) or L["%s, hors saison"]:format(name)
 end
 
 -- Vrai si les listes reprises de Plumber (écus, activités) ne couvrent pas la saison en cours :
@@ -359,9 +360,9 @@ local function LegacyTrees()
 		return nil
 	end
 	return {
-		{ id = consts.LEGACY_TREE_PROFESSIONS_ID, name = LEGACY_TREE_PROFESSIONS or "Métiers" },
-		{ id = consts.LEGACY_TREE_ADVENTURE_ID, name = LEGACY_TREE_ADVENTURE or "Aventure" },
-		{ id = consts.LEGACY_TREE_PROGRESSION_ID, name = LEGACY_TREE_PROGRESSION or "Progression" },
+		{ id = consts.LEGACY_TREE_PROFESSIONS_ID, name = LEGACY_TREE_PROFESSIONS or L["Métiers"] },
+		{ id = consts.LEGACY_TREE_ADVENTURE_ID, name = LEGACY_TREE_ADVENTURE or L["Aventure"] },
+		{ id = consts.LEGACY_TREE_PROGRESSION_ID, name = LEGACY_TREE_PROGRESSION or L["Progression"] },
 	}, consts
 end
 
@@ -877,7 +878,7 @@ end
 -- Nom traduit d'une campagne (repli : nom de la liste, puis numéro).
 local function CampaignName(id, entry)
 	local info = C_CampaignInfo and C_CampaignInfo.GetCampaignInfo and C_CampaignInfo.GetCampaignInfo(id)
-	return (info and info.name ~= "" and info.name) or (entry and entry.name) or ("Campagne n° " .. id)
+	return (info and info.name ~= "" and info.name) or (entry and entry.name) or L["Campagne n° %s"]:format(id)
 end
 
 -- Raison du blocage d'une valeur de la section S (« faits/total~raison »), ou nil.
@@ -1404,7 +1405,7 @@ end
 
 local function EntryTitle(entry)
 	return entry.label or (entry.q and QuestTitle(entry.q)) or entry.name
-		or (entry.q and MAP_QUEST_NAMES[entry.q]) or (entry.q and ("Quête n° " .. entry.q)) or "?"
+		or (entry.q and MAP_QUEST_NAMES[entry.q]) or (entry.q and L["Quête n° %s"]:format(entry.q)) or "?"
 end
 
 -- Atlas Blizzard par type de quête (repris de Plumber, ActivityUtil.lua : QuestIconAtlas).
@@ -1474,7 +1475,7 @@ local function CategoryTitle(category)
 	end
 	if category.map then
 		local map = C_Map and C_Map.GetMapInfo and C_Map.GetMapInfo(category.map)
-		return map and map.name or "Lune-d'Argent"
+		return map and map.name or L["Lune-d'Argent"]
 	end
 	if category.faction then
 		local major = C_MajorFactions and C_MajorFactions.GetMajorFactionData
@@ -1616,25 +1617,25 @@ local function ActivityTooltip(item)
 	local entry = item.activity
 	local lines = { EntryTitle(entry) }
 	lines[#lines + 1] = "|cff999999" .. CategoryTitle(item.category) .. " — "
-		.. (entry.daily and "quotidienne" or "hebdomadaire")
-		.. (entry.accountwide and ", pour tout le compte" or "") .. "|r"
+		.. (entry.daily and L["quotidienne"] or L["hebdomadaire"])
+		.. (entry.accountwide and ", " .. L["pour tout le compte"] or "") .. "|r"
 	lines[#lines + 1] = " "
 	local total = entry.count and #entry.count
 	for _, key in ipairs(item.keys) do
 		local state = item.states[key]
 		local status
 		if not state then
-			status = "|cff999999inconnu (pas d'infos)|r"
+			status = "|cff999999" .. L["inconnu (pas d'infos)"] .. "|r"
 		elseif total then
 			status = (state >= total and "|cff40ff40" or "|cffffffff") .. state .. "/" .. total .. "|r"
 		elseif state == 2 then
-			status = "|cff40ff40faite|r"
+			status = "|cff40ff40" .. L["faite"] .. "|r"
 		elseif state == 1 then
-			status = "|cffffd200en cours|r"
+			status = "|cffffd200" .. L["en cours"] .. "|r"
 		else
-			status = "|cff999999pas faite|r"
+			status = "|cff999999" .. L["pas faite"] .. "|r"
 		end
-		lines[#lines + 1] = P.GetDisplayName(key) .. " : " .. status
+		lines[#lines + 1] = L["%s : %s"]:format(P.GetDisplayName(key), status)
 	end
 	return lines
 end
@@ -1660,9 +1661,9 @@ end
 local CAMPAIGN_COLORS = { done = "|cff40ff40", started = "|cffffd200", none = "|cffff4040" }
 local EXPANSION_DONE_COLOR = "|cff4da6ff" -- bleu : extension dont toutes les campagnes sont finies
 local CAMPAIGN_COLUMNS = { -- colonnes de droite, de gauche à droite
-	{ state = "done", title = "Finie" },
-	{ state = "started", title = "En cours" },
-	{ state = "none", title = "Pas commencée" },
+	{ state = "done", title = L["Finie"] },
+	{ state = "started", title = L["En cours"] },
+	{ state = "none", title = L["Pas commencée"] },
 }
 local CAMPAIGN_COLUMN_WIDTH, CAMPAIGN_COLUMN_GAP = 105, 6
 local CAMPAIGN_EXAMPLES = 2 -- noms cités par colonne
@@ -1782,7 +1783,7 @@ local function BuildCampaignItems(keys)
 end
 
 local function ExpansionName(expansion)
-	return _G["EXPANSION_NAME" .. tostring(expansion)] or ("Extension " .. tostring(expansion))
+	return _G["EXPANSION_NAME" .. tostring(expansion)] or L["Extension %s"]:format(tostring(expansion))
 end
 
 -- Texte de gauche d'une campagne : « patch – nom ».
@@ -1817,21 +1818,21 @@ end
 -- Infobulle d'une catégorie d'activités : activités listées faites par chaque personnage.
 local function CategoryTooltip(item)
 	local lines = { CategoryTitle(item.category) }
-	lines[#lines + 1] = "|cff999999Activités faites sur les " .. item.total .. " affichées|r"
-	lines[#lines + 1] = item.collapsed and "Clic : déplier (afficher ses activités)"
-		or "Clic : replier (ne garder que cette ligne)"
+	lines[#lines + 1] = "|cff999999" .. L["Activités faites sur les %d affichées"]:format(item.total) .. "|r"
+	lines[#lines + 1] = item.collapsed and L["Clic : déplier (afficher ses activités)"]
+		or L["Clic : replier (ne garder que cette ligne)"]
 	lines[#lines + 1] = " "
 	for _, key in ipairs(item.keys) do
 		local count = item.finished[key]
 		local status
 		if not count then
-			status = "|cff999999inconnu (pas d'infos)|r"
+			status = "|cff999999" .. L["inconnu (pas d'infos)"] .. "|r"
 		else
 			local color = (count >= item.total and CAMPAIGN_COLORS.done) or (count > 0 and CAMPAIGN_COLORS.started)
 				or CAMPAIGN_COLORS.none
 			status = color .. count .. "/" .. item.total .. "|r"
 		end
-		lines[#lines + 1] = P.GetDisplayName(key) .. " : " .. status
+		lines[#lines + 1] = L["%s : %s"]:format(P.GetDisplayName(key), status)
 	end
 	return lines
 end
@@ -1839,22 +1840,22 @@ end
 -- Infobulle d'une extension : campagnes finies par chaque personnage.
 local function ExpansionTooltip(item)
 	local lines = { ExpansionName(item.expansion) }
-	lines[#lines + 1] = "|cff999999Campagnes finies sur " .. item.total
-		.. " (hors campagnes réservées à une race ou un mode de jeu)|r"
-	lines[#lines + 1] = item.collapsed and "Clic : déplier (afficher ses campagnes)"
-		or "Clic : replier (ne garder que cette ligne)"
+	lines[#lines + 1] = "|cff999999" .. L["Campagnes finies sur %d (hors campagnes réservées à une race ou un mode de jeu)"]
+		:format(item.total) .. "|r"
+	lines[#lines + 1] = item.collapsed and L["Clic : déplier (afficher ses campagnes)"]
+		or L["Clic : replier (ne garder que cette ligne)"]
 	lines[#lines + 1] = " "
 	for _, key in ipairs(item.keys) do
 		local count = item.finished[key]
 		local status
 		if not count then
-			status = "|cff999999inconnu (pas d'infos)|r"
+			status = "|cff999999" .. L["inconnu (pas d'infos)"] .. "|r"
 		else
 			local color = (count >= item.total and CAMPAIGN_COLORS.done) or (count > 0 and CAMPAIGN_COLORS.started)
 				or CAMPAIGN_COLORS.none
 			status = color .. count .. "/" .. item.total .. "|r"
 		end
-		lines[#lines + 1] = P.GetDisplayName(key) .. " : " .. status
+		lines[#lines + 1] = L["%s : %s"]:format(P.GetDisplayName(key), status)
 	end
 	return lines
 end
@@ -1917,7 +1918,7 @@ local function CampaignTooltip(item)
 	local lines = { CampaignName(item.campaignID, entry) }
 	lines[#lines + 1] = "|cff999999" .. ExpansionName(entry.expansion) .. " — " .. entry.patch .. "|r"
 	if entry.restricted then
-		lines[#lines + 1] = "|cff999999" .. entry.restricted .. " : pas exigée pour terminer l'extension|r"
+		lines[#lines + 1] = "|cff999999" .. L["%s : pas exigée pour terminer l'extension"]:format(entry.restricted) .. "|r"
 	end
 	lines[#lines + 1] = " "
 	for _, key in ipairs(item.keys) do
@@ -1925,13 +1926,13 @@ local function CampaignTooltip(item)
 		local state = CampaignState(value, item.known[key])
 		local status
 		if not state then
-			status = "|cff999999inconnu (pas d'infos)|r"
+			status = "|cff999999" .. L["inconnu (pas d'infos)"] .. "|r"
 		elseif state == "none" and not value then
-			status = CAMPAIGN_COLORS.none .. "pas commencée|r"
+			status = CAMPAIGN_COLORS.none .. L["pas commencée"] .. "|r"
 		else
-			status = CAMPAIGN_COLORS[state] .. tostring(value):match("^(%d+/%d+)") .. " chapitres|r"
+			status = CAMPAIGN_COLORS[state] .. L["%s chapitres"]:format(tostring(value):match("^(%d+/%d+)")) .. "|r"
 		end
-		lines[#lines + 1] = P.GetDisplayName(key) .. " : " .. status
+		lines[#lines + 1] = L["%s : %s"]:format(P.GetDisplayName(key), status)
 		local failure = state ~= "done" and CampaignFailure(value)
 		if failure then
 			lines[#lines + 1] = "    |cff999999" .. failure .. "|r"
@@ -1943,10 +1944,10 @@ end
 -- PANNEAU QUÊTES --------------------------------------------------------------------------
 
 local QUEST_COLUMNS = { -- colonnes de droite, de gauche à droite
-	{ list = "todo", title = "Terminée ou à prendre", color = "|cffff5555" },
-	{ list = "progress", title = "En cours", color = "|cffffd200" },
-	{ list = "done", title = "Terminée", color = "|cff40ff40" },
-	{ list = "unknown", title = "Inconnu", color = "|cff999999" },
+	{ list = "todo", title = L["Terminée ou à prendre"], color = "|cffff5555" },
+	{ list = "progress", title = L["En cours"], color = "|cffffd200" },
+	{ list = "done", title = L["Terminée"], color = "|cff40ff40" },
+	{ list = "unknown", title = L["Inconnu"], color = "|cff999999" },
 }
 
 -- Lignes du panneau pour les personnages keys (le personnage joué y est ajouté) : { questColumns }
@@ -1977,7 +1978,7 @@ local function BuildQuestItems(keys)
 	end
 	local items = {}
 	for questID in pairs(quests) do
-		local item = { quest = true, questID = questID, title = QuestTitle(questID) or ("Quête n° " .. questID),
+		local item = { quest = true, questID = questID, title = QuestTitle(questID) or L["Quête n° %s"]:format(questID),
 			todo = {}, progress = {}, done = {}, unknown = {} }
 		for _, key in ipairs(all) do
 			local list
@@ -1996,7 +1997,7 @@ local function BuildQuestItems(keys)
 		items[#items + 1] = item
 	end
 	if #items == 0 then
-		return {}, "Aucune quête en cours chez ces personnages."
+		return {}, L["Aucune quête en cours chez ces personnages."]
 	end
 	table.sort(items, function(a, b)
 		if #a.todo ~= #b.todo then
@@ -2024,17 +2025,17 @@ end
 
 -- Infobulle d'une quête : les personnages de chaque colonne.
 local function QuestTooltip(item)
-	local lines = { item.title, "|cff999999Quête n° " .. item.questID .. "|r" }
+	local lines = { item.title, "|cff999999" .. L["Quête n° %s"]:format(item.questID) .. "|r" }
 	if InOwnLog(item.questID) then
-		lines[#lines + 1] = "Clic : ouvrir dans le journal de quêtes"
+		lines[#lines + 1] = L["Clic : ouvrir dans le journal de quêtes"]
 	else
-		lines[#lines + 1] = "|cff999999Absente de votre journal (ne s'ouvre pas au clic)|r"
+		lines[#lines + 1] = "|cff999999" .. L["Absente de votre journal (ne s'ouvre pas au clic)"] .. "|r"
 	end
 	for _, column in ipairs(QUEST_COLUMNS) do
 		local keys = item[column.list]
 		if #keys > 0 then
 			lines[#lines + 1] = " "
-			lines[#lines + 1] = column.color .. column.title .. " :|r"
+			lines[#lines + 1] = column.color .. L["%s :"]:format(column.title) .. "|r"
 			for _, key in ipairs(keys) do
 				lines[#lines + 1] = "  " .. P.GetDisplayName(key)
 			end
@@ -2042,8 +2043,8 @@ local function QuestTooltip(item)
 	end
 	if #item.todo > 0 then
 		lines[#lines + 1] = " "
-		lines[#lines + 1] = "|cff999999« Terminée ou à prendre » : pas dans le journal ; rendue ou non, selon "
-			.. "ce que son Polypode Suivi a pu dire.|r"
+		lines[#lines + 1] = "|cff999999" .. L["« Terminée ou à prendre » : pas dans le journal ; rendue ou non, selon ce que son "
+			.. "Polypode Suivi a pu dire."] .. "|r"
 	end
 	return lines
 end
@@ -2138,7 +2139,7 @@ local measure -- texte caché servant à mesurer les cellules
 local function MemberColumns()
 	if not IS_RETAIL then -- WoW Forever : colonnes de l'Héritage (section H)
 		return {
-			{ "Héritage", function(sections)
+			{ L["Héritage"], function(sections)
 				local legacy = sections.H or {}
 				local earned = tonumber(legacy.e)
 				if not earned then
@@ -2147,8 +2148,8 @@ local function MemberColumns()
 				return "|cffffd200" .. earned .. (legacy.m and ("/" .. legacy.m) or "") .. "|r"
 			end, id = "legacy", sort = function(sections)
 				return tonumber(sections.H and sections.H.e)
-			end, tip = { "Points d'Héritage", "Points gagnés par les défis (communs au compte) / maximum." } },
-			{ "Dépensés", function(sections)
+			end, tip = { L["Points d'Héritage"], L["Points gagnés par les défis (communs au compte) / maximum."] } },
+			{ L["Dépensés"], function(sections)
 				local legacy = sections.H
 				local spent = LegacySpent(legacy)
 				if not spent then
@@ -2157,37 +2158,37 @@ local function MemberColumns()
 				return spent .. (legacy.x and ("/" .. legacy.x) or "")
 			end, id = "legacySpent", sort = function(sections)
 				return LegacySpent(sections.H)
-			end, tip = { "Points dépensés", "Points d'Héritage dépensés par ce personnage dans ses "
-				.. "arbres / plafond par personnage. Détail par arbre : infobulle du personnage." } },
-			{ "À dépenser", function(sections)
+			end, tip = { L["Points dépensés"], L["Points d'Héritage dépensés par ce personnage dans ses "
+				.. "arbres / plafond par personnage. Détail par arbre : infobulle du personnage."] } },
+			{ L["À dépenser"], function(sections)
 				local unspent = tonumber(sections.H and sections.H.u)
 				return (unspent and unspent > 0) and ("|cff40ff40" .. unspent .. "|r") or ""
 			end, id = "legacyUnspent", sort = function(sections)
 				return tonumber(sections.H and sections.H.u)
-			end, tip = { "Points à dépenser", "Points d'Héritage que ce personnage peut encore "
-				.. "placer dans ses arbres." } },
-			{ "Défis", function(sections)
+			end, tip = { L["Points à dépenser"], L["Points d'Héritage que ce personnage peut encore "
+				.. "placer dans ses arbres."] } },
+			{ L["Défis"], function(sections)
 				local legacy = sections.H or {}
 				return legacy.d and (legacy.d .. "/" .. legacy.t) or ""
 			end, id = "challenges", sort = function(sections)
 				return tonumber(sections.H and sections.H.d)
-			end, tip = { "Défis d'Héritage", "Défis faits / total." } },
+			end, tip = { L["Défis d'Héritage"], L["Défis faits / total."] } },
 		}
 	end
 	local columns = {
-		{ "Coffre", function(sections)
+		{ L["Coffre"], function(sections)
 			local unlocked, total = VaultSummary(sections.V)
 			return total > 0 and ("|cffffd200" .. unlocked .. "/" .. total .. "|r") or ""
 		end, id = "vault", sort = function(sections)
 			local unlocked, total = VaultSummary(sections.V)
 			return total > 0 and unlocked or nil
-		end, tip = { "Grande chambre forte", "Cases débloquées / cases au total." } },
-		{ "Runes", function(sections)
+		end, tip = { L["Grande chambre forte"], L["Cases débloquées / cases au total."] } },
+		{ L["Runes"], function(sections)
 			local runes = tonumber(sections.P and sections.P.u)
 			return (runes and runes > 0) and ("|cff40ff40" .. runes .. "|r") or ""
 		end, id = "runes", sort = function(sections)
 			return tonumber(sections.P and sections.P.u)
-		end, tip = { "Runes de pouvoir", "Points à dépenser." } },
+		end, tip = { L["Runes de pouvoir"], L["Points à dépenser."] } },
 	}
 	-- Écus de gauche à droite du plus bas (aventurier) au plus haut (mythique) : la liste est
 	-- rangée du plus haut au plus bas, parcourue à l'envers. En-tête : l'icône de l'écu.
@@ -2200,7 +2201,7 @@ local function MemberColumns()
 				return tostring(sections.C and sections.C[tostring(id)] or "")
 			end, id = "crest" .. id, sort = function(sections)
 				return tonumber(sections.C and sections.C[tostring(id)])
-			end, tip = { info.name, "Écus possédés." } }
+			end, tip = { info.name, L["Écus possédés."] } }
 		end
 	end
 	-- Charges du catalyseur (en-tête : l'icône de la monnaie ; 0 en gris).
@@ -2214,26 +2215,26 @@ local function MemberColumns()
 			return tostring(sections.R["c" .. catalyst] or "|cff9999990|r")
 		end, id = "catalyst", sort = function(sections)
 			return sections.R and (tonumber(sections.R["c" .. catalyst]) or 0)
-		end, tip = { catalystInfo.name, "Charges du catalyseur disponibles." } }
+		end, tip = { catalystInfo.name, L["Charges du catalyseur disponibles."] } }
 	end
 	-- Campagne la plus récente de ns.CAMPAIGNS trouvée en jeu : chapitres faits (détail en infobulle).
 	local known = KnownCampaigns()
 	local latest = known[#known] and known[#known].entry
 	if latest then
-		columns[#columns + 1] = { "Campagne", function(sections)
+		columns[#columns + 1] = { L["Campagne"], function(sections)
 			return CampaignProgressText(select(2, CampaignValue(sections.S, latest))) or ""
 		end, id = "campaign", sort = function(sections)
 			return tonumber(tostring(select(2, CampaignValue(sections.S, latest)) or ""):match("^(%d+)/"))
-		end, tip = { CampaignName(latest.ids[1], latest), "Chapitres terminés de la campagne la plus récente ("
-			.. latest.patch .. "). Toutes les campagnes : infobulle du personnage." } }
+		end, tip = { CampaignName(latest.ids[1], latest), L["Chapitres terminés de la campagne la plus récente (%s). Toutes "
+			.. "les campagnes : infobulle du personnage."]:format(latest.patch) } }
 	end
 	-- Semaine : nombres (détail en infobulle).
 	for _, week in ipairs({
-		{ "Traques", "prey", "Traques faites cette semaine (toutes difficultés)." },
-		{ "Gouffres", "delves", "Gouffres et activités du monde de la semaine (tous paliers)." },
-		{ "Donjons", "dungeons", "Donjons de la semaine : héroïques, mythiques, mythiques+, et "
-			.. "normaux / avec suivants comptés à l'entrée." },
-		{ "Raids", "raid", "Boss de raid tués cette semaine (toutes difficultés)." },
+		{ L["Traques"], "prey", L["Traques faites cette semaine (toutes difficultés)."] },
+		{ L["Gouffres"], "delves", L["Gouffres et activités du monde de la semaine (tous paliers)."] },
+		{ L["Donjons"], "dungeons", L["Donjons de la semaine : héroïques, mythiques, mythiques+, et "
+			.. "normaux / avec suivants comptés à l'entrée."] },
+		{ L["Raids"], "raid", L["Boss de raid tués cette semaine (toutes difficultés)."] },
 	}) do
 		columns[#columns + 1] = { week[1], function(sections)
 			return WeeklyCount(WeeklyTotals(sections)[week[2]])
@@ -2333,12 +2334,12 @@ end
 -- Nom d'un personnage (enveloppe à gauche : courrier non lu, ou courrier qui expire bientôt).
 local function FormatMember(item)
 	if item.columnHeader then
-		return "|cffffd200Personnage|r" .. SortMark("name")
+		return "|cffffd200" .. L["Personnage"] .. "|r" .. SortMark("name")
 	end
 	local text = CharacterName(item.key)
 	local sections = DataFor(item.key)
 	if not sections then
-		return text .. "  |cff999999pas d'infos (Polypode Suivi absent ou pas encore reçu)|r"
+		return text .. "  |cff999999" .. L["pas d'infos (Polypode Suivi absent ou pas encore reçu)"] .. "|r"
 	end
 	local unread, expires = MailState(sections)
 	if unread or (expires and expires - GetServerTime() < MAIL_WARNING) then
@@ -2410,7 +2411,7 @@ local function CellHover(row, i)
 			GameTooltip:AddLine(self.tip[1])
 			GameTooltip:AddLine(self.tip[2], 1, 1, 1, true)
 			if self.sortID then
-				GameTooltip:AddLine("Clic : trier par cette colonne (clic suivant : ordre inverse)", 0.6, 0.6, 0.6, true)
+				GameTooltip:AddLine(L["Clic : trier par cette colonne (clic suivant : ordre inverse)"], 0.6, 0.6, 0.6, true)
 			end
 			ShowTooltip()
 		end)
@@ -2472,40 +2473,40 @@ end
 local function FormatWhen(at)
 	local minutes = math.floor((GetServerTime() - at) / 60)
 	if minutes < 1 then
-		return "à l'instant"
+		return L["à l'instant"]
 	elseif minutes < 60 then
-		return "il y a " .. minutes .. " min"
+		return L["il y a %d min"]:format(minutes)
 	elseif minutes < 24 * 60 then
-		return "il y a " .. math.floor(minutes / 60) .. " h"
+		return L["il y a %d h"]:format(math.floor(minutes / 60))
 	end
-	return "du " .. date("%d/%m à %H:%M", at)
+	return L["du %s"]:format(date(L["%d/%m à %H:%M"], at))
 end
 
 local function MemberTooltip(item)
 	local lines = { P.GetDisplayName(item.key) }
 	local sections, at, vaultReset = DataFor(item.key)
 	if not sections then
-		lines[#lines + 1] = "|cff999999Pas d'infos : Polypode Suivi absent chez ce personnage, ou pas encore reçu.|r"
+		lines[#lines + 1] = "|cff999999" .. L["Pas d'infos : Polypode Suivi absent chez ce personnage, ou pas encore reçu."] .. "|r"
 		return lines
 	end
 	if item.key ~= P.GetCharKey() then
-		lines[#lines + 1] = "|cff999999Infos " .. FormatWhen(at) .. "|r"
+		lines[#lines + 1] = "|cff999999" .. L["Infos %s"]:format(FormatWhen(at)) .. "|r"
 	end
 	if IS_RETAIL and vaultReset then
-		lines[#lines + 1] = "|cff999999Grande chambre forte remise à zéro (réinitialisation hebdomadaire "
-			.. "depuis ces infos)|r"
+		lines[#lines + 1] = "|cff999999" .. L["Grande chambre forte remise à zéro (réinitialisation hebdomadaire depuis ces infos)"]
+			.. "|r"
 	end
 
 	-- Cette semaine : détail par difficulté (Retail seulement : traques, gouffres, chambre forte...).
 	local week = sections.W or {}
 	if IS_RETAIL then
 		lines[#lines + 1] = " "
-		lines[#lines + 1] = "|cffffd200Cette semaine|r"
+		lines[#lines + 1] = "|cffffd200" .. L["Cette semaine"] .. "|r"
 		local prey = {}
-		for difficulty, label in ipairs({ "Normal", "Difficile", "Cauchemar" }) do
+		for difficulty, label in ipairs({ L["Normal"], L["Difficile"], L["Cauchemar"] }) do
 			prey[#prey + 1] = label .. " " .. (tonumber(week["t" .. difficulty]) or 0) .. "/4"
 		end
-		lines[#lines + 1] = "  Traque : " .. table.concat(prey, ", ")
+		lines[#lines + 1] = "  " .. L["Traque : %s"]:format(table.concat(prey, ", "))
 		local delves = {}
 		for key, count in pairs(week) do
 			local tier = tonumber(key:match("^d(%d+)$"))
@@ -2518,33 +2519,33 @@ local function MemberTooltip(item)
 		end)
 		local delveParts = {}
 		for _, delve in ipairs(delves) do
-			delveParts[#delveParts + 1] = (delve.tier > 1 and ("palier " .. delve.tier) or "palier 1 / activités du monde")
+			delveParts[#delveParts + 1] = (delve.tier > 1 and L["palier %d"]:format(delve.tier) or L["palier 1 / activités du monde"])
 				.. " ×" .. delve.count
 		end
-		lines[#lines + 1] = "  Gouffres : " .. (#delveParts > 0 and table.concat(delveParts, ", ") or "aucun")
+		lines[#lines + 1] = "  " .. L["Gouffres : %s"]:format(#delveParts > 0 and table.concat(delveParts, ", ") or L["aucun"])
 		local dungeons = {}
-		for key, label in pairs({ n = "normal*", f = "avec suivants*", h = "héroïque", m = "mythique",
-			p = "mythique+" }) do
+		for key, label in pairs({ n = L["normal*"], f = L["avec suivants*"], h = L["héroïque"], m = L["mythique"],
+			p = L["mythique+"] }) do
 			if week[key] then
 				dungeons[#dungeons + 1] = label .. " ×" .. week[key]
 			end
 		end
 		table.sort(dungeons)
 		local keys = week.k and tostring(week.k):gsub("%.", ", ")
-		lines[#lines + 1] = "  Donjons : " .. (#dungeons > 0 and table.concat(dungeons, ", ") or "aucun")
-			.. (keys and (" (clés " .. keys .. ")") or "")
+		lines[#lines + 1] = "  " .. L["Donjons : %s"]:format(#dungeons > 0 and table.concat(dungeons, ", ") or L["aucun"])
+			.. (keys and (" " .. L["(clés %s)"]:format(keys)) or "")
 		if week.n or week.f then
-			lines[#lines + 1] = "  |cff999999* compté à l'entrée dans le donjon (non suivi par WoW)|r"
+			lines[#lines + 1] = "  |cff999999" .. L["* compté à l'entrée dans le donjon (non suivi par WoW)"] .. "|r"
 		end
 		local raids = {}
 		for _, difficultyID in ipairs({ 17, 14, 15, 16 }) do
 			local count = week["r" .. difficultyID]
 			if count then
 				local name = GetDifficultyInfo and GetDifficultyInfo(difficultyID)
-				raids[#raids + 1] = (name or ("difficulté " .. difficultyID)) .. " ×" .. count
+				raids[#raids + 1] = (name or L["difficulté %s"]:format(difficultyID)) .. " ×" .. count
 			end
 		end
-		lines[#lines + 1] = "  Raid (boss) : " .. (#raids > 0 and table.concat(raids, ", ") or "aucun")
+		lines[#lines + 1] = "  " .. L["Raid (boss) : %s"]:format(#raids > 0 and table.concat(raids, ", ") or L["aucun"])
 	end
 
 	-- Courrier : non lu, puis le dernier relevé de la boîte aux lettres (nombre, expiration).
@@ -2552,18 +2553,17 @@ local function MemberTooltip(item)
 	local mail = sections.M
 	if unread or (mail and mail.s) then
 		lines[#lines + 1] = " "
-		lines[#lines + 1] = MAIL_ICON .. " " .. (unread and "|cffffd200Courrier non lu|r" or "|cffffd200Courrier|r")
+		lines[#lines + 1] = MAIL_ICON .. " " .. "|cffffd200" .. (unread and L["Courrier non lu"] or L["Courrier"]) .. "|r"
 		if mail and mail.s then
-			lines[#lines + 1] = "  " .. (tonumber(mail.u) or 0) .. " non lu(s) sur " .. (tonumber(mail.t) or 0)
-				.. " courrier(s)"
+			lines[#lines + 1] = "  " .. L["%d non lu(s) sur %d courrier(s)"]:format(tonumber(mail.u) or 0, tonumber(mail.t) or 0)
 			if expires then
 				local soon = expires - GetServerTime() < MAIL_WARNING
-				lines[#lines + 1] = "  " .. (soon and "|cffff4040" or "") .. "Expiration la plus proche : le "
-					.. date("%d/%m à %H:%M", expires) .. (soon and "|r" or "")
+				lines[#lines + 1] = "  " .. (soon and "|cffff4040" or "") .. L["Expiration la plus proche : le %s"]
+					:format(date(L["%d/%m à %H:%M"], expires)) .. (soon and "|r" or "")
 			end
-			lines[#lines + 1] = "  |cff999999Relevé à la boîte aux lettres " .. FormatWhen(tonumber(mail.s)) .. "|r"
+			lines[#lines + 1] = "  |cff999999" .. L["Relevé à la boîte aux lettres %s"]:format(FormatWhen(tonumber(mail.s))) .. "|r"
 		else
-			lines[#lines + 1] = "  |cff999999Nombre et expiration : ouvrez la boîte aux lettres de ce personnage|r"
+			lines[#lines + 1] = "  |cff999999" .. L["Nombre et expiration : ouvrez la boîte aux lettres de ce personnage"] .. "|r"
 		end
 	end
 
@@ -2573,24 +2573,24 @@ local function MemberTooltip(item)
 		local legacy = sections.H
 		if legacy and legacy.e then
 			lines[#lines + 1] = " "
-			lines[#lines + 1] = "|cffffd200Héritage|r"
-			lines[#lines + 1] = "  Points gagnés : " .. legacy.e .. (legacy.m and (" / " .. legacy.m) or "")
+			lines[#lines + 1] = "|cffffd200" .. L["Héritage"] .. "|r"
+			lines[#lines + 1] = "  " .. L["Points gagnés : %s"]:format(legacy.e .. (legacy.m and (" / " .. legacy.m) or ""))
 			local spent = LegacySpent(legacy)
 			if spent then
-				lines[#lines + 1] = "  Points dépensés : " .. spent .. (legacy.x and (" / " .. legacy.x) or "")
+				lines[#lines + 1] = "  " .. L["Points dépensés : %s"]:format(spent .. (legacy.x and (" / " .. legacy.x) or ""))
 				for _, tree in ipairs(LegacyTrees() or {}) do
 					local inTree = tonumber(legacy["s" .. tostring(tree.id)])
 					if inTree then
-						lines[#lines + 1] = "    " .. tree.name .. " : " .. inTree
+						lines[#lines + 1] = "    " .. L["%s : %s"]:format(tree.name, inTree)
 					end
 				end
 			end
 			local unspent = tonumber(legacy.u)
 			if unspent and unspent > 0 then
-				lines[#lines + 1] = "  |cff40ff40" .. unspent .. " point(s) à dépenser|r"
+				lines[#lines + 1] = "  |cff40ff40" .. L["%d point(s) à dépenser"]:format(unspent) .. "|r"
 			end
 			if legacy.d then
-				lines[#lines + 1] = "  Défis : " .. legacy.d .. " / " .. legacy.t
+				lines[#lines + 1] = "  " .. L["Défis : %s / %s"]:format(legacy.d, legacy.t)
 			end
 		end
 		return lines
@@ -2598,7 +2598,7 @@ local function MemberTooltip(item)
 
 	-- Grande chambre forte : une ligne par rangée, cases atteintes en vert.
 	lines[#lines + 1] = " "
-	lines[#lines + 1] = "|cffffd200Grande chambre forte|r"
+	lines[#lines + 1] = "|cffffd200" .. L["Grande chambre forte"] .. "|r"
 	for _, row in ipairs(VAULT_ROWS) do
 		local cells = {}
 		for i = 1, 3 do
@@ -2610,7 +2610,7 @@ local function MemberTooltip(item)
 			end
 		end
 		if #cells > 0 then
-			lines[#lines + 1] = "  " .. row[3] .. " : " .. table.concat(cells, "   ")
+			lines[#lines + 1] = "  " .. L["%s : %s"]:format(row[3], table.concat(cells, "   "))
 		end
 	end
 
@@ -2620,12 +2620,12 @@ local function MemberTooltip(item)
 		local quantity = sections.C and sections.C[tostring(id)]
 		local info = CurrencyInfo(id)
 		if quantity and info then
-			crestLines[#crestLines + 1] = "  " .. Icon(info.iconFileID) .. " " .. info.name .. " : " .. quantity
+			crestLines[#crestLines + 1] = "  " .. Icon(info.iconFileID) .. " " .. L["%s : %s"]:format(info.name, quantity)
 		end
 	end
 	if #crestLines > 0 then
 		lines[#lines + 1] = " "
-		lines[#lines + 1] = "|cffffd200Amélioration d'objet|r"
+		lines[#lines + 1] = "|cffffd200" .. L["Amélioration d'objet"] .. "|r"
 		for _, line in ipairs(crestLines) do
 			lines[#lines + 1] = line
 		end
@@ -2645,12 +2645,12 @@ local function MemberTooltip(item)
 				name = C_Item.GetItemNameByID and C_Item.GetItemNameByID(id)
 				icon = C_Item.GetItemIconByID and C_Item.GetItemIconByID(id)
 			end
-			resourceLines[#resourceLines + 1] = "  " .. Icon(icon) .. " " .. (name or ("n° " .. id)) .. " : " .. quantity
+			resourceLines[#resourceLines + 1] = "  " .. Icon(icon) .. " " .. L["%s : %s"]:format(name or L["n° %s"]:format(id), quantity)
 		end
 	end
 	if #resourceLines > 0 then
 		lines[#lines + 1] = " "
-		lines[#lines + 1] = "|cffffd200Ressources|r"
+		lines[#lines + 1] = "|cffffd200" .. L["Ressources"] .. "|r"
 		for _, line in ipairs(resourceLines) do
 			lines[#lines + 1] = line
 		end
@@ -2661,13 +2661,12 @@ local function MemberTooltip(item)
 	for id, level in pairs(SuiviSettings().showFactions and sections.F or {}) do
 		local faction = C_MajorFactions and C_MajorFactions.GetMajorFactionData
 			and C_MajorFactions.GetMajorFactionData(tonumber(id))
-		factionLines[#factionLines + 1] = "  " .. (faction and faction.name or ("Faction " .. id))
-			.. " : renom " .. level
+		factionLines[#factionLines + 1] = "  " .. L["%s : renom %s"]:format(faction and faction.name or L["Faction %s"]:format(id), level)
 	end
 	if #factionLines > 0 then
 		table.sort(factionLines)
 		lines[#lines + 1] = " "
-		lines[#lines + 1] = "|cffffd200Renommées|r"
+		lines[#lines + 1] = "|cffffd200" .. L["Renommées"] .. "|r"
 		for _, line in ipairs(factionLines) do
 			lines[#lines + 1] = line
 		end
@@ -2677,9 +2676,9 @@ local function MemberTooltip(item)
 	local runes = tonumber(sections.P and sections.P.u)
 	if runes then
 		lines[#lines + 1] = " "
-		lines[#lines + 1] = "|cffffd200Runes de pouvoir|r"
-		lines[#lines + 1] = "  " .. runes .. " point(s) à dépenser"
-			.. ((sections.P.b == 1 or sections.P.b == "1") and " |cff40ff40(une rune achetable)|r" or "")
+		lines[#lines + 1] = "|cffffd200" .. L["Runes de pouvoir"] .. "|r"
+		lines[#lines + 1] = "  " .. L["%d point(s) à dépenser"]:format(runes)
+			.. ((sections.P.b == 1 or sections.P.b == "1") and " |cff40ff40" .. L["(une rune achetable)"] .. "|r" or "")
 	end
 
 	-- Campagnes : par extension, « patch – nom : faits/total », l'extension en cours d'abord (toutes
@@ -2704,8 +2703,8 @@ local function MemberTooltip(item)
 				end
 				done, total = tonumber(done), tonumber(total)
 				if isCurrent or (done > 0 and done < total) then
-					group.lines[#group.lines + 1] = "    " .. entry.patch .. " – " .. CampaignName(id, entry)
-						.. " : " .. CampaignProgressText(value)
+					group.lines[#group.lines + 1] = "    " .. L["%s : %s"]:format(entry.patch .. " – " .. CampaignName(id, entry),
+						CampaignProgressText(value))
 					local failure = CampaignFailure(value) -- campagne bloquée : ce qu'il faut faire
 					if failure then
 						group.lines[#group.lines + 1] = "      |cff999999" .. failure .. "|r"
@@ -2725,12 +2724,12 @@ local function MemberTooltip(item)
 		for _, group in ipairs(order) do
 			if #group.lines > 0 or group.finished > 0 then
 				campaignLines[#campaignLines + 1] = "  " .. (_G["EXPANSION_NAME" .. group.expansion]
-					or ("Extension " .. group.expansion))
+					or L["Extension %s"]:format(group.expansion))
 				for _, line in ipairs(group.lines) do
 					campaignLines[#campaignLines + 1] = line
 				end
 				if group.finished > 0 then
-					campaignLines[#campaignLines + 1] = "    |cff40ff40" .. group.finished .. " campagne(s) terminée(s)|r"
+					campaignLines[#campaignLines + 1] = "    |cff40ff40" .. L["%d campagne(s) terminée(s)"]:format(group.finished) .. "|r"
 				end
 			end
 		end
@@ -2738,19 +2737,19 @@ local function MemberTooltip(item)
 		for id, value in pairs(campaigns) do
 			local progress = tonumber(id) and not byID[tonumber(id)] and CampaignProgressText(value)
 			if progress then
-				others[#others + 1] = "    " .. CampaignName(tonumber(id)) .. " : " .. progress
+				others[#others + 1] = "    " .. L["%s : %s"]:format(CampaignName(tonumber(id)), progress)
 			end
 		end
 		if #others > 0 then
 			table.sort(others)
-			campaignLines[#campaignLines + 1] = "  Autres campagnes"
+			campaignLines[#campaignLines + 1] = "  " .. L["Autres campagnes"]
 			for _, line in ipairs(others) do
 				campaignLines[#campaignLines + 1] = line
 			end
 		end
 		if #campaignLines > 0 then
 			lines[#lines + 1] = " "
-			lines[#lines + 1] = "|cffffd200Campagnes (chapitres)|r"
+			lines[#lines + 1] = "|cffffd200" .. L["Campagnes (chapitres)"] .. "|r"
 			for _, line in ipairs(campaignLines) do
 				lines[#lines + 1] = line
 			end
@@ -2765,7 +2764,7 @@ local function MemberTooltip(item)
 		if kind and explored[kind] then
 			instanceID, difficultyID = tonumber(instanceID), tonumber(difficultyID)
 			local name = GetRealZoneText and GetRealZoneText(instanceID)
-			local text = (name and name ~= "") and name or ("instance " .. instanceID)
+			local text = (name and name ~= "") and name or L["instance %s"]:format(instanceID)
 			local difficulty = kind ~= "g" and GetDifficultyInfo and GetDifficultyInfo(difficultyID)
 			if difficulty then
 				text = text .. " (" .. difficulty .. ")"
@@ -2777,22 +2776,34 @@ local function MemberTooltip(item)
 	end
 	if anyExplored then
 		lines[#lines + 1] = " "
-		lines[#lines + 1] = "|cffffd200Exploration|r"
-		for _, group in ipairs({ { "g", "Gouffres" }, { "d", "Donjons" }, { "r", "Raids" } }) do
+		lines[#lines + 1] = "|cffffd200" .. L["Exploration"] .. "|r"
+		for _, group in ipairs({ { "g", L["Gouffres"] }, { "d", L["Donjons"] }, { "r", L["Raids"] } }) do
 			local names = explored[group[1]]
 			if #names > 0 then
 				table.sort(names)
-				lines[#lines + 1] = "  " .. group[2] .. " : " .. table.concat(names, ", ")
+				lines[#lines + 1] = "  " .. L["%s : %s"]:format(group[2], table.concat(names, ", "))
 			end
 		end
-		lines[#lines + 1] = "  |cff999999Noté à l'entrée, cette semaine (retour dans les 2 h non recompté)|r"
+		lines[#lines + 1] = "  |cff999999" .. L["Noté à l'entrée, cette semaine (retour dans les 2 h non recompté)"] .. "|r"
 	end
 	return lines
 end
 
 -- Membres de l'équipe sélectionnée (leader en tête), ou tous les personnages sauvegardés encore
 -- dans le roster (option showAll), filtrés par « Joués depuis » ; texte d'en-tête et de liste vide.
-local function BuildItems()
+-- Titres de la liste par panneau : tous les personnages, sans équipe, équipe (rangés dans ns : le
+-- fichier frôle la limite de 200 variables locales).
+ns.PANEL_HEADERS = {
+	summary = { all = L["Suivi : tous les personnages"], none = L["Suivi de l'équipe"], team = L["Suivi de l'équipe « %s »"] },
+	quest = { all = L["Quêtes : tous les personnages"], none = L["Quêtes de l'équipe"], team = L["Quêtes de l'équipe « %s »"] },
+	campaign = { all = L["Campagnes : tous les personnages"], none = L["Campagnes de l'équipe"],
+		team = L["Campagnes de l'équipe « %s »"] },
+	activity = { all = L["Activités : tous les personnages"], none = L["Activités de l'équipe"],
+		team = L["Activités de l'équipe « %s »"] },
+}
+
+local function BuildItems(panel)
+	local titles = ns.PANEL_HEADERS[panel] or ns.PANEL_HEADERS.summary
 	local items, header, emptyText
 	if ShowAll() then
 		local set = { [P.GetCharKey()] = true }
@@ -2801,24 +2812,24 @@ local function BuildItems()
 				set[key] = true
 			end
 		end
-		items, header, emptyText = P.SortedKeyItems(set), "Suivi : tous les personnages", "Aucune information enregistrée."
+		items, header, emptyText = P.SortedKeyItems(set), titles.all, L["Aucune information enregistrée."]
 	else
 		local team = P.GetSelectedTeam()
 		if not team then
-			return {}, "Suivi de l'équipe", "Sélectionnez une équipe."
+			return {}, titles.none, L["Sélectionnez une équipe."]
 		end
 		local leader = P.GetTeamLeader(team)
 		items = P.SortedKeyItems(P.GetTeamMembers(team) or {}, function(key)
 			return key == leader
 		end)
-		header, emptyText = "Suivi de l'équipe « " .. team .. " »", "Aucun personnage dans l'équipe."
+		header, emptyText = titles.team:format(team), L["Aucun personnage dans l'équipe."]
 	end
 	local choice = ns.PlayedChoice()
 	if choice[3] then
 		local total = #items
 		items = ns.FilterPlayed(items)
-		header = header .. " |cff999999(joués depuis " .. choice[2] .. " : " .. #items .. "/" .. total .. ")|r"
-		emptyText = "Aucun personnage joué depuis " .. choice[2] .. "."
+		header = header .. " |cff999999" .. L["(joués depuis %s : %d/%d)"]:format(choice[2], #items, total) .. "|r"
+		emptyText = L["Aucun personnage joué depuis %s."]:format(choice[2])
 	end
 	return items, header, emptyText
 end
@@ -2841,7 +2852,7 @@ end
 -- si l'API manque. La fenêtre se ferme, pour ne pas masquer la carte.
 local function OpenInQuestLog(item)
 	if not InOwnLog(item.questID) then
-		UIErrorsFrame:AddMessage("« " .. item.title .. " » n'est pas dans votre journal de quêtes.", 1, 0.1, 0.1)
+		UIErrorsFrame:AddMessage(L["« %s » n'est pas dans votre journal de quêtes."]:format(item.title), 1, 0.1, 0.1)
 		return
 	end
 	frame:Hide()
@@ -2897,7 +2908,7 @@ local function Build()
 
 	local title = frame:CreateFontString(nil, "OVERLAY", "GameFontNormalLarge")
 	title:SetPoint("TOP", 0, -14)
-	title:SetText("Suivi de l'équipe")
+	title:SetText(L["Suivi de l'équipe"])
 	frame.TitleText = title
 
 	local closeBtn = CreateFrame("Button", nil, frame, "UIPanelCloseButton")
@@ -2914,11 +2925,11 @@ local function Build()
 	end)
 	activityBtn:SetScript("OnEnter", function(self)
 		GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
-		GameTooltip:AddLine(SuiviSettings().activityMode and "Résumé" or "Activités")
+		GameTooltip:AddLine(SuiviSettings().activityMode and L["Résumé"] or L["Activités"])
 		GameTooltip:AddLine(SuiviSettings().activityMode
-			and "Revient au résumé par personnage (coffre, écus, ressources, runes)."
-			or "Affiche les activités de l'extension (gouffres, traque, factions...) avec, à droite de "
-				.. "chacune, les personnages qui l'ont faite (vert) ou commencée (jaune).", 1, 1, 1, true)
+			and L["Revient au résumé par personnage (coffre, écus, ressources, runes)."]
+			or L["Affiche les activités de l'extension (gouffres, traque, factions...) avec, à droite de "
+				.. "chacune, les personnages qui l'ont faite (vert) ou commencée (jaune)."], 1, 1, 1, true)
 		ShowTooltip()
 	end)
 	activityBtn:SetScript("OnLeave", GameTooltip_Hide)
@@ -2935,12 +2946,12 @@ local function Build()
 	end)
 	campaignBtn:SetScript("OnEnter", function(self)
 		GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
-		GameTooltip:AddLine(SuiviSettings().campaignMode and "Résumé" or "Campagnes")
+		GameTooltip:AddLine(SuiviSettings().campaignMode and L["Résumé"] or L["Campagnes"])
 		GameTooltip:AddLine(SuiviSettings().campaignMode
-			and "Revient au résumé par personnage (coffre, écus, ressources, runes)."
-			or "Affiche toutes les campagnes, par extension, avec à droite de chacune les personnages "
+			and L["Revient au résumé par personnage (coffre, écus, ressources, runes)."]
+			or L["Affiche toutes les campagnes, par extension, avec à droite de chacune les personnages "
 				.. "qui l'ont finie (vert), commencée (jaune) ou pas faite (rouge). Survol d'une "
-				.. "campagne : avancement de chacun.", 1, 1, 1, true)
+				.. "campagne : avancement de chacun."], 1, 1, 1, true)
 		ShowTooltip()
 	end)
 	campaignBtn:SetScript("OnLeave", GameTooltip_Hide)
@@ -2964,12 +2975,12 @@ local function Build()
 	end)
 	questBtn:SetScript("OnEnter", function(self)
 		GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
-		GameTooltip:AddLine(SuiviSettings().questMode and "Résumé" or "Quêtes")
+		GameTooltip:AddLine(SuiviSettings().questMode and L["Résumé"] or L["Quêtes"])
 		GameTooltip:AddLine(SuiviSettings().questMode
-			and "Revient au résumé par personnage (coffre, écus, ressources, runes)."
-			or "Affiche les quêtes du leader de l'équipe sélectionnée avec, à droite de chacune, les "
+			and L["Revient au résumé par personnage (coffre, écus, ressources, runes)."]
+			or L["Affiche les quêtes du leader de l'équipe sélectionnée avec, à droite de chacune, les "
 				.. "personnages qui ne l'ont pas (rouge), l'ont (vert) ou dont le journal n'est pas "
-				.. "connu (gris). Clic sur une quête : l'ouvrir dans le journal.", 1, 1, 1, true)
+				.. "connu (gris). Clic sur une quête : l'ouvrir dans le journal."], 1, 1, 1, true)
 		ShowTooltip()
 	end)
 	questBtn:SetScript("OnLeave", GameTooltip_Hide)
@@ -3027,12 +3038,12 @@ local function Build()
 	local optionsBtn = CreateFrame("Button", nil, frame, "UIPanelButtonTemplate")
 	optionsBtn:SetSize(70, 20)
 	optionsBtn:SetPoint("TOPLEFT", 6, -3)
-	optionsBtn:SetText("Options")
+	optionsBtn:SetText(L["Options"])
 	optionsBtn:SetScript("OnClick", OpenSuiviOptions)
 	optionsBtn:SetScript("OnEnter", function(self)
 		GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
-		GameTooltip:AddLine("Options")
-		GameTooltip:AddLine("Ouvre les options du suivi (Options > AddOns > Polypode > Suivi).", 1, 1, 1, true)
+		GameTooltip:AddLine(L["Options"])
+		GameTooltip:AddLine(L["Ouvre les options du suivi (Options > AddOns > Polypode > Suivi)."], 1, 1, 1, true)
 		ShowTooltip()
 	end)
 	optionsBtn:SetScript("OnLeave", GameTooltip_Hide)
@@ -3045,7 +3056,7 @@ local function Build()
 	allCheck:SetPoint("LEFT", optionsBtn, "RIGHT", 8, 0)
 	local allText = allCheck.Text or allCheck.text
 	if allText then
-		allText:SetText("Tous les personnages")
+		allText:SetText(L["Tous les personnages"])
 		allText:SetFontObject("GameFontHighlightSmall")
 	end
 	allCheck:SetScript("OnClick", function(self)
@@ -3054,11 +3065,11 @@ local function Build()
 	end)
 	allCheck:SetScript("OnEnter", function(self)
 		GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
-		GameTooltip:AddLine("Tous les personnages")
-		GameTooltip:AddLine("Cochée : tous les personnages dont des informations ont été enregistrées "
-			.. "(avec leur date). Décochée : les membres de l'équipe sélectionnée.", 1, 1, 1, true)
+		GameTooltip:AddLine(L["Tous les personnages"])
+		GameTooltip:AddLine(L["Cochée : tous les personnages dont des informations ont été enregistrées "
+			.. "(avec leur date). Décochée : les membres de l'équipe sélectionnée."], 1, 1, 1, true)
 		if IsSolo() then
-			GameTooltip:AddLine("Imposée en mode solo (pas d'équipe).", 1, 0.25, 0.25, true)
+			GameTooltip:AddLine(L["Imposée en mode solo (pas d'équipe)."], 1, 0.25, 0.25, true)
 		end
 		ShowTooltip()
 	end)
@@ -3069,7 +3080,7 @@ local function Build()
 	-- « Joués depuis » + liste (option playedSince, aussi dans le panneau d'options), à droite de
 	-- la case : ne montre que les personnages joués dans la durée choisie.
 	local playedLabel = frame:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
-	playedLabel:SetText("Joués depuis")
+	playedLabel:SetText(L["Joués depuis"])
 	local playedDropdown = CreateFrame("DropdownButton", nil, frame, "WowStyle1DropdownTemplate")
 	playedDropdown:SetWidth(100)
 	playedDropdown:SetPoint("LEFT", playedLabel, "RIGHT", 6, 0)
@@ -3085,10 +3096,10 @@ local function Build()
 	end)
 	playedDropdown:SetScript("OnEnter", function(self)
 		GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
-		GameTooltip:AddLine("Joués depuis")
-		GameTooltip:AddLine("Ne montre que les personnages joués depuis 1 jour, 1 semaine, 1 mois ou 1 an "
+		GameTooltip:AddLine(L["Joués depuis"])
+		GameTooltip:AddLine(L["Ne montre que les personnages joués depuis 1 jour, 1 semaine, 1 mois ou 1 an "
 			.. "(date de leurs dernières informations reçues), ou tous. Le personnage joué est toujours "
-			.. "affiché. Vaut pour l'équipe comme pour « Tous les personnages ».", 1, 1, 1, true)
+			.. "affiché. Vaut pour l'équipe comme pour « Tous les personnages »."], 1, 1, 1, true)
 		ShowTooltip()
 	end)
 	playedDropdown:SetScript("OnLeave", GameTooltip_Hide)
@@ -3099,7 +3110,7 @@ local function Build()
 	-- ouvre la fenêtre de la grille (Grid.lua), personnages par compte et par race / classe.
 	local gridBtn = CreateFrame("Button", nil, frame, "UIPanelButtonTemplate")
 	gridBtn:SetSize(60, 20)
-	gridBtn:SetText("Grille")
+	gridBtn:SetText(L["Grille"])
 	gridBtn:SetScript("OnClick", function()
 		if ns.ToggleGrid then
 			ns.ToggleGrid()
@@ -3107,9 +3118,9 @@ local function Build()
 	end)
 	gridBtn:SetScript("OnEnter", function(self)
 		GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
-		GameTooltip:AddLine("Grille")
-		GameTooltip:AddLine("Ouvre la grille des personnages : par compte (onglet Comptes) et par race et "
-			.. "classe (onglet Matrice).", 1, 1, 1, true)
+		GameTooltip:AddLine(L["Grille"])
+		GameTooltip:AddLine(L["Ouvre la grille des personnages : par compte (onglet Comptes) et par race et "
+			.. "classe (onglet Matrice)."], 1, 1, 1, true)
 		ShowTooltip()
 	end)
 	gridBtn:SetScript("OnLeave", GameTooltip_Hide)
@@ -3141,11 +3152,11 @@ local function Build()
 	-- Une liste pour les deux panneaux : membres (résumé) ou en-têtes et lignes d'activités.
 	P.CreateScrollList(listPanel, function(data)
 		if data.questColumns then
-			return "|cff999999Quête|r"
+			return "|cff999999" .. L["Quête"] .. "|r"
 		elseif data.quest then
 			return "  " .. data.title
 		elseif data.campaignColumns then
-			return "|cff999999Campagne|r"
+			return "|cff999999" .. L["Campagne"] .. "|r"
 		elseif data.campaignHeader then
 			return "|cff999999" .. (data.collapsed and "+" or "-") .. "|r |cffffd200"
 				.. ExpansionName(data.expansion) .. "|r"
@@ -3156,7 +3167,7 @@ local function Build()
 				.. CategoryTitle(data.category) .. "|r"
 		elseif data.activity then
 			return "  " .. EntryIcon(data) .. " " .. EntryTitle(data.activity)
-				.. (data.activity.daily and " |cff999999(quotidienne)|r" or "")
+				.. (data.activity.daily and " |cff999999" .. L["(quotidienne)"] .. "|r" or "")
 		end
 		return FormatMember(data)
 	end, nil, {
@@ -3255,14 +3266,15 @@ local function Build()
 		local noun = frame.collapseNoun or "extension"
 		if noun == "extension" then
 			GameTooltip:AddLine(self.collapseAll
-				and "Replie toutes les extensions : ne restent que leur nom et les personnages qui les ont finies."
-				or "Déplie toutes les extensions : leurs campagnes sont de nouveau affichées.", 1, 1, 1, true)
+				and L["Replie toutes les extensions : ne restent que leur nom et les personnages qui les ont finies."]
+				or L["Déplie toutes les extensions : leurs campagnes sont de nouveau affichées."], 1, 1, 1, true)
 		else
 			GameTooltip:AddLine(self.collapseAll
-				and "Replie toutes les catégories : ne restent que leur nom."
-				or "Déplie toutes les catégories : leurs activités sont de nouveau affichées.", 1, 1, 1, true)
+				and L["Replie toutes les catégories : ne restent que leur nom."]
+				or L["Déplie toutes les catégories : leurs activités sont de nouveau affichées."], 1, 1, 1, true)
 		end
-		GameTooltip:AddLine("Clic sur une " .. noun .. " : la replier ou la déplier seule.", 0.6, 0.6, 0.6, true)
+		GameTooltip:AddLine(noun == "extension" and L["Clic sur une extension : la replier ou la déplier seule."]
+			or L["Clic sur une catégorie : la replier ou la déplier seule."], 0.6, 0.6, 0.6, true)
 		ShowTooltip()
 	end)
 	collapseBtn:SetScript("OnLeave", GameTooltip_Hide)
@@ -3336,7 +3348,7 @@ function P.RefreshSuivi()
 		SuiviSettings().questMode = false
 	end
 	-- Titre : « Suivi complet » avec « Tous les personnages » (option ou mode solo).
-	frame.TitleText:SetText(ShowAll() and "Suivi complet" or "Suivi de l'équipe")
+	frame.TitleText:SetText(ShowAll() and L["Suivi complet"] or L["Suivi de l'équipe"])
 	frame.allCheck:SetEnabled(not IsSolo()) -- imposée (grisée) en mode solo
 	local allText = frame.allCheck.Text or frame.allCheck.text
 	if allText then
@@ -3364,14 +3376,15 @@ function P.RefreshSuivi()
 	frame.gridButton:ClearAllPoints()
 	frame.gridButton:SetPoint("RIGHT", scanBtn:IsShown() and scanBtn
 		or (questShown and frame.questButton or frame.questAnchor), "LEFT", -4, 0)
-	local items, header, emptyText = BuildItems()
 	local settings = SuiviSettings()
 	if not IS_RETAIL then -- panneaux absents de WoW Forever (boutons masqués)
 		settings.activityMode, settings.campaignMode = false, false
 	end
-	frame.activityButton:SetText(settings.activityMode and "Résumé" or "Activités")
-	frame.campaignButton:SetText(settings.campaignMode and "Résumé" or "Campagnes")
-	frame.questButton:SetText(settings.questMode and "Résumé" or "Quêtes")
+	local items, header, emptyText = BuildItems(settings.questMode and "quest" or settings.campaignMode and "campaign"
+		or settings.activityMode and "activity" or "summary")
+	frame.activityButton:SetText(settings.activityMode and L["Résumé"] or L["Activités"])
+	frame.campaignButton:SetText(settings.campaignMode and L["Résumé"] or L["Campagnes"])
+	frame.questButton:SetText(settings.questMode and L["Résumé"] or L["Quêtes"])
 	frame.activityButton.activeTint:SetShown(settings.activityMode and true or false)
 	frame.campaignButton.activeTint:SetShown(settings.campaignMode and true or false)
 	frame.questButton.activeTint:SetShown(settings.questMode and true or false)
@@ -3383,16 +3396,13 @@ function P.RefreshSuivi()
 		if settings.questMode then
 			local questEmpty
 			items, questEmpty = BuildQuestItems(keys)
-			header = header:gsub("^Suivi", "Quêtes")
 			emptyText = questEmpty or emptyText
 		elseif settings.campaignMode then
 			items = #keys > 0 and BuildCampaignItems(keys) or {}
-			header = header:gsub("^Suivi", "Campagnes")
-			emptyText = #keys > 0 and "Aucune campagne connue." or emptyText
+			emptyText = #keys > 0 and L["Aucune campagne connue."] or emptyText
 		else
 			items = #keys > 0 and BuildActivityItems(keys) or {}
-			header = header:gsub("^Suivi", "Activités")
-			emptyText = #keys > 0 and "Aucune activité à afficher." or emptyText
+			emptyText = #keys > 0 and L["Aucune activité à afficher."] or emptyText
 		end
 	elseif #items > 0 then
 		items = BuildMemberTable(items)
@@ -3403,7 +3413,7 @@ function P.RefreshSuivi()
 		header = header .. "  |cff999999· " .. season .. "|r"
 	end
 	if IS_RETAIL and ListsOutdated() then
-		header = header .. "  |cffff8000· listes à mettre à jour|r"
+		header = header .. "  |cffff8000· " .. L["listes à mettre à jour"] .. "|r"
 	end
 	-- Panneaux Campagnes et Activités : bouton « Tout replier » (un en-tête déplié) ou « Tout
 	-- déplier », l'en-tête du panneau s'arrêtant à sa gauche.
@@ -3420,7 +3430,7 @@ function P.RefreshSuivi()
 	frame.collapseHeaders = headers
 	frame.collapseNoun = settings.campaignMode and "extension" or "catégorie"
 	collapseBtn.collapseAll = anyOpen
-	collapseBtn:SetText(anyOpen and "Tout replier" or "Tout déplier")
+	collapseBtn:SetText(anyOpen and L["Tout replier"] or L["Tout déplier"])
 	collapseBtn:SetShown(#headers > 0)
 	listPanel.header:ClearAllPoints()
 	listPanel.header:SetPoint("TOPLEFT", 10, -8)
@@ -3437,7 +3447,7 @@ end
 -- Ouvre la fenêtre sur le panneau « Quêtes » (/poly quetes, ancienne commande de Polypode Quêtes).
 local function OpenQuestPanel()
 	if ShowAll() then
-		UIErrorsFrame:AddMessage("Panneau « Quêtes » indisponible avec « Tous les personnages » cochée.", 1, 0.1, 0.1)
+		UIErrorsFrame:AddMessage(L["Panneau « Quêtes » indisponible avec « Tous les personnages » cochée."], 1, 0.1, 0.1)
 		return
 	end
 	local settings = SuiviSettings()
@@ -3469,7 +3479,7 @@ end
 
 if P.AddTitleButton then
 	P.AddTitleButton({
-		text = "Suivi",
+		text = L["Suivi"],
 		width = 60,
 		rightClick = true,
 		onClick = function(button, mouseButton)
@@ -3482,10 +3492,10 @@ if P.AddTitleButton then
 			end
 		end,
 		tooltip = {
-			"Suivi de l'équipe",
-			"Grande chambre forte, écus, ressources, renommées et runes de pouvoir de chaque membre de "
-				.. "l'équipe sélectionnée (détail au survol d'un personnage).",
-			"Clic droit : options du suivi",
+			L["Suivi de l'équipe"],
+			L["Grande chambre forte, écus, ressources, renommées et runes de pouvoir de chaque membre de "
+				.. "l'équipe sélectionnée (détail au survol d'un personnage)."],
+			L["Clic droit : options du suivi"],
 		},
 		onCreate = function(button)
 			P.ui.suiviButton = button
@@ -3495,7 +3505,7 @@ if P.AddTitleButton then
 	-- gauche du titre (spec.left, Polypode 2.5.0 ; avant : avec les autres, à droite) : même fenêtre
 	-- que le bouton « Grille » de Suivi (ns.ToggleGrid, Grid.lua chargé après ce fichier).
 	P.AddTitleButton({
-		text = "Grille",
+		text = L["Grille"],
 		width = 60,
 		left = true,
 		onClick = function()
@@ -3504,8 +3514,8 @@ if P.AddTitleButton then
 			end
 		end,
 		tooltip = {
-			"Grille des personnages",
-			"Personnages par compte (onglet Comptes) et par race et classe (onglet Matrice).",
+			L["Grille des personnages"],
+			L["Personnages par compte (onglet Comptes) et par race et classe (onglet Matrice)."],
 		},
 		onCreate = function(button)
 			P.ui.suiviGridTitleButton = button
@@ -3521,14 +3531,22 @@ if P.RegisterSlashCommand then
 		else
 			P.ToggleSuivi()
 		end
-	end, "suivi de l'équipe (coffre, écus, ressources, renommées, runes)")
+	end, L["suivi de l'équipe (coffre, écus, ressources, renommées, runes)"])
 	P.RegisterSlashCommand("grille", function()
 		if ns.ToggleGrid then
 			ns.ToggleGrid()
 		end
-	end, "grille des personnages (par compte, par race et classe)")
-	P.RegisterSlashCommand("quetes", OpenQuestPanel,"quêtes du leader manquantes chez les membres de l'équipe")
+	end, L["grille des personnages (par compte, par race et classe)"])
+	P.RegisterSlashCommand("quetes", OpenQuestPanel,L["quêtes du leader manquantes chez les membres de l'équipe"])
 	P.RegisterSlashCommand("quêtes", OpenQuestPanel) -- alias, absent de l'aide
+	-- Alias anglais (absents de l'aide).
+	P.RegisterSlashCommand("tracker", P.ToggleSuivi)
+	P.RegisterSlashCommand("grid", function()
+		if ns.ToggleGrid then
+			ns.ToggleGrid()
+		end
+	end)
+	P.RegisterSlashCommand("quests", OpenQuestPanel)
 end
 
 
@@ -3539,7 +3557,7 @@ if P.RegisterCharacterData then
 		name = "Polypode Suivi",
 		describe = function(key)
 			if received[key] and key ~= P.GetCharKey() then
-				return "chambre forte, écus, ressources, renommées, activités et campagnes relevés"
+				return L["chambre forte, écus, ressources, renommées, activités et campagnes relevés"]
 			end
 		end,
 		remove = function(key)
@@ -3572,9 +3590,9 @@ local function BuildSettingsPanel()
 	end
 	local category
 	if P.optionsCategory and Settings.RegisterVerticalLayoutSubcategory then
-		category = Settings.RegisterVerticalLayoutSubcategory(P.optionsCategory, "Suivi")
+		category = Settings.RegisterVerticalLayoutSubcategory(P.optionsCategory, L["Suivi"])
 	else
-		category = Settings.RegisterVerticalLayoutCategory("Polypode Suivi")
+		category = Settings.RegisterVerticalLayoutCategory(L["Polypode Suivi"])
 	end
 	-- Chaque case est aussi rappelée dans la petite fenêtre du clic droit sur le bouton « Suivi »
 	-- (P.ToggleOptionsPopup, Polypode 0.57.0), avec le même réglage.
@@ -3585,7 +3603,7 @@ local function BuildSettingsPanel()
 		popupItems[#popupItems + 1] = { kind = "check", setting = setting, tooltip = tooltip }
 	end
 	local allSetting = Settings.RegisterProxySetting(category, "POLYPODE_SUIVI_SHOW_ALL",
-		Settings.VarType.Boolean, "Tous les personnages", DEFAULTS.showAll,
+		Settings.VarType.Boolean, L["Tous les personnages"], DEFAULTS.showAll,
 		function()
 			return ShowAll()
 		end,
@@ -3597,13 +3615,13 @@ local function BuildSettingsPanel()
 			P.RefreshSuivi()
 		end)
 	AddCheck(allSetting,
-		"La fenêtre « Suivi » liste tous les personnages dont des informations ont été enregistrées "
+		L["La fenêtre « Suivi » liste tous les personnages dont des informations ont été enregistrées "
 		.. "(avec leur date) au lieu des membres de l'équipe sélectionnée. Même case que dans la barre "
-		.. "de titre de la fenêtre. Toujours cochée en mode solo de Polypode. Réglage propre à ce personnage.")
+		.. "de titre de la fenêtre. Toujours cochée en mode solo de Polypode. Réglage propre à ce personnage."])
 
 	-- « Joués depuis » : liste du panneau et de la petite fenêtre, même réglage que la barre de titre.
 	local playedSetting = Settings.RegisterProxySetting(category, "POLYPODE_SUIVI_PLAYED_SINCE",
-		Settings.VarType.String, "Personnages joués depuis", DEFAULTS.playedSince,
+		Settings.VarType.String, L["Personnages joués depuis"], DEFAULTS.playedSince,
 		function()
 			return ns.PlayedChoice()[1]
 		end,
@@ -3615,10 +3633,10 @@ local function BuildSettingsPanel()
 	for _, choice in ipairs(PLAYED_CHOICES) do
 		playedValues[#playedValues + 1] = { choice[1], choice[2] }
 	end
-	local playedTooltip = "N'affiche que les personnages joués depuis 1 jour, 1 semaine, 1 mois ou 1 an "
+	local playedTooltip = L["N'affiche que les personnages joués depuis 1 jour, 1 semaine, 1 mois ou 1 an "
 		.. "(date de leurs dernières informations reçues), ou tous. Le personnage joué est toujours affiché. "
 		.. "Vaut pour l'équipe comme pour « Tous les personnages ». Même liste que dans la barre de titre "
-		.. "de la fenêtre. Réglage propre à ce personnage."
+		.. "de la fenêtre. Réglage propre à ce personnage."]
 	Settings.CreateDropdown(category, playedSetting, function()
 		local container = Settings.CreateControlTextContainer()
 		for _, value in ipairs(playedValues) do
@@ -3631,7 +3649,7 @@ local function BuildSettingsPanel()
 
 	if IS_RETAIL then -- campagnes et renommées : propres à Retail
 		local campaignSetting = Settings.RegisterProxySetting(category, "POLYPODE_SUIVI_SHOW_OLD_CAMPAIGNS",
-			Settings.VarType.Boolean, "Campagnes des extensions précédentes", DEFAULTS.showOldCampaigns,
+			Settings.VarType.Boolean, L["Campagnes des extensions précédentes"], DEFAULTS.showOldCampaigns,
 			function()
 				return SuiviSettings().showOldCampaigns
 			end,
@@ -3639,12 +3657,12 @@ local function BuildSettingsPanel()
 				SuiviSettings().showOldCampaigns = value
 			end)
 		AddCheck(campaignSetting,
-			"Dans l'infobulle de chaque personnage, ajoute aux campagnes de l'extension en cours celles des "
+			L["Dans l'infobulle de chaque personnage, ajoute aux campagnes de l'extension en cours celles des "
 			.. "extensions précédentes (depuis Battle for Azeroth) : les campagnes commencées mais pas finies, "
-			.. "et le nombre de campagnes terminées par extension. Réglage propre à ce personnage.")
+			.. "et le nombre de campagnes terminées par extension. Réglage propre à ce personnage."])
 
 		local setting = Settings.RegisterProxySetting(category, "POLYPODE_SUIVI_SHOW_FACTIONS",
-			Settings.VarType.Boolean, "Afficher les renommées", DEFAULTS.showFactions,
+			Settings.VarType.Boolean, L["Afficher les renommées"], DEFAULTS.showFactions,
 			function()
 				return SuiviSettings().showFactions
 			end,
@@ -3652,13 +3670,13 @@ local function BuildSettingsPanel()
 				SuiviSettings().showFactions = value
 			end)
 		AddCheck(setting,
-			"Dans la fenêtre « Suivi de l'équipe », détaille les renommées de l'extension de chaque "
+			L["Dans la fenêtre « Suivi de l'équipe », détaille les renommées de l'extension de chaque "
 			.. "membre dans son infobulle. Inutile avec un seul compte Battle.net : les renommées y sont "
-			.. "communes à tous les personnages. Réglage propre à ce personnage.")
+			.. "communes à tous les personnages. Réglage propre à ce personnage."])
 	end
 	Settings.RegisterAddOnCategory(category)
 	settingsCategory = category
-	settingsPopup = { key = "Suivi", title = "Options du suivi", items = popupItems, category = category }
+	settingsPopup = { key = "Suivi", title = L["Options du suivi"], items = popupItems, category = category }
 	if ns.BuildGridSettings then
 		ns.BuildGridSettings(category) -- sous-catégorie « Grille » (Grid.lua)
 	end

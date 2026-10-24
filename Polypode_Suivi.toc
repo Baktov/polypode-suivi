@@ -1,14 +1,28 @@
 ## Interface: 120000, 16001
 ## Title: Polypode Suivi
-## Notes: Suivi de l'équipe pour Polypode : grande chambre forte, écus, ressources, renommées, runes et campagnes de chaque membre ; Héritage sur WoW Forever.
+## Title-enUS: Polypode Tracker
+## Title-enGB: Polypode Tracker
+## Title-deDE: Polypode Tracker
+## Title-esES: Polypode Seguimiento
+## Title-esMX: Polypode Seguimiento
+## Title-itIT: Polypode Monitoraggio
+## Title-ptBR: Polypode Acompanhamento
+## Notes: Team tracker for Polypode: Great Vault, crests, resources, renown, runes and campaigns of each member; Legacy on WoW Forever.
+## Notes-frFR: Suivi de l'équipe pour Polypode : grande chambre forte, écus, ressources, renommées, runes et campagnes de chaque membre ; Héritage sur WoW Forever.
 ## Author: Baktov
-## Version: 2.10.1
+## Version: 2.11.0
 ## Dependencies: Polypode
 ## OptionalDeps: Polypode_Data
 ## SavedVariables: PolypodeSuiviData, PolypodeSuiviScan, PolypodeSuiviQuests, PolypodeSuiviGrid
 ## SavedVariablesPerCharacter: PolypodeSuiviDB
 ## Category: Polypode
 
+Locale.lua
+Locales/enUS.lua
+Locales/deDE.lua
+Locales/esES.lua
+Locales/itIT.lua
+Locales/ptBR.lua
 Activities.lua
 Suivi.lua
 Grid.lua
