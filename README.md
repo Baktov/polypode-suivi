@@ -95,7 +95,7 @@ Au survol d'un personnage, l'infobulle détaille :
   hebdomadaire.
 
 La liste défile ; la fenêtre se **redimensionne** par la poignée du coin bas-droit (taille
-gardée par personnage) ; Échap ferme la fenêtre ; elle suit l'équipe sélectionnée. L'en-tête de la
+gardée par personnage ; **double-clic** sur sa barre de titre : retour à la taille par défaut) ; Échap ferme la fenêtre ; elle suit l'équipe sélectionnée. L'en-tête de la
 liste indique la **saison en cours** (« Midnight, saison 2 », d'après le jeu), et signale en
 orange « listes à mettre à jour » si les écus ou les activités repris de Plumber ne couvrent pas
 cette saison (nouvelle saison ou nouvelle extension).
@@ -187,7 +187,7 @@ liste indique le filtre (« joués depuis 1 semaine : 4/12 »). Le titre de la f
 
 Le bouton **Grille** (à droite du titre, à gauche de **Quêtes** / **Campagnes**, et aussi dans la barre de titre de
 Polypode, à droite de la case **Solo** ; ou `/poly grille`) ouvre une fenêtre à part,
-redimensionnable, qui place **tous les personnages du roster** dans une grille, avec deux onglets.
+redimensionnable (double-clic sur le titre : taille par défaut), qui place **tous les personnages du roster** dans une grille, avec deux onglets.
 Un personnage au **niveau maximum** a sa case en **rouge** ; au survol d'une case : compte, niveau,
 niveau d'objet, classe, race, métiers et équipe de chaque personnage. Molette : défilement ;
 Maj + molette : défilement horizontal si la grille est plus large que la fenêtre.
@@ -305,6 +305,7 @@ other language).*
 
 ## Version
 
+`2.14.0` : double-clic sur la barre de titre (fenêtre Suivi, fenêtre de la grille) : retour à la taille par défaut (Polypode 2.12).
 `2.13.1` : Grille : personnages triés par niveau puis par niveau d'objet.
 `2.13.0` : onglet Comptes compact : personnages seuls empilés par compte (triés par niveau), niveau dans la case (niveau d'objet doré au niveau maximum, coin doré), icônes des métiers, colonnes de largeur fixe et comptes vides masqués, un seul en-tête, blocs repliables, bas niveaux (10 ou moins, hors équipes) masqués sauf case « Bas niveaux ».
 `2.12.1` : Matrice : combinaisons race / classe impossibles barrées d'un fin trait en diagonale, avec infobulle.

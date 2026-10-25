@@ -75,6 +75,8 @@ Retail (120000) et WoW Forever (16001) avec tests d'existence des API (lectures 
 
 ## Dépendances vers Polypode (API publique utilisée)
 
+`P.EnableTitleDoubleClick(fenêtre, remise, hauteur)` (si présente, Polypode 2.12 : double-clic sur la barre de titre, taille par défaut).
+
 Langues (si présentes) : `P.NewLocale`, `P.AddTranslations` (Polypode 2.8), `P.OnLanguageApplied` (2.9).
 
 `P.AddTitleButton`, `P.RegisterSlashCommand`, `P.RegisterMessageHandler`, `P.RegisterPeerCallback`,

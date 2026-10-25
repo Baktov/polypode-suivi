@@ -1591,6 +1591,14 @@ local function Build()
 		local current = WindowSettings()
 		current.gridWidth, current.gridHeight = frame:GetSize()
 	end)
+	-- Double-clic sur la barre de titre : taille par défaut (Polypode 2.12).
+	if P.EnableTitleDoubleClick then
+		P.EnableTitleDoubleClick(frame, function()
+			local current = WindowSettings()
+			current.gridWidth, current.gridHeight = DEFAULT_WIDTH, DEFAULT_HEIGHT
+			frame:SetSize(DEFAULT_WIDTH, DEFAULT_HEIGHT)
+		end)
+	end
 	-- Largeur changée : colonnes recalculées (regroupé à l'image suivante).
 	local relayoutPending
 	scroll:SetScript("OnSizeChanged", function()

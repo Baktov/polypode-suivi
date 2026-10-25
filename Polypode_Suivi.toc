@@ -10,7 +10,7 @@
 ## Notes: Team tracker for Polypode: Great Vault, crests, resources, renown, runes and campaigns of each member; Legacy on WoW Forever.
 ## Notes-frFR: Suivi de l'équipe pour Polypode : grande chambre forte, écus, ressources, renommées, runes et campagnes de chaque membre ; Héritage sur WoW Forever.
 ## Author: Baktov
-## Version: 2.13.1
+## Version: 2.14.0
 ## Dependencies: Polypode
 ## OptionalDeps: Polypode_Data
 ## SavedVariables: PolypodeSuiviData, PolypodeSuiviScan, PolypodeSuiviQuests, PolypodeSuiviGrid

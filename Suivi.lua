@@ -3149,6 +3149,14 @@ local function Build()
 		current.width, current.height = frame:GetSize()
 	end)
 	frame.resizeGrip = grip
+	-- Double-clic sur la barre de titre : taille par défaut (Polypode 2.12).
+	if P.EnableTitleDoubleClick then
+		P.EnableTitleDoubleClick(frame, function()
+			local current = SuiviSettings()
+			current.width, current.height = DEFAULTS.width, DEFAULTS.height
+			frame:SetSize(DEFAULTS.width, DEFAULTS.height)
+		end)
+	end
 	-- Une liste pour les deux panneaux : membres (résumé) ou en-têtes et lignes d'activités.
 	P.CreateScrollList(listPanel, function(data)
 		if data.questColumns then

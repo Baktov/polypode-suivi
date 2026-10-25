@@ -85,7 +85,7 @@ When hovering a character, the tooltip details:
   counted again; an abandoned instance counts too), reset at the weekly reset.
 
 The list scrolls; the window is **resized** with the bottom-right corner grip (size kept per
-character); Escape closes the window; it follows the selected team. The list header shows the
+character; **double-click** its title bar: back to the default size); Escape closes the window; it follows the selected team. The list header shows the
 **current season** (e.g. "Midnight, season 2", from the game), and flags in orange "lists to
 update" if the crests or activities taken from Plumber do not cover this season (new season or new
 expansion).
@@ -171,7 +171,7 @@ week: 4/12"). The window title follows the list.
 
 The **Grid** button (right of the title, left of **Quests** / **Campaigns**, and also in the
 Polypode title bar, right of the **Solo** box; or `/poly grille`, `/poly grid`) opens a separate,
-resizable window that places **every roster character** in a grid, with two tabs. A character at
+resizable window (double-click the title: default size) that places **every roster character** in a grid, with two tabs. A character at
 **max level** has their cell in **red**; on hover of a cell: account, level, item level, class,
 race, professions and team of each character. Mouse wheel: scrolling; Shift + mouse wheel:
 horizontal scrolling if the grid is wider than the window.
