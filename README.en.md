@@ -172,7 +172,10 @@ week: 4/12"). The window title follows the list.
 The **Grid** button (right of the title, left of **Quests** / **Campaigns**, and also in the
 Polypode title bar, right of the **Solo** box; or `/poly grille`, `/poly grid`) opens a separate,
 resizable window (double-click the title: default size) that places **every roster character** in a grid, with two tabs. A character at
-**max level** has their cell in **red**; on hover of a cell: account, level, item level, class,
+the game's **max level** (60 on WoW Forever, 90 on Midnight) has their cell in a **gold frame**
+and, in the **Epic** style (default), an **elite dragon** before their name and a **golden glow**
+(**Plain** style: frame only, in the options); their tooltip shows "Max level reached". On hover
+of a cell: account, level, item level, class,
 race, professions and team of each character. Mouse wheel: scrolling; Shift + mouse wheel:
 horizontal scrolling if the grid is wider than the window.
 
@@ -184,15 +187,16 @@ horizontal scrolling if the grid is wider than the window.
   (2 characters and more; a character member of several teams is placed in the largest one),
   its name on the left. Each cell: the **icons of both professions** (can be hidden in the
   options; name on hover), the name in class color on a class-tinted background, and on the right
-  the **level** — or the **item level in gold** at max level, also shown by a **gold corner**.
+  the **level** — or the **item level in gold** at max level. Each account header shows
+  **"n/total"**: its shown characters at max level (gold if any), details on hover.
   Solo characters of **level 10 or lower** are hidden (their number is shown in the Solo block
   title): check **Low levels** (top right) to see them; those of a team are always shown.
 - **Matrix**: **races** in rows (icon and name), grouped by faction (**Alliance**, **Neutral**,
   **Horde**, then **Others**: races missing from the table, "Unknown race"), with a stripe in the
   faction color; **classes** in columns (icons, name on hover), grouped by **armor** (Cloth,
   Leather, Mail, Plate: one header cell per armor). An occupied cell shows the highest character,
-  tinted in their class color, and **"+n"** for the others (all in the tooltip); **gold corner** =
-  a character at max level. An impossible combination is crossed by a thin grey diagonal line ("Impossible combination" on hover), a possible but
+  tinted in their class color, and **"+n"** for the others (all in the tooltip); **gold frame** (and
+  dragon) = a character at max level. An impossible combination is crossed by a thin grey diagonal line ("Impossible combination" on hover), a possible but
   empty one dark grey. By default only the races that have a character are shown: check **All
   races** (top right) to see the missing combinations. At the bottom, the collapsible **Free rows**
   section (click its title): "+ Add a row", click on the label to rename it (right-click: delete),
@@ -255,6 +259,7 @@ sent to the logged-in clients; also the **Options** button of the Grid window):
 | Option | Default | Effect |
 |---|---|---|
 | Show professions | Yes | Profession 1 and Profession 2 columns of the Accounts tab (team name in the Multi blocks) |
+| Max level | Epic | How characters at max level stand out: **Epic** = gold frame, elite dragon before the name and golden glow; **Plain** = gold frame only |
 | Number of account columns | All accounts (10 at most) | Number of account columns of the Accounts tab (1 to 10) |
 | Column 1 to 10 | Automatic | Account of each column; "Automatic" takes the first account not placed yet, in alphabetical order. Greyed beyond the number of columns |
 

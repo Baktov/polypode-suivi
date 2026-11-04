@@ -188,7 +188,10 @@ liste indique le filtre (« joués depuis 1 semaine : 4/12 »). Le titre de la f
 Le bouton **Grille** (à droite du titre, à gauche de **Quêtes** / **Campagnes**, et aussi dans la barre de titre de
 Polypode, à droite de la case **Solo** ; ou `/poly grille`) ouvre une fenêtre à part,
 redimensionnable (double-clic sur le titre : taille par défaut), qui place **tous les personnages du roster** dans une grille, avec deux onglets.
-Un personnage au **niveau maximum** a sa case en **rouge** ; au survol d'une case : compte, niveau,
+Un personnage au **niveau maximum du jeu** (60 sur WoW Forever, 90 sur Midnight) a sa case dans un
+**cadre doré** et, en style **Épique** (par défaut), un **dragon d'élite** devant son nom et une
+**lueur dorée** (style **Sobre** : cadre seul, dans les options) ; son infobulle porte « Niveau
+maximum atteint ». Au survol d'une case : compte, niveau,
 niveau d'objet, classe, race, métiers et équipe de chaque personnage. Molette : défilement ;
 Maj + molette : défilement horizontal si la grille est plus large que la fenêtre.
 
@@ -200,8 +203,9 @@ Maj + molette : défilement horizontal si la grille est plus large que la fenêt
   **équipe** de Polypode (2 personnages et plus ; un personnage membre de plusieurs équipes est
   placé dans la plus grande), son nom à gauche. Chaque case : les **icônes des deux métiers**
   (masquables dans les options ; nom au survol), le nom en couleur de classe sur un fond teinté
-  de la classe, et à droite le **niveau** — ou le **niveau d'objet en doré** au niveau maximum,
-  signalé aussi par un **coin doré**. Les personnages seuls de **niveau 10 ou moins** sont masqués
+  de la classe, et à droite le **niveau** — ou le **niveau d'objet en doré** au niveau maximum.
+  L'en-tête de chaque compte affiche **« n/total »** : ses personnages affichés au niveau maximum
+  (doré s'il y en a), détail au survol. Les personnages seuls de **niveau 10 ou moins** sont masqués
   (leur nombre est indiqué dans le titre du bloc Solo) : cocher **Bas niveaux** (en haut à
   droite) pour les voir ; ceux d'une équipe sont toujours affichés.
 - **Matrice** : les **races** en lignes (icône et nom), groupées par faction (**Alliance**,
@@ -209,7 +213,7 @@ Maj + molette : défilement horizontal si la grille est plus large que la fenêt
   liseré de la couleur de la faction ; les **classes** en colonnes (icônes, nom au survol),
   groupées par **armure** (Tissu, Cuir, Maille, Plaque : une case d'en-tête par armure). Une case
   occupée montre le personnage le plus haut, teintée de la couleur de sa classe, et **« +n »**
-  pour les autres (tous dans l'infobulle) ; **coin doré** = un personnage au niveau maximum. Une
+  pour les autres (tous dans l'infobulle) ; **cadre doré** (et dragon) = un personnage au niveau maximum. Une
   combinaison impossible est barrée d'un fin trait gris en diagonale (« Combinaison impossible » au survol), une combinaison possible mais vide gris
   foncé. Par défaut, seules les races qui ont un personnage sont affichées : cocher **Toutes les
   races** (en haut à droite) pour voir les combinaisons qui manquent. En bas, la section
@@ -274,6 +278,7 @@ personnages**, transmis aux clients connectés ; aussi le bouton **Options** de 
 | Option | Défaut | Effet |
 |---|---|---|
 | Afficher les métiers | Oui | Colonnes Métier 1 et Métier 2 de l'onglet Comptes (nom de l'équipe dans les blocs Multi) |
+| Niveau maximum | Épique | Mise en avant des personnages au niveau maximum : **Épique** = cadre doré, dragon d'élite devant le nom et lueur dorée ; **Sobre** = cadre doré seul |
 | Nombre de colonnes de comptes | Tous les comptes (10 au plus) | Nombre de colonnes de comptes de l'onglet Comptes (1 à 10) |
 | Colonne 1 à 10 | Automatique | Compte de chaque colonne ; « Automatique » prend le premier compte pas encore placé, par ordre alphabétique. Grisées au-delà du nombre de colonnes |
 
@@ -305,6 +310,7 @@ other language).*
 
 ## Version
 
+`2.15.0` : Grille : personnages au niveau maximum mis en avant (cadre doré, et en style Épique dragon d'élite et lueur dorée ; option « Niveau maximum » Épique / Sobre ; « Niveau maximum atteint » dans l'infobulle), compteur « n/total » au niveau maximum dans l'en-tête de chaque compte ; remplace le petit coin doré.
 `2.14.0` : double-clic sur la barre de titre (fenêtre Suivi, fenêtre de la grille) : retour à la taille par défaut (Polypode 2.12).
 `2.13.1` : Grille : personnages triés par niveau puis par niveau d'objet.
 `2.13.0` : onglet Comptes compact : personnages seuls empilés par compte (triés par niveau), niveau dans la case (niveau d'objet doré au niveau maximum, coin doré), icônes des métiers, colonnes de largeur fixe et comptes vides masqués, un seul en-tête, blocs repliables, bas niveaux (10 ou moins, hors équipes) masqués sauf case « Bas niveaux ».

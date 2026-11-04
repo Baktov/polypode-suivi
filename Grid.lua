@@ -16,11 +16,13 @@ local L = ns.L
 --     barrées), une ligne par case (personnage le plus haut et « +n »), seulement les races jouées
 --     sauf « Toutes les races » ; en bas, une section repliable de lignes libres (libellé et
 --     texte par classe) qu'on ajoute, renomme et supprime.
--- Deux onglets : case teintée de la couleur de la classe, coin doré au niveau maximum. Données : section G de Suivi (classe, race,
+-- Deux onglets : case teintée de la couleur de la classe ; niveau maximum du jeu = cadre doré, et
+-- en style « épique » (option, défaut) dragon d'élite devant le nom et lueur dorée. Données : section G de Suivi (classe, race,
 -- niveau, ilvl, métiers), repli sur le roster de Polypode (classe, niveau).
 -- RÉGLAGES (PolypodeSuiviGrid, fichier de compte, communs à tous les personnages) : count =
 -- nombre de colonnes de comptes (nil = automatique), columns[i] = compte de la colonne i (vide =
--- automatique), professions = colonnes de métiers, rows = lignes libres { label, cells =
+-- automatique), professions = colonnes de métiers, maxStyle = mise en avant du niveau maximum
+-- ("sober", nil = épique), rows = lignes libres { label, cells =
 -- { [classe] = texte } }, version = heure serveur de la dernière modification. Synchronisés entre
 -- clients connectés (le plus récent l'emporte) : SUIVIGRID:token:version:flag:k=v,... (flag N =
 -- premier fragment, qui remplace tout ; + = suite), envoyé à chaque rencontre et 1 s après un
@@ -47,13 +49,15 @@ local BG_FREE_LABEL = { 0.25, 0.25, 0.25, 1 }
 local BG_ADD = { 0.1, 0.25, 0.4, 1 }
 local FACTION_BG = { A = { 0.2, 0.4, 0.7, 1 }, N = { 0.05, 0.45, 0.2, 1 }, H = { 0.6, 0.08, 0.08, 1 } }
 -- Matrice : ce qui existe ressort, le reste s'efface (impossible presque invisible, vide possible
--- gris foncé, personnage teinté de la couleur de sa classe, niveau maximum = coin doré).
+-- gris foncé, personnage teinté de la couleur de sa classe, niveau maximum = cadre doré).
 local BG_M_IMPOSSIBLE = { 0, 0, 0, 0.3 }
 local BG_M_EMPTY = { 0.1, 0.1, 0.1, 0.9 }
 local BG_M_HEADER = { 0.16, 0.16, 0.16, 1 }
 local BG_M_LABEL = { 0.12, 0.12, 0.12, 1 }
 local BG_M_GROUP = { 0.07, 0.07, 0.07, 1 }
-local MAX_MARK = { 1, 0.82, 0, 1 }
+-- Niveau maximum : cadre et lueur dorés, dragon d'élite devant le nom (style épique).
+local MAX_GOLD = { 1, 0.82, 0 }
+local ELITE_ICON = "|A:nameplates-icon-elite-gold:12:12|a"
 -- Types d'armure (clés de ARMOR_BG et de CLASSES) affichés dans la langue choisie.
 local ARMOR_LABELS = { Plaque = L["Plaque"], Maille = L["Maille"], Tissu = L["Tissu"], Cuir = L["Cuir"] }
 local ARMOR_BG = {
@@ -230,6 +234,11 @@ local function Grid()
 	return grid
 end
 
+-- Mise en avant du niveau maximum : "epic" (cadre, dragon, lueur ; défaut) ou "sober" (cadre seul).
+local function MaxStyle()
+	return Grid().maxStyle == "sober" and "sober" or "epic"
+end
+
 local function WindowSettings()
 	return PolypodeSuiviDB or {}
 end
@@ -291,7 +300,7 @@ end
 
 local function GridItems()
 	local grid = Grid()
-	local items = { "n=" .. (grid.count or ""), "p=" .. (grid.professions and 1 or 0) }
+	local items = { "n=" .. (grid.count or ""), "p=" .. (grid.professions and 1 or 0), "s=" .. (grid.maxStyle or "") }
 	for i = 1, MAX_ACCOUNTS do
 		if grid.columns[i] and grid.columns[i] ~= "" then
 			items[#items + 1] = "a" .. i .. "=" .. Escape(grid.columns[i])
@@ -349,6 +358,8 @@ local function ApplyItem(k, v)
 		grid.count = tonumber(v)
 	elseif k == "p" then
 		grid.professions = v == "1"
+	elseif k == "s" then
+		grid.maxStyle = v == "sober" and v or nil
 	elseif k:match("^a%d+$") then
 		grid.columns[tonumber(k:sub(2))] = Unescape(v)
 	elseif k:match("^r%d+%.") then
@@ -372,7 +383,7 @@ local function OnGridMessage(rest)
 			return
 		end
 		-- Plus récent : remplace tous les réglages (même table, sauvegardée).
-		grid.count, grid.professions, grid.version = nil, true, version
+		grid.count, grid.professions, grid.maxStyle, grid.version = nil, true, nil, version
 		wipe(grid.columns)
 		wipe(grid.rows)
 		receivingVersion = version
@@ -559,8 +570,12 @@ end
 local function CharacterTooltip(info, team)
 	GameTooltip:AddLine(ClassColorCode(info.class) .. info.name .. "|r")
 	GameTooltip:AddDoubleLine(L["Compte"], info.account or L["non renseigné"], 0.6, 0.6, 0.6, 1, 1, 1)
-	local other = info.max and 0.3 or 1 -- niveau maximum en rouge
-	GameTooltip:AddDoubleLine(L["Niveau"], info.level and tostring(info.level) or "?", 0.6, 0.6, 0.6, 1, other, other)
+	if info.max then
+		GameTooltip:AddLine(ELITE_ICON .. " " .. L["Niveau maximum atteint (%d)"]:format(info.level),
+			MAX_GOLD[1], MAX_GOLD[2], MAX_GOLD[3])
+	end
+	GameTooltip:AddDoubleLine(L["Niveau"], info.level and tostring(info.level) or "?", 0.6, 0.6, 0.6,
+		info.max and MAX_GOLD[1] or 1, info.max and MAX_GOLD[2] or 1, info.max and MAX_GOLD[3] or 1)
 	if info.ilvl then
 		GameTooltip:AddDoubleLine(L["Niveau d'objet"], tostring(info.ilvl), 0.6, 0.6, 0.6, 1, 1, 1)
 	end
@@ -662,7 +677,13 @@ local function ProfessionIcon(name)
 	return name and professionIcons[NormalizeRaceName(name)]
 end
 
--- Texte d'un personnage : icônes de ses métiers (option), nom en couleur de classe.
+-- Dragon d'élite devant le nom d'un personnage au niveau maximum (style épique), sinon rien.
+local function EliteIcon(info)
+	return info.max and MaxStyle() == "epic" and (ELITE_ICON .. " ") or ""
+end
+
+-- Texte d'un personnage : dragon (niveau maximum), icônes de ses métiers (option), nom en couleur
+-- de classe.
 local function CharacterLabel(info, showProfs)
 	local icons = ""
 	if showProfs then
@@ -676,7 +697,7 @@ local function CharacterLabel(info, showProfs)
 			icons = icons .. " "
 		end
 	end
-	return icons .. ClassColorCode(info.class) .. info.name .. "|r"
+	return EliteIcon(info) .. icons .. ClassColorCode(info.class) .. info.name .. "|r"
 end
 
 -- Nombre affiché à droite : niveau, ou niveau d'objet (doré) au niveau maximum.
@@ -795,7 +816,13 @@ local function BuildAccountsGrid()
 
 	-- Personnages seuls par compte (bas niveaux comptés à part), puis comptes utilisés.
 	local showLow, hiddenLow = ShowLowLevels(), 0
-	local soloByAccount, perAccount = {}, {}
+	local soloByAccount, perAccount, maxPerAccount = {}, {}, {}
+	local function Count(account, key)
+		perAccount[account] = (perAccount[account] or 0) + 1
+		if infos[key].max then
+			maxPerAccount[account] = (maxPerAccount[account] or 0) + 1
+		end
+	end
 	for _, key in ipairs(sections[1].keys) do
 		local level = infos[key].level
 		if not showLow and level and level <= LOW_LEVEL then
@@ -804,14 +831,13 @@ local function BuildAccountsGrid()
 			local account = AccountOf(key)
 			soloByAccount[account] = soloByAccount[account] or {}
 			table.insert(soloByAccount[account], key)
-			perAccount[account] = (perAccount[account] or 0) + 1
+			Count(account, key)
 		end
 	end
 	for i = 2, 3 do
 		for _, row in ipairs(sections[i].rows) do
 			for _, key in ipairs(row.keys) do
-				local account = AccountOf(key)
-				perAccount[account] = (perAccount[account] or 0) + 1
+				Count(AccountOf(key), key)
 			end
 		end
 	end
@@ -832,13 +858,22 @@ local function BuildAccountsGrid()
 		column[label] = i + 1
 	end
 
-	-- En-tête unique : les comptes (nombre de personnages affichés au survol).
+	-- En-tête unique : les comptes et « n/total » (personnages affichés au niveau maximum, doré s'il
+	-- y en a), détail au survol.
 	local header = { [1] = { bg = BG_M_HEADER } }
+	local maxLevel = MaxLevel()
 	for i, label in ipairs(accounts) do
 		local name = label == OTHER_ACCOUNT and L["Autres"] or label
-		header[i + 1] = { text = name, bg = BG_M_HEADER, tooltip = function()
+		local maxCount = maxPerAccount[label] or 0
+		header[i + 1] = { text = name, bg = BG_M_HEADER,
+			badge = (maxCount > 0 and "|cffffd100" or "|cff808080") .. maxCount .. "/" .. perAccount[label] .. "|r",
+			tooltip = function()
 			GameTooltip:AddLine(name)
 			GameTooltip:AddLine(L["%d personnage(s)"]:format(perAccount[label]), 1, 1, 1)
+			if maxLevel then
+				GameTooltip:AddLine(L["dont %d au niveau maximum (%d)"]:format(maxCount, maxLevel),
+					MAX_GOLD[1], MAX_GOLD[2], MAX_GOLD[3])
+			end
 			if label == OTHER_ACCOUNT then
 				GameTooltip:AddLine(L["Personnages sans compte WoW, ou d'un compte qui n'a pas de colonne "
 					.. "(Options > Polypode > Suivi > Grille)."], 1, 1, 1, true)
@@ -1068,7 +1103,7 @@ local function BuildMatrixGrid()
 				SortKeys(keys, infos)
 				local first = infos[keys[1]]
 				rowCells[i + 1] = {
-					text = ClassColorCode(first.class) .. first.name .. "|r",
+					text = EliteIcon(first) .. ClassColorCode(first.class) .. first.name .. "|r",
 					badge = #keys > 1 and ("+" .. (#keys - 1)) or nil,
 					bg = ClassTint(classFile),
 					mark = AnyMax(keys, infos),
@@ -1232,15 +1267,36 @@ local function AcquireCell(index)
 		cell.hover:SetAllPoints()
 		cell.hover:SetColorTexture(1, 1, 1, 0.12)
 		cell.hover:Hide()
-		-- Liseré à gauche (faction d'une race), coin doré (niveau maximum), compteur à droite (« +n »).
+		-- Liseré à gauche (faction d'une race), cadre et lueur dorés (niveau maximum), compteur à
+		-- droite (« +n »).
 		cell.stripe = cell:CreateTexture(nil, "BORDER")
 		cell.stripe:SetPoint("TOPLEFT")
 		cell.stripe:SetPoint("BOTTOMLEFT")
 		cell.stripe:SetWidth(3)
-		cell.mark = cell:CreateTexture(nil, "BORDER")
-		cell.mark:SetPoint("TOPRIGHT")
-		cell.mark:SetSize(5, 5)
-		cell.mark:SetColorTexture(MAX_MARK[1], MAX_MARK[2], MAX_MARK[3], MAX_MARK[4])
+		cell.glow = cell:CreateTexture(nil, "BORDER")
+		cell.glow:SetPoint("BOTTOMLEFT")
+		cell.glow:SetPoint("BOTTOMRIGHT")
+		cell.glow:SetColorTexture(1, 1, 1, 1)
+		-- Dégradé doré montant du bas (CreateColor + SetGradient), sinon voile doré uni.
+		if not (CreateColor and pcall(cell.glow.SetGradient, cell.glow, "VERTICAL",
+				CreateColor(MAX_GOLD[1], MAX_GOLD[2], MAX_GOLD[3], 0.28),
+				CreateColor(MAX_GOLD[1], MAX_GOLD[2], MAX_GOLD[3], 0))) then
+			cell.glow:SetColorTexture(MAX_GOLD[1], MAX_GOLD[2], MAX_GOLD[3], 0.1)
+		end
+		cell.border = {}
+		for i, points in ipairs({ { "TOPLEFT", "TOPRIGHT" }, { "BOTTOMLEFT", "BOTTOMRIGHT" },
+				{ "TOPLEFT", "BOTTOMLEFT" }, { "TOPRIGHT", "BOTTOMRIGHT" } }) do
+			local edge = cell:CreateTexture(nil, "ARTWORK")
+			edge:SetPoint(points[1])
+			edge:SetPoint(points[2])
+			if i <= 2 then
+				edge:SetHeight(1)
+			else
+				edge:SetWidth(1)
+			end
+			edge:SetColorTexture(MAX_GOLD[1], MAX_GOLD[2], MAX_GOLD[3], 0.9)
+			cell.border[i] = edge
+		end
 		-- Barre en diagonale (combinaison impossible), longueur et angle posés par Render.
 		cell.slash = cell:CreateTexture(nil, "BORDER")
 		cell.slash:SetPoint("CENTER")
@@ -1317,7 +1373,12 @@ local function Render(grid)
 			if stripe then
 				cell.stripe:SetColorTexture(stripe[1], stripe[2], stripe[3], stripe[4] or 1)
 			end
-			cell.mark:SetShown(spec.mark == true)
+			local isMax = spec.mark == true
+			for _, edge in ipairs(cell.border) do
+				edge:SetShown(isMax)
+			end
+			cell.glow:SetShown(isMax and MaxStyle() == "epic")
+			cell.glow:SetHeight(height * 0.7)
 			cell.slash:SetShown(spec.slash == true)
 			if spec.slash then
 				cell.slash:SetSize(math.sqrt(width * width + height * height) - 4, 1)
@@ -1373,8 +1434,8 @@ function ns.RefreshGrid()
 	frame.lowLevelsCheck:SetShown(tab == "accounts")
 	frame.lowLevelsCheck:SetChecked(ShowLowLevels())
 	frame.helpText:SetText(tab == "matrix"
-		and L["Coin doré : niveau maximum ; « +n » : autres personnages. Survol : détail ; Maj + molette : défilement horizontal."]
-		or L["Coin doré : niveau maximum (nombre doré : niveau d'objet). Survol : détail ; Maj + molette : défilement horizontal."])
+		and L["Cadre doré : niveau maximum ; « +n » : autres personnages. Survol : détail ; Maj + molette : défilement horizontal."]
+		or L["Cadre doré : niveau maximum (nombre doré : niveau d'objet ; en-tête : personnages du compte au niveau maximum). Survol : détail ; Maj + molette : défilement horizontal."])
 	Render(tab == "matrix" and BuildMatrixGrid() or BuildAccountsGrid())
 end
 
@@ -1665,6 +1726,26 @@ function ns.BuildGridSettings(parent)
 		end)
 	Settings.CreateCheckbox(category, profSetting, Tip(L["Onglet « Comptes » de la grille : icônes des deux "
 		.. "métiers devant le nom de chaque personnage (nom au survol). Réglage commun à tous vos personnages."]))
+
+	local styleSetting = Settings.RegisterProxySetting(category, "POLYPODE_SUIVI_GRID_MAX_STYLE",
+		Settings.VarType.String, L["Niveau maximum"], "epic",
+		function()
+			return MaxStyle()
+		end,
+		function(value)
+			value = value == "sober" and "sober" or nil
+			if Grid().maxStyle ~= value then
+				Grid().maxStyle = value
+				GridChanged()
+			end
+		end)
+	Settings.CreateDropdown(category, styleSetting, function()
+		local container = Settings.CreateControlTextContainer()
+		container:Add("epic", L["Épique"])
+		container:Add("sober", L["Sobre"])
+		return container:GetData()
+	end, Tip(L["Mise en avant des personnages au niveau maximum du jeu dans la grille. Épique : cadre doré, dragon "
+		.. "d'élite devant le nom et lueur dorée. Sobre : cadre doré seul. Réglage commun à tous vos personnages."]))
 
 	local countSetting = Settings.RegisterProxySetting(category, "POLYPODE_SUIVI_GRID_COUNT",
 		Settings.VarType.Number, L["Nombre de colonnes de comptes"], AccountCount(),
