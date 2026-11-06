@@ -912,6 +912,7 @@ local SCAN_MAX_ID = 1500
 local function IsOwner()
 	return P.GetTeamToken ~= nil and P.GetTeamToken() == OWNER_TOKEN
 end
+ns.IsOwner = IsOwner -- relevé du camping (Camp.lua, WoW Forever)
 
 -- Copie des champs simples (texte, nombre, booléen) d'une table renvoyée par l'API.
 local function PlainFields(info)
@@ -3532,10 +3533,14 @@ if P.AddTitleButton then
 end
 
 if P.RegisterSlashCommand then
-	-- « /poly suivi scan » : relevé des campagnes, auteur seulement (IsOwner) ; sinon la fenêtre.
+	-- « /poly suivi scan » : relevé des campagnes ; « /poly suivi camp [note] » : relevé du camping
+	-- (WoW Forever) ; auteur seulement (IsOwner) ; sinon la fenêtre.
 	P.RegisterSlashCommand("suivi", function(args)
-		if args and args[1] and args[1]:lower() == "scan" and IsOwner() then
+		local sub = args and args[1] and args[1]:lower()
+		if sub == "scan" and IsOwner() then
 			ScanCampaigns()
+		elseif sub == "camp" and IsOwner() and ns.ScanCamp then -- WoW Forever (Camp.lua)
+			ns.ScanCamp(args[2] and table.concat(args, " ", 2) or nil)
 		else
 			P.ToggleSuivi()
 		end

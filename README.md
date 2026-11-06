@@ -310,6 +310,7 @@ other language).*
 
 ## Version
 
+`2.16.0` : WoW Forever : relevé du camping réservé à l'auteur (`/poly suivi camp`, nouveau fichier `Camp.lua`) pour trouver les identifiants et noms des feux, équipements et bonus de camp avant la future section Camp ; rien ne change pour les autres joueurs.
 `2.15.0` : Grille : personnages au niveau maximum mis en avant (cadre doré, et en style Épique dragon d'élite et lueur dorée ; option « Niveau maximum » Épique / Sobre ; « Niveau maximum atteint » dans l'infobulle), compteur « n/total » au niveau maximum dans l'en-tête de chaque compte ; remplace le petit coin doré.
 `2.14.0` : double-clic sur la barre de titre (fenêtre Suivi, fenêtre de la grille) : retour à la taille par défaut (Polypode 2.12).
 `2.13.1` : Grille : personnages triés par niveau puis par niveau d'objet.
