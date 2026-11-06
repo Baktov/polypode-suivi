@@ -257,7 +257,11 @@ ligne « Race inconnue » de la matrice.
   colonnes **Héritage** (points gagnés, communs au compte / maximum), **Dépensés** (points placés dans
   ses arbres / plafond par personnage), **À dépenser** (en vert) et **Défis** (faits / total) ;
   infobulle : courrier, puis le même détail avec les points dépensés par arbre (Métiers, Aventure,
-  Progression). Le panneau Héritage du jeu n'a pas besoin d'être ouvert.
+  Progression) et, sous chaque arbre, les bonus choisis par ce personnage avec leur rang (« Nom 2/3 »).
+  Survol de l'en-tête **Héritage** : la piste de récompenses (prochaine récompense, points qui
+  manquent, et les deux suivantes) ; survol de l'en-tête **Défis** : les 10 défis pas encore faits
+  qui rapportent le plus de points, avec leur catégorie, et le total encore à gagner. Le panneau
+  Héritage du jeu n'a pas besoin d'être ouvert.
 
 ---
 
@@ -310,6 +314,7 @@ other language).*
 
 ## Version
 
+`2.17.0` : WoW Forever, Héritage : bonus choisis dans chaque arbre (infobulle du personnage, synchronisés), piste de récompenses (survol de l'en-tête « Héritage ») et défis les plus rentables (survol de l'en-tête « Défis »).
 `2.16.0` : WoW Forever : relevé du camping réservé à l'auteur (`/poly suivi camp`, nouveau fichier `Camp.lua`) pour trouver les identifiants et noms des feux, équipements et bonus de camp avant la future section Camp ; rien ne change pour les autres joueurs.
 `2.15.0` : Grille : personnages au niveau maximum mis en avant (cadre doré, et en style Épique dragon d'élite et lueur dorée ; option « Niveau maximum » Épique / Sobre ; « Niveau maximum atteint » dans l'infobulle), compteur « n/total » au niveau maximum dans l'en-tête de chaque compte ; remplace le petit coin doré.
 `2.14.0` : double-clic sur la barre de titre (fenêtre Suivi, fenêtre de la grille) : retour à la taille par défaut (Polypode 2.12).

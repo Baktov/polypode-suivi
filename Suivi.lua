@@ -404,6 +404,10 @@ local function ReadLegacy()
 			data.d, data.t = done, total
 		end
 	end
+	-- Choix dans les arbres (n<nodeID>, Legacy.lua).
+	if ns.ReadLegacyNodes then
+		ns.ReadLegacyNodes(data)
+	end
 	return data
 end
 
@@ -2149,7 +2153,8 @@ local function MemberColumns()
 				return "|cffffd200" .. earned .. (legacy.m and ("/" .. legacy.m) or "") .. "|r"
 			end, id = "legacy", sort = function(sections)
 				return tonumber(sections.H and sections.H.e)
-			end, tip = { L["Points d'Héritage"], L["Points gagnés par les défis (communs au compte) / maximum."] } },
+			end, tip = { L["Points d'Héritage"], L["Points gagnés par les défis (communs au compte) / maximum."],
+				ns.AddLegacyRewardLines } },
 			{ L["Dépensés"], function(sections)
 				local legacy = sections.H
 				local spent = LegacySpent(legacy)
@@ -2173,7 +2178,7 @@ local function MemberColumns()
 				return legacy.d and (legacy.d .. "/" .. legacy.t) or ""
 			end, id = "challenges", sort = function(sections)
 				return tonumber(sections.H and sections.H.d)
-			end, tip = { L["Défis d'Héritage"], L["Défis faits / total."] } },
+			end, tip = { L["Défis d'Héritage"], L["Défis faits / total."], ns.AddLegacyChallengeLines } },
 		}
 	end
 	local columns = {
@@ -2411,6 +2416,9 @@ local function CellHover(row, i)
 			GameTooltip:SetOwner(self, "ANCHOR_TOP")
 			GameTooltip:AddLine(self.tip[1])
 			GameTooltip:AddLine(self.tip[2], 1, 1, 1, true)
+			if self.tip[3] then -- lignes en plus calculées au survol (Héritage, Legacy.lua)
+				pcall(self.tip[3], GameTooltip)
+			end
 			if self.sortID then
 				GameTooltip:AddLine(L["Clic : trier par cette colonne (clic suivant : ordre inverse)"], 0.6, 0.6, 0.6, true)
 			end
@@ -2583,6 +2591,9 @@ local function MemberTooltip(item)
 					local inTree = tonumber(legacy["s" .. tostring(tree.id)])
 					if inTree then
 						lines[#lines + 1] = "    " .. L["%s : %s"]:format(tree.name, inTree)
+						for _, node in ipairs(ns.LegacyNodeLines and ns.LegacyNodeLines(legacy, tree.id) or {}) do
+							lines[#lines + 1] = "      |cffb0b0b0" .. node .. "|r"
+						end
 					end
 				end
 			end

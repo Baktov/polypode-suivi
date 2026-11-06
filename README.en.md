@@ -238,7 +238,11 @@ row of the matrix.
   **Legacy** (points earned, shared by the account / maximum), **Spent** (points placed in their
   trees / cap per character), **To spend** (in green) and **Challenges** (done / total); tooltip:
   mail, then the same details with the points spent per tree (Professions, Adventure,
-  Progression). The game's Legacy panel does not need to be opened.
+  Progression) and, under each tree, the bonuses chosen by this character with their rank ("Name 2/3").
+  Hovering the **Legacy** header: the reward track (next reward, points missing, and the two
+  after it); hovering the **Challenges** header: the 10 challenges not done yet that award the most
+  points, with their category, and the total still to earn. The game's Legacy panel does not need
+  to be opened.
 
 ---
 

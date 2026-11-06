@@ -116,6 +116,17 @@ P.AddTranslations(ns.L, "itIT", {
 	["Colonne %d"] = "Colonna %d",
 	["Automatique"] = "Automatico",
 	["Compte WoW (nommé dans Polypode) de la colonne %d de l'onglet « Comptes ». Automatique : le premier compte pas encore placé, par ordre alphabétique. Grisée au-delà du nombre de colonnes. Réglage commun à tous vos personnages."] = "Account WoW (nominato in Polypode) della colonna %d della scheda «Account». Automatico: il primo account non ancora posizionato, in ordine alfabetico. In grigio oltre il numero di colonne. Impostazione comune a tutti i tuoi personaggi.",
+	-- Legacy.lua
+	["Bonus n° %d"] = "Bonus n. %d",
+	["récompense"] = "ricompensa",
+	["Piste de récompenses"] = "Percorso delle ricompense",
+	["Prochaine à %d points (encore %d) : %s"] = "Prossima a %d punti (ne mancano %d): %s",
+	["%d points : %s"] = "%d punti: %s",
+	["Toutes les récompenses de la piste sont obtenues."] = "Tutte le ricompense del percorso sono state ottenute.",
+	["Aucun défi restant ne rapporte de points."] = "Nessuna sfida rimanente dà punti.",
+	["Défis les plus rentables (personnage joué)"] = "Sfide più redditizie (personaggio attuale)",
+	["%d pts"] = "%d pt",
+	["En tout : %d points à gagner par %d défis."] = "In tutto: %d punti da ottenere con %d sfide.",
 	-- Suivi.lua
 	["Raids"] = "Incursioni",
 	["Donjons"] = "Spedizioni",
