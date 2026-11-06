@@ -314,6 +314,7 @@ other language).*
 
 ## Version
 
+`2.17.1` : relecture : journal du camping (auteur) relancé si le BattleTag n'est pas encore connu à la connexion, message du relevé sans les objets pas encore chargés, infobulle de l'Héritage protégée d'une valeur de bonus mal formée.
 `2.17.0` : WoW Forever, Héritage : bonus choisis dans chaque arbre (infobulle du personnage, synchronisés), piste de récompenses (survol de l'en-tête « Héritage ») et défis les plus rentables (survol de l'en-tête « Défis »).
 `2.16.0` : WoW Forever : relevé du camping réservé à l'auteur (`/poly suivi camp`, nouveau fichier `Camp.lua`) pour trouver les identifiants et noms des feux, équipements et bonus de camp avant la future section Camp ; rien ne change pour les autres joueurs.
 `2.15.0` : Grille : personnages au niveau maximum mis en avant (cadre doré, et en style Épique dragon d'élite et lueur dorée ; option « Niveau maximum » Épique / Sobre ; « Niveau maximum atteint » dans l'infobulle), compteur « n/total » au niveau maximum dans l'en-tête de chaque compte ; remplace le petit coin doré.

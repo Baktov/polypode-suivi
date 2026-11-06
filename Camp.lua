@@ -165,8 +165,12 @@ function ns.ScanCamp(note)
 	local store = Store()
 	Push(store.snapshots, snap, CAMP.MAX_SNAPSHOTS)
 	local benefits = snap.auras[CAMP.AURA_BENEFITS]
+	local found = 0 -- objets de camp reconnus (sans les descriptions pas encore chargées)
+	for _, item in ipairs(snap.items) do
+		if not item.pending then found = found + 1 end
+	end
 	UIErrorsFrame:AddMessage(string.format("Polypode Suivi : relevé du camp n° %d (%d objets de camp, repos %s %%%s, "
-		.. "feu %s). Faites /reload pour écrire le fichier.", #store.snapshots, #snap.items,
+		.. "feu %s). Faites /reload pour écrire le fichier.", #store.snapshots, found,
 		tostring(snap.xp.restedPct or 0), benefits and benefits.remaining
 			and string.format(", bonus %d min", math.floor(benefits.remaining / 60)) or "",
 		snap.auras[CAMP.AURA_NEARBY] and "proche" or "absent"), 0.2, 1, 0.6)
@@ -207,15 +211,27 @@ local function OnAuraChanged()
 end
 
 local frame = CreateFrame("Frame")
+
+-- Démarre le journal pour l'auteur. Le BattleTag (P.GetTeamToken) peut manquer juste après la
+-- connexion : nouvel essai toutes les 10 s, 12 fois au plus ; les autres joueurs : rien de suivi.
+local function StartWatch(tries)
+	if not IsOwner() then
+		if tries < 12 and C_Timer and C_Timer.After then
+			C_Timer.After(10, function() StartWatch(tries + 1) end)
+		end
+		return
+	end
+	watch.auras = ReadAuras()
+	frame:RegisterUnitEvent("UNIT_AURA", "player")
+	frame:RegisterUnitEvent("UNIT_SPELLCAST_SUCCEEDED", "player")
+	frame:RegisterEvent("UPDATE_EXHAUSTION")
+end
+
 frame:RegisterEvent("PLAYER_ENTERING_WORLD")
 frame:SetScript("OnEvent", function(self, event, unit, _, spellID)
 	if event == "PLAYER_ENTERING_WORLD" then
 		self:UnregisterEvent("PLAYER_ENTERING_WORLD")
-		if not IsOwner() then return end -- les autres joueurs : aucun événement suivi
-		watch.auras = ReadAuras()
-		self:RegisterUnitEvent("UNIT_AURA", "player")
-		self:RegisterUnitEvent("UNIT_SPELLCAST_SUCCEEDED", "player")
-		self:RegisterEvent("UPDATE_EXHAUSTION")
+		StartWatch(0)
 	elseif event == "UNIT_AURA" then
 		OnAuraChanged()
 	elseif event == "UNIT_SPELLCAST_SUCCEEDED" then

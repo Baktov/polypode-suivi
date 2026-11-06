@@ -113,9 +113,11 @@ function ns.LegacyNodeLines(legacy, treeID)
 		local nodeID = tonumber(k:match("^n(%d+)$"))
 		if nodeID and NodeTree(nodeID) == treeID then
 			local rank, entryID = tostring(v):match("^(%d+)%-?(%d*)$")
-			local name, max = NodeLabel(nodeID, tonumber(entryID))
-			lines[#lines + 1] = string.format("%s %s", name or L["Bonus n° %d"]:format(nodeID),
-				max and (rank .. "/" .. max) or (rank or ""))
+			if rank then -- valeur mal formée (autre version) : ligne ignorée
+				local name, max = NodeLabel(nodeID, tonumber(entryID))
+				lines[#lines + 1] = string.format("%s %s", name or L["Bonus n° %d"]:format(nodeID),
+					max and (rank .. "/" .. max) or rank)
+			end
 		end
 	end
 	table.sort(lines)
