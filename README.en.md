@@ -279,6 +279,14 @@ The "a rune can be bought" computation follows Blizzard's interface
 
 ---
 
+## License
+
+Polypode Tracker is free software, under the **GNU GPL version 3** ([`LICENSE`](LICENSE)
+file): you may take it, modify it and redistribute it, as long as you keep this license and
+credit the author. Copyright (C) 2026 Baktov.
+
+The lists taken from Plumber (Peterodox, GPL-3.0; see "Credits") are used under this same license.
+
 ## Languages
 
 Polypode Tracker follows the language chosen in Polypode ("Langue / Language" option,

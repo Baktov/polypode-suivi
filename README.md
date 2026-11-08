@@ -299,6 +299,15 @@ travail de recensement.
 
 ---
 
+## Licence
+
+Polypode Suivi est un logiciel libre, sous licence **GNU GPL version 3** (fichier
+[`LICENSE`](LICENSE)) : vous pouvez le reprendre, le modifier et le redistribuer, à condition de
+garder cette licence et de citer l'auteur. Copyright (C) 2026 Baktov.
+
+Les listes reprises de Plumber (Peterodox, GPL-3.0 ; voir « Crédits ») le sont sous cette même
+licence.
+
 ## Langues (Languages)
 
 Polypode Suivi s'affiche dans la langue choisie dans Polypode (option « Langue / Language », `/poly langue`),
@@ -314,6 +323,7 @@ other language).*
 
 ## Version
 
+`2.17.2` : licence libre **GNU GPL version 3** (fichier `LICENSE`).
 `2.17.1` : relecture : journal du camping (auteur) relancé si le BattleTag n'est pas encore connu à la connexion, message du relevé sans les objets pas encore chargés, infobulle de l'Héritage protégée d'une valeur de bonus mal formée.
 `2.17.0` : WoW Forever, Héritage : bonus choisis dans chaque arbre (infobulle du personnage, synchronisés), piste de récompenses (survol de l'en-tête « Héritage ») et défis les plus rentables (survol de l'en-tête « Défis »).
 `2.16.0` : WoW Forever : relevé du camping réservé à l'auteur (`/poly suivi camp`, nouveau fichier `Camp.lua`) pour trouver les identifiants et noms des feux, équipements et bonus de camp avant la future section Camp ; rien ne change pour les autres joueurs.
