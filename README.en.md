@@ -177,7 +177,9 @@ and, in the **Epic** style (default), an **elite dragon** before their name and 
 (**Plain** style: frame only, in the options); their tooltip shows "Max level reached". On hover
 of a cell: account, level, item level, class,
 race, professions and team of each character. Mouse wheel: scrolling; Shift + mouse wheel:
-horizontal scrolling if the grid is wider than the window.
+horizontal scrolling if the grid is wider than the window. With Blizzard's **gamepad
+interface** (WoW Forever), without a mouse wheel or Shift, two buttons appear under the grid when
+it overflows, to scroll it left or right by half its width; with a mouse, nothing changes.
 
 - **Accounts**: one column per **WoW account** (named in Polypode; number and order of the columns
   in the options, **Others** column for characters with no account or of an account with no

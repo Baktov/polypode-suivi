@@ -99,6 +99,8 @@ P.AddTranslations(ns.L, "deDE", {
 	["Cochée : aussi les personnages seuls de niveau 10 ou moins. Décochée : ils sont masqués (jamais ceux d'une équipe)."] = "Aktiviert: auch Einzelcharaktere der Stufe 10 oder darunter. Deaktiviert: sie werden ausgeblendet (nie die eines Teams).",
 	["Onglet « Comptes » de la grille : icônes des deux métiers devant le nom de chaque personnage (nom au survol). Réglage commun à tous vos personnages."] = "Reiter „Konten“ des Rasters: Symbole beider Berufe vor dem Namen jedes Charakters (Name beim Überfahren). Einstellung für alle Ihre Charaktere.",
 	["Toutes les races"] = "Alle Völker",
+	["Défiler vers la gauche"] = "Nach links scrollen",
+	["Défiler vers la droite"] = "Nach rechts scrollen",
 	["Cochée : toutes les races, pour voir les combinaisons qui manquent. Décochée : seulement les races qui ont un personnage."] = "Aktiviert: alle Völker, um die fehlenden Kombinationen zu sehen. Deaktiviert: nur Völker mit einem Charakter.",
 	["Clic : ajoute une ligne libre en bas de la matrice (libellé et texte par classe), commune à tous vos personnages."] = "Klick: fügt unten in der Matrix eine freie Zeile hinzu (Bezeichnung und Text pro Klasse), für alle Ihre Charaktere.",
 	["Nouvelle ligne"] = "Neue Zeile",

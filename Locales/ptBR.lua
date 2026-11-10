@@ -99,6 +99,8 @@ P.AddTranslations(ns.L, "ptBR", {
 	["Cochée : aussi les personnages seuls de niveau 10 ou moins. Décochée : ils sont masqués (jamais ceux d'une équipe)."] = "Marcada: também os personagens solo de nível 10 ou menos. Desmarcada: ficam ocultos (nunca os de uma equipe).",
 	["Onglet « Comptes » de la grille : icônes des deux métiers devant le nom de chaque personnage (nom au survol). Réglage commun à tous vos personnages."] = "Aba \"Contas\" da grade: ícones das duas profissões antes do nome de cada personagem (nome ao passar o mouse). Configuração comum a todos os seus personagens.",
 	["Toutes les races"] = "Todas as raças",
+	["Défiler vers la gauche"] = "Rolar para a esquerda",
+	["Défiler vers la droite"] = "Rolar para a direita",
 	["Cochée : toutes les races, pour voir les combinaisons qui manquent. Décochée : seulement les races qui ont un personnage."] = "Marcada: todas as raças, para ver as combinações que faltam. Desmarcada: só as raças que têm um personagem.",
 	["Clic : ajoute une ligne libre en bas de la matrice (libellé et texte par classe), commune à tous vos personnages."] = "Clique: adiciona uma linha livre no fim da matriz (rótulo e texto por classe), comum a todos os seus personagens.",
 	["Nouvelle ligne"] = "Nova linha",

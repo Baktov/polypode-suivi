@@ -78,6 +78,7 @@ Retail (120000) et WoW Forever (16001) avec tests d'existence des API (lectures 
 ## Dépendances vers Polypode (API publique utilisée)
 
 `P.EnableTitleDoubleClick(fenêtre, remise, hauteur)` (si présente, Polypode 2.12 : double-clic sur la barre de titre, taille par défaut).
+`P.IsGamepadUI` (si présente, Polypode 2.15.1 ; Grid.lua, 2.18.0) : en interface manette, boutons `PageButton` (gauche / droite, textures `UI-SpellbookIcon-PrevPage` / `NextPage`) sous la grille quand elle déborde, `ScrollHorizontally` d'une demi-largeur (aussi utilisée par Maj + molette), `UpdatePageButtons` sur `OnScrollRangeChanged` / `OnHorizontalScroll` / `OnSizeChanged` du ScrollFrame et `OnShow` de la fenêtre (bas du ScrollFrame relevé de 22 px quand ils sont affichés).
 
 Langues (si présentes) : `P.NewLocale`, `P.AddTranslations` (Polypode 2.8), `P.OnLanguageApplied` (2.9).
 

@@ -1622,15 +1622,66 @@ local function Build()
 	if P.SkinScrollBar then
 		P.SkinScrollBar(scrollBar)
 	end
+	-- Défilement horizontal de la grille plus large que la fenêtre (direction -1 = vers la gauche).
+	local function ScrollHorizontally(step)
+		local maxX = math.max(0, canvas:GetWidth() - scroll:GetWidth())
+		scroll:SetHorizontalScroll(math.min(maxX, math.max(0, scroll:GetHorizontalScroll() + step)))
+	end
 	-- Molette : vertical (par la barre) ; Maj + molette : horizontal (grille plus large que la fenêtre).
-	scroll:SetScript("OnMouseWheel", function(self, delta)
+	scroll:SetScript("OnMouseWheel", function(_, delta)
 		if IsShiftKeyDown() then
-			local maxX = math.max(0, canvas:GetWidth() - self:GetWidth())
-			self:SetHorizontalScroll(math.min(maxX, math.max(0, self:GetHorizontalScroll() - delta * 60)))
+			ScrollHorizontally(-delta * 60)
 		else
 			scrollBar:ScrollStepInDirection(-delta)
 		end
 	end)
+
+	-- Interface manette de Blizzard (P.IsGamepadUI, Polypode 2.15.1, testée avant usage) : ni Maj ni
+	-- molette. Dans ce mode seulement, deux boutons sous la grille la font défiler d'une demi-largeur
+	-- quand elle déborde ; à la souris, rien ne change.
+	local function PageButton(texturePrefix, direction, tip)
+		local button = CreateFrame("Button", nil, panel)
+		button:SetSize(24, 24)
+		button:SetNormalTexture(texturePrefix .. "-Up")
+		button:SetPushedTexture(texturePrefix .. "-Down")
+		button:SetDisabledTexture(texturePrefix .. "-Disabled")
+		button:SetHighlightTexture("Interface\\Buttons\\UI-Common-MouseHilight", "ADD")
+		button:SetScript("OnClick", function()
+			ScrollHorizontally(direction * math.max(60, scroll:GetWidth() / 2))
+		end)
+		button:SetScript("OnEnter", function(self)
+			GameTooltip:SetOwner(self, "ANCHOR_TOP")
+			GameTooltip:AddLine(tip)
+			if ns.ShowTooltip then
+				ns.ShowTooltip()
+			else
+				GameTooltip:Show()
+			end
+		end)
+		button:SetScript("OnLeave", GameTooltip_Hide)
+		button:Hide()
+		return button
+	end
+	local pageLeft = PageButton("Interface\\Buttons\\UI-SpellbookIcon-PrevPage", -1, L["Défiler vers la gauche"])
+	local pageRight = PageButton("Interface\\Buttons\\UI-SpellbookIcon-NextPage", 1, L["Défiler vers la droite"])
+	pageLeft:SetPoint("BOTTOMLEFT", 6, 4)
+	pageRight:SetPoint("BOTTOMRIGHT", -22, 4)
+	local function UpdatePageButtons()
+		local show = P.IsGamepadUI ~= nil and P.IsGamepadUI() and canvas:GetWidth() > scroll:GetWidth() + 1
+		pageLeft:SetShown(show)
+		pageRight:SetShown(show)
+		-- Place des boutons sous la grille seulement quand ils sont affichés.
+		scroll:SetPoint("BOTTOMRIGHT", -22, show and 30 or 8)
+		if show then
+			local x, maxX = scroll:GetHorizontalScroll(), math.max(0, canvas:GetWidth() - scroll:GetWidth())
+			pageLeft:SetEnabled(x > 0.5)
+			pageRight:SetEnabled(x < maxX - 0.5)
+		end
+	end
+	scroll:HookScript("OnScrollRangeChanged", UpdatePageButtons)
+	scroll:HookScript("OnHorizontalScroll", UpdatePageButtons)
+	scroll:HookScript("OnSizeChanged", UpdatePageButtons)
+	frame:HookScript("OnShow", UpdatePageButtons)
 
 	frame.emptyText = panel:CreateFontString(nil, "OVERLAY", "GameFontDisable")
 	frame.emptyText:SetPoint("CENTER")

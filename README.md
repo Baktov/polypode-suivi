@@ -193,7 +193,10 @@ Un personnage au **niveau maximum du jeu** (60 sur WoW Forever, 90 sur Midnight)
 **lueur dorée** (style **Sobre** : cadre seul, dans les options) ; son infobulle porte « Niveau
 maximum atteint ». Au survol d'une case : compte, niveau,
 niveau d'objet, classe, race, métiers et équipe de chaque personnage. Molette : défilement ;
-Maj + molette : défilement horizontal si la grille est plus large que la fenêtre.
+Maj + molette : défilement horizontal si la grille est plus large que la fenêtre. Avec
+l'**interface manette** de Blizzard (WoW Forever), sans molette ni Maj, deux boutons
+apparaissent sous la grille quand elle déborde, pour la faire défiler vers la gauche ou la
+droite d'une demi-largeur ; à la souris, rien ne change.
 
 - **Comptes** : une colonne par **compte WoW** (nommé dans Polypode ; nombre et ordre des colonnes
   dans les options, colonne **Autres** pour les personnages sans compte ou d'un compte sans
@@ -323,6 +326,7 @@ other language).*
 
 ## Version
 
+`2.18.0` : Grille, interface manette de Blizzard : boutons de défilement horizontal sous la grille quand elle déborde (sans molette ni Maj). À la souris, rien ne change.
 `2.17.2` : licence libre **GNU GPL version 3** (fichier `LICENSE`).
 `2.17.1` : relecture : journal du camping (auteur) relancé si le BattleTag n'est pas encore connu à la connexion, message du relevé sans les objets pas encore chargés, infobulle de l'Héritage protégée d'une valeur de bonus mal formée.
 `2.17.0` : WoW Forever, Héritage : bonus choisis dans chaque arbre (infobulle du personnage, synchronisés), piste de récompenses (survol de l'en-tête « Héritage ») et défis les plus rentables (survol de l'en-tête « Défis »).

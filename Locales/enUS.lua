@@ -99,6 +99,8 @@ P.AddTranslations(ns.L, "enUS", {
 	["Cochée : aussi les personnages seuls de niveau 10 ou moins. Décochée : ils sont masqués (jamais ceux d'une équipe)."] = "Checked: also the solo characters of level 10 or lower. Unchecked: they are hidden (never those of a team).",
 	["Onglet « Comptes » de la grille : icônes des deux métiers devant le nom de chaque personnage (nom au survol). Réglage commun à tous vos personnages."] = "\"Accounts\" tab of the grid: icons of both professions before each character's name (name on hover). Setting shared by all your characters.",
 	["Toutes les races"] = "All races",
+	["Défiler vers la gauche"] = "Scroll left",
+	["Défiler vers la droite"] = "Scroll right",
 	["Cochée : toutes les races, pour voir les combinaisons qui manquent. Décochée : seulement les races qui ont un personnage."] = "Checked: all races, to see the missing combinations. Unchecked: only the races that have a character.",
 	["Clic : ajoute une ligne libre en bas de la matrice (libellé et texte par classe), commune à tous vos personnages."] = "Click: adds a free row at the bottom of the matrix (label and text per class), shared by all your characters.",
 	["Nouvelle ligne"] = "New row",
