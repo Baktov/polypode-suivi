@@ -233,6 +233,8 @@ ligne « Race inconnue » de la matrice.
 
 ---
 
+Avec Polypode 2.29 et suivants, les fenêtres Suivi et Grille suivent l'option **Placement des fenêtres** de Polypode : en **tiroir** (défaut), elles s'ouvrent accolées à la fenêtre Polypode et la suivent ; **aimantées**, elles s'y accrochent quand on les glisse contre un bord ; en **fenêtre unique**, elles s'ouvrent à la place du module affiché, avec la colonne des modules sur le côté.
+
 ## Fonctionnement
 
 - Le personnage joué est lu en direct. Les autres envoient leurs informations par Polypode
@@ -326,6 +328,7 @@ other language).*
 
 ## Version
 
+`2.19.0` : avec Polypode 2.29, les fenêtres Suivi et Grille s'ouvrent en **tiroir** contre la fenêtre Polypode, s'y aimantent ou prennent la place de la **fenêtre unique**, selon l'option « Placement des fenêtres » de Polypode.
 `2.18.0` : Grille, interface manette de Blizzard : boutons de défilement horizontal sous la grille quand elle déborde (sans molette ni Maj). À la souris, rien ne change.
 `2.17.2` : licence libre **GNU GPL version 3** (fichier `LICENSE`).
 `2.17.1` : relecture : journal du camping (auteur) relancé si le BattleTag n'est pas encore connu à la connexion, message du relevé sans les objets pas encore chargés, infobulle de l'Héritage protégée d'une valeur de bonus mal formée.

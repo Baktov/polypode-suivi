@@ -86,7 +86,7 @@ Langues (si présentes) : `P.NewLocale`, `P.AddTranslations` (Polypode 2.8), `P.
 `P.WhisperOnline`, `P.IsSender`, `P.MAX_MESSAGE_LENGTH`, `P.RefreshUI` (accroche), `P.GetTeamToken`,
 `P.GetCharKey`, `P.GetDisplayName`, `P.db.roster`, `P.GetSelectedTeam`, `P.GetTeamLeader`,
 `P.GetTeamMembers`, `P.GetCharacter`, `P.GetCharacterQuests`, `P.RegisterQuestLogCallback` (si présente, Polypode 0.58.0), `P.SortedKeyItems`, `P.IsCharacterConnected` (si présente, panneau campagnes), `P.ToggleOptionsPopup` (si présente, Polypode 0.57.0), `P.optionsCategory`, `P.CreatePanel`, `P.CreateScrollList`, `P.SetListData`,
-`P.SkinFrame`, `P.SkinPanel`, `P.SkinButton`, `P.SkinCheckBox`, `P.SkinScrollBar` (si présents), `P.Debug`, `P.ShowTooltip` / `P.ColorClicks` (si présentes, Polypode 0.60.0 : clics en bleu dans les infobulles), `P.GetRoster`, `P.GetTeams`, `P.GetAccountLabels` / `P.GetCharacterAccount` (grille) ; et, de **Polypode Data** (si présent), `P.GetCharacterData` ; toute infobulle par la locale `ShowTooltip`. Toute évolution de ces fonctions dans Polypode doit rester
+`P.SkinFrame`, `P.RegisterModuleWindow` (si présente, Polypode 2.28 / 2.29 : tiroir, aimant ou fenêtre unique ; clés `Polypode_Suivi` et `Polypode_Suivi2` pour la Grille, celles de leurs boutons), `P.SkinPanel`, `P.SkinButton`, `P.SkinCheckBox`, `P.SkinScrollBar` (si présents), `P.Debug`, `P.ShowTooltip` / `P.ColorClicks` (si présentes, Polypode 0.60.0 : clics en bleu dans les infobulles), `P.GetRoster`, `P.GetTeams`, `P.GetAccountLabels` / `P.GetCharacterAccount` (grille) ; et, de **Polypode Data** (si présent), `P.GetCharacterData` ; toute infobulle par la locale `ShowTooltip`. Toute évolution de ces fonctions dans Polypode doit rester
 compatible, ou ce fichier doit suivre.
 
 ## Pistes

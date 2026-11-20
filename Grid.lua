@@ -1724,6 +1724,10 @@ local function Build()
 	end)
 
 	P.SkinFrame(frame)
+	-- Tiroir, aimant ou fenêtre unique autour de la fenêtre Polypode (Polypode 2.28 / 2.29).
+	if P.RegisterModuleWindow then
+		P.RegisterModuleWindow(frame, "Polypode_Suivi2")
+	end
 	P.SkinPanel(panel)
 	if P.SkinButton then
 		P.SkinButton(accountsTab)

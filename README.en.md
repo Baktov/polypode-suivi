@@ -214,6 +214,8 @@ row of the matrix.
 
 ---
 
+With Polypode 2.29 and later, the Tracker and Grid windows follow Polypode's **Window placement** option: as a **drawer** (default), they open against the Polypode window and follow it; with the **magnet**, they stick to it when dragged against an edge; as a **single window**, they open in place of the module shown, with the column of modules on the side.
+
 ## How it works
 
 - The current character is read live. The others send their information through Polypode
