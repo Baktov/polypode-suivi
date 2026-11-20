@@ -75,6 +75,8 @@ Retail (120000) et WoW Forever (16001) avec tests d'existence des API (lectures 
 
 **Saison** : l'en-tête de la liste affiche `SeasonText()` (« Midnight, saison 2 ») et « listes à mettre à jour » si `ListsOutdated()` (autre extension, ou saison absente de `CRESTS_BY_SEASON` / `ns.ACTIVITIES_SEASONS`). À chaque nouvelle saison : ajouter ses écus à `CRESTS_BY_SEASON`, mettre à jour `Activities.lua` et `ns.ACTIVITIES_SEASONS` (d'après Plumber).
 
+Fusion de fiches (2.20.0) : `merge(de, vers)` de `P.RegisterCharacterData` (Suivi.lua) — sections de `received[de]` plus récentes (`times[section]`, sinon `at`) ou absentes reportées dans `received[vers]`, `at` le plus récent, `questLogs` gardé s'il est plus récent (`at`), puis `de` oublié ; jamais pour le personnage joué ; appelé par `P.MergeCharacters` de Polypode 2.32.
+
 ## Dépendances vers Polypode (API publique utilisée)
 
 `P.EnableTitleDoubleClick(fenêtre, remise, hauteur)` (si présente, Polypode 2.12 : double-clic sur la barre de titre, taille par défaut).

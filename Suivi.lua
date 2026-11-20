@@ -3595,6 +3595,41 @@ if P.RegisterCharacterData then
 				P.RefreshSuivi()
 			end
 		end,
+		-- Fusion de deux fiches d'un même personnage (Polypode 2.32) : chaque section de « de » plus
+		-- récente (date) ou absente de « vers » y est reportée, journal de quêtes le plus récent
+		-- gardé, puis « de » est oublié.
+		merge = function(from, to)
+			if from == to or from == P.GetCharKey() then
+				return
+			end
+			local source = received[from]
+			if source then
+				local target = received[to] or { sections = {} }
+				received[to] = target
+				target.sections = target.sections or {}
+				target.times = target.times or {}
+				for section, data in pairs(source.sections or {}) do
+					local sourceTime = source.times and source.times[section] or source.at or 0
+					local targetTime = target.times[section] or (target.sections[section] and target.at) or 0
+					if not target.sections[section] or sourceTime > targetTime then
+						target.sections[section] = data
+						target.times[section] = source.times and source.times[section] or source.at
+					end
+				end
+				if source.at and (not target.at or source.at > target.at) then
+					target.at = source.at
+				end
+				received[from] = nil
+			end
+			local log = questLogs[from]
+			if log then
+				if not questLogs[to] or (log.at or 0) > (questLogs[to].at or 0) then
+					questLogs[to] = log
+				end
+				questLogs[from] = nil
+			end
+			P.RefreshSuivi()
+		end,
 	})
 end
 

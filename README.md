@@ -328,6 +328,7 @@ other language).*
 
 ## Version
 
+`2.20.0` : avec Polypode 2.32, la **fusion de deux fiches** d'un même personnage reporte sur la fiche gardée les informations de suivi les plus récentes (ou absentes) de l'autre fiche et son journal de quêtes s'il est plus récent ; l'autre fiche est ensuite oubliée.
 `2.19.0` : avec Polypode 2.29, les fenêtres Suivi et Grille s'ouvrent en **tiroir** contre la fenêtre Polypode, s'y aimantent ou prennent la place de la **fenêtre unique**, selon l'option « Placement des fenêtres » de Polypode.
 `2.18.0` : Grille, interface manette de Blizzard : boutons de défilement horizontal sous la grille quand elle déborde (sans molette ni Maj). À la souris, rien ne change.
 `2.17.2` : licence libre **GNU GPL version 3** (fichier `LICENSE`).
